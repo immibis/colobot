@@ -149,7 +149,7 @@ CBotInstr* CBotDefClass::Compile(CBotToken* &p, CBotCStack* pStack, CBotClass* p
                 typ = 0;
             }
 
-            if (typ>20)
+            if (typ>20) // XXX
             {
                 pStk->SetError(static_cast<CBotError>(typ), vartoken->GetEnd());
                 goto error;

@@ -86,7 +86,9 @@ CBotCStack* CBotCStack::TokenStack(CBotToken* pToken, bool bBlock)
 ////////////////////////////////////////////////////////////////////////////////
 CBotInstr* CBotCStack::Return(CBotInstr* inst, CBotCStack* pfils)
 {
-    if ( pfils == this ) return inst;
+    if ( pfils == this ) return inst; // TODO: Can this happen?
+
+
 
     if (m_var != nullptr) delete m_var;            // value replaced?
     m_var = pfils->m_var;                        // result transmitted
@@ -292,6 +294,9 @@ void CBotCStack::SetVar( CBotVar* var )
 void CBotCStack::SetCopyVar( CBotVar* var )
 {
     if (m_var) delete m_var;    // replacement of a variable
+
+    // If this is not true, the next line leaves m_var pointing to a deleted object which will crash eventually.
+    assert(m_var == nullptr || var != nullptr);
 
     if ( var == nullptr ) return;
     m_var = CBotVar::Create("", var->GetTypResult(CBotVar::GetTypeMode::CLASS_AS_INTRINSIC));

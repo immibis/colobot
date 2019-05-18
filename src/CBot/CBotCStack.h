@@ -31,196 +31,292 @@ class CBotToken;
 
 /*!
  * \brief The CBotCStack class Management of the stack of compilation.
+ *
+ * This is used to keep track of local variables, and also (for some reason) to pass CBotVars up the call stack.
+ * Generally each function on the call stack of the recursive descent parser has an associated instance of
+ * CBotCStack which holds some context for that rule. Each instance of CBotCStack is called a stack level.
+ * Each level holds a pointer to the adjacent levels outside (prev) and inside it (next). It's not clear why the next pointer is needed.
+ *
+ * Levels where m_bBlock is true correspond to blocks in the source code, and can have local variables associated with them.
+ * When a variable declaration is encountered, the variable gets added to the innermost enclosing block.
+ *
+ * The TokenStack method, which must be called on the innermost level, creates and returns a new inner level.
+ * The Return or ReturnFunc method can be used to destroy the innermost level and go back to the level outside it.
+ *
+ * Each stack level has a m_var which is used for various purposes.
+ * It's not clear why we stash these into the stack instead of returning them.
+ * The CBotCStack has ownership of the object m_var points to.
+ *
+ * Each stack level has an error start position, end position and error type.
+ * It's not clear why we stash these into the stack instead of returning them or throwing an exception.
+ * For some reason, two of these are static.
+ *
+ * There's also the current function's return type, m_retTyp, and the current program, m_prog.
+ *
+ * Typically, a parser function will take the current stack level as a parameter, create its own stack level,
+ * and delete its own stack level when returning.
+ * Typically, the function will return a pointer to some object, or if there's an error, it will set the error
+ * in the stack (which propagates up the stack) and return null.
  */
 class CBotCStack
 {
 public:
 
     /*!
-     * \brief CBotCStack
-     * \param ppapa
+     * \brief Creates a stack level.
+     *
+     * \link TokenStack(CBotToken*, bool) \endlink is normally used to create new stack levels.
+     * This constructor is only used to create the outermost stack level for the program.
+     *
+     * \param pParent Parent stack level
      */
-    CBotCStack(CBotCStack* ppapa);
+    CBotCStack(CBotCStack* pParent);
 
     /*!
-     * \brief CBotCStack Destructor.
+     * \brief Destructor.
      */
     ~CBotCStack();
 
     /*!
-     * \brief IsOk
-     * \return
+     * \brief Checks if an error occurred
+     *
+     * \return True if no error occurred
      */
     bool IsOk();
 
     /*!
-     * \brief GetError
-     * \return
+     * \brief Get error type
+     *
+     * \return Error type
      */
     CBotError GetError();
 
     /*!
-     * \brief GetError Gives error number
-     * \param start
-     * \param end
-     * \return
+     * \brief Get error type and location
+     *
+     * \param start [out] Start location of error
+     * \param end   [out] End location of error
+     * \return Error type
      */
     CBotError GetError(int& start, int& end);
 
     /*!
-     * \brief SetType Set the type of instruction on the stack.
-     * \param type
+     * \brief Set m_var's type.
+     *
+     * This is identical to GetVar()->\link CBotVar::SetType(CBotTypResult&) SetType(type)\endlink, unless m_var is null in which case it does nothing.
+     *
+     * \param type New type
      */
     void SetType(CBotTypResult& type);
 
     /*!
-     * \brief GetTypResult Gives the type of value on the stack. Type of
-     * instruction on the stack.
+     * \brief Gets type of m_var.
+     *
+     * This is identical to GetVar()->\link CBotVar::GetTypResult(CBotVar::GetTypeMode) GetTypResult(mode)\endlink unless m_var is null.
+     * If m_var is null, this returns nullptr.
+     *
      * \param mode
-     * \return
+     * \return m_var's type
      */
     CBotTypResult GetTypResult(CBotVar::GetTypeMode mode = CBotVar::GetTypeMode::NORMAL);
 
     /*!
-     * \brief GetType Gives the type of value on the stack.
+     * \brief Gets type of m_var.
+     *
+     * This is identical to GetVar()->\link CBotVar::GetType(CBotVar::GetTypeMode) GetType(mode)\endlink unless m_var is null.
+     * If m_var is null, this returns nullptr.
+     *
      * \param mode
-     * \return
+     * \return m_var's type
      */
     int GetType(CBotVar::GetTypeMode mode = CBotVar::GetTypeMode::NORMAL);
 
     /*!
-     * \brief GetClass Gives the class of the value on the stack.
-     * \return
+     * \brief Gets type of m_var.
+     *
+     * This is identical to GetVar()->\link CBotVar::GetClass() GetClass()\endlink if m_var is not null and has a class type.
+     * Otherwise, this returns nullptr.
+     *
+     * \return m_var's class
      */
     CBotClass* GetClass();
 
     /*!
-     * \brief AddVar Adds a local variable.
-     * \param p
+     * \brief Adds a local variable.
+     *
+     * If this stack level is not a block, it walks up the stack and adds the variable to the nearest enclosing block.
+     * Takes ownership of p.
+     *
+     * \param p The new variable.
      */
     void AddVar(CBotVar* p);
 
     /*!
-     * \brief FindVar Finds a variable. Seeks a variable on the stack the token
-     * may be a result of TokenTypVar (object of a class) or a pointer in the
-     * source.
-     * \param p
-     * \return
+     * \brief Finds a local variable by name.
+     *
+     * The token type is ignored as long as p->\link CBotToken::GetString() GetString()\endlink returns a variable name.
+     * \param p Token to search
+     * \return Variable found, or null if not found.
      */
     CBotVar* FindVar(CBotToken* &p);
 
     /*!
-     * \brief FindVar
-     * \param Token
-     * \return
+     * \brief Finds a local variable by name.
+     *
+     * The token type is ignored as long as Token.\link CBotToken::GetString() GetString()\endlink returns a variable name.
+     * \param Token Token to search
+     * \return Variable found, or null if not found.
      */
     CBotVar* FindVar(CBotToken& Token);
 
     /*!
-     * \brief CheckVarLocal Test whether a variable is already defined locally.
-     * \param pToken
-     * \return
+     * \brief Test whether a local variable is already defined.
+     *
+     * The token type is ignored as long as pToken->\link CBotToken::GetString() GetString()\endlink returns a variable name.
+     * This only searches the innermost scope. It is used to see whether a variable can be defined, and shadowing is allowed.
+     *
+     * \param pToken Token to search
+     * \return True if a variable with the same name is already defined in this scope.
      */
     bool CheckVarLocal(CBotToken* &pToken);
 
     /*!
-     * \brief CopyVar Finds and makes a copy.
+     * \brief Finds a variable by name.
+     *
+     * This calls \link FindVar(CBotToken&) \endlink and if found, makes a copy.
+     *
      * \param Token
-     * \return
+     * \return Copy of found variable, or null if not found.
      */
     CBotVar* CopyVar(CBotToken& Token);
 
     /*!
-     * \brief TokenStack Used only at compile.
-     * \param pToken
-     * \param bBlock
+     * \brief Creates a new stack level.
+     *
+     * \param pToken If not null, the child's startError is pToken->\link CBotToken::GetStart() GetStart()\endlink
+     * \param bBlock Whether the new level starts a block.
      * \return
      */
     CBotCStack* TokenStack(CBotToken* pToken = nullptr, bool bBlock = false);
 
     /*!
-     * \brief Return Transmits the result upper.
-     * \param p
-     * \param pParent
-     * \return
+     * \brief Exits a stack level.
+     *
+     * Moves var and error from pChild to this.
+     * Then deletes pChild.
+     * pChild must be the innermost level and this must be its parent.
+     *
+     * \param p       Not used except as the return value from this function.
+     * \param pChild  Child stack level.
+     * \return        Same value passed as first parameter.
      */
-    CBotInstr* Return(CBotInstr* p, CBotCStack* pParent);
+    CBotInstr* Return(CBotInstr* p, CBotCStack* pChild);
 
     /*!
-     * \brief ReturnFunc Transmits the result upper.
-     * \param p
-     * \param pParent
-     * \return
+     * \brief Exits a stack level.
+     *
+     * Moves var and error from pChild to this.
+     * Then deletes pChild.
+     * pChild must be the innermost level and this must be its parent.
+     * Same as Return but passes through a CBotFunction* instead of a CBotInstr*
+     *
+     * \param p       Not used except as the return value from this function.
+     * \param pChild  Child stack level.
+     * \return        Same value passed as first parameter
      */
-    CBotFunction* ReturnFunc(CBotFunction* p, CBotCStack* pParent);
+    CBotFunction* ReturnFunc(CBotFunction* p, CBotCStack* pChild);
 
     /*!
-     * \brief SetVar
+     * \brief Sets m_var.
+     *
+     * Sets m_var to var. Deletes any previous m_var. Takes ownership of var.
+     *
      * \param var
      */
     void SetVar( CBotVar* var );
 
     /*!
-     * \brief SetCopyVar Puts on the stack a copy of a variable.
+     * \brief Sets m_var.
+     *
+     * Sets m_var to a copy of var. Deletes any previous m_var. Does not takes ownership of var.
+     * var must not be null, or else m_var is left in an invalid state!
+     *
      * \param var
      */
     void SetCopyVar( CBotVar* var );
 
     /*!
-     * \brief GetVar
-     * \return
+     * \brief Gets m_var.
+     *
+     * \return Value of m_var, previously set by one of the SetVar or Return functions.
      */
     CBotVar* GetVar();
 
     /*!
-     * \brief SetStartError
-     * \param pos
+     * \brief Set error start location.
+     *
+     * If an error is already set, does nothing.
+     * \param pos Error start location in source code
      */
     void SetStartError(int pos);
 
     /*!
-     * \brief SetError
-     * \param n
-     * \param pos
+     * \brief Set error type and end location.
+     *
+     * If we are setting an error and an error is already set, does nothing.
+     * If we are setting no error (n == 0) and an error is already set, unsets the error.
+     *
+     * \param n   Error type
+     * \param pos Error end location in source code
      */
     void SetError(CBotError n, int pos);
 
     /*!
-     * \brief SetError
-     * \param n
-     * \param p
+     * \brief Set error type and location.
+     *
+     * If an error is already set, does nothing.
+     *
+     * \param n Error type
+     * \param p Token containing error (sets start and end location)
      */
     void SetError(CBotError n, CBotToken* p);
 
     /*!
-     * \brief ResetError
-     * \param n
-     * \param start
-     * \param end
+     * \brief Set error type and location.
+     *
+     * If an error is already set, overwrites it.
+     *
+     * \param n     Error type
+     * \param start Error start location in source code
+     * \param end   Error end location in source code
      */
     void ResetError(CBotError n, int start, int end);
 
     /*!
-     * \brief SetRetType
-     * \param type
+     * \brief Sets m_retTyp.
+     *
+     * \param type New value for m_retTyp.
      */
     void SetRetType(CBotTypResult& type);
 
     /*!
-     * \brief GetRetType
-     * \return
+     * \brief Gets m_retTyp.
+     *
+     * \return Value of m_retTyp (previously set with \link SetRetType(CBotTypResult&) \endlink somewhere up the stack)
      */
     CBotTypResult GetRetType();
 
     /*!
-     * \brief SetProgram
-     * \param p
+     * \brief Sets m_prog.
+     *
+     * \param p New value for m_prog
      */
     void SetProgram(CBotProgram* p);
 
     /*!
-     * \brief GetProgram
-     * \return
+     * \brief Gets m_prog.
+     *
+     * \return Value of m_prog (previously set with \link SetProgram(CBotProgram*) \endlink somewhere up the stack)
      */
     CBotProgram* GetProgram();
 
@@ -235,6 +331,7 @@ public:
 
     /*!
      * \brief CheckCall Test if a procedure name is already defined somewhere.
+     *
      * \param pToken
      * \param pParam
      * \return
@@ -242,9 +339,15 @@ public:
     bool CheckCall(CBotToken* &pToken, CBotDefParam* pParam);
 
     /*!
-     * \brief NextToken
-     * \param p
-     * \return
+     * \brief Advance token pointer.
+     *
+     * Updates p to point to the next token after p.
+     * If there is a next token, returns true.
+     * If there is no next token, sets p to null, sets the error, and returns false.
+     * In all normal circumstances this should return true.
+     *
+     * \param p Current token pointer
+     * \return Whether the token was updated.
      */
     bool NextToken(CBotToken* &p);
 
@@ -252,8 +355,8 @@ private:
     CBotCStack* m_next;
     CBotCStack* m_prev;
 
-    static CBotError m_error;
-    static int m_end;
+    static CBotError m_error; // XXX shouldn't be static
+    static int m_end; // XXX shouldn't be static
     int m_start;
 
     //! Result of the operations.
@@ -262,8 +365,8 @@ private:
     bool m_bBlock;
     CBotVar* m_listVar;
     //! List of compiled functions.
-    static CBotProgram* m_prog;
-    static CBotTypResult m_retTyp;
+    static CBotProgram* m_prog; // XXX shouldn't be static
+    static CBotTypResult m_retTyp; // XXX shouldn't be static
 };
 
 } // namespace CBot
