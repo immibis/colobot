@@ -274,6 +274,11 @@ public:
     static void DecLvl();
 
     /**
+     * \brief Reset loop level. Called before compiling a function.
+     */
+    static void ResetLvl();
+
+    /**
      * \brief ChkLvl Control validity of break and continue.
      * \param label
      * \param type

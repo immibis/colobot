@@ -92,6 +92,14 @@ void CBotInstr::DecLvl()
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+void CBotInstr::ResetLvl()
+{
+    assert(m_LoopLvl == 0);
+    m_labelLvl.resize(0);
+    m_LoopLvl = 0;
+}
+
+////////////////////////////////////////////////////////////////////////////////
 bool CBotInstr::ChkLvl(const std::string& label, int type)
 {
     int    i = m_LoopLvl;

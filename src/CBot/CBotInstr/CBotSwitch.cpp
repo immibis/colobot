@@ -75,6 +75,7 @@ CBotInstr* CBotSwitch::Compile(CBotToken* &p, CBotCStack* pStack)
                                 if (i == nullptr)
                                 {
                                     delete inst;
+                                    DecLvl();
                                     return pStack->Return(nullptr, pStk2);
                                 }
                                 delete pStk2;
@@ -87,6 +88,7 @@ CBotInstr* CBotSwitch::Compile(CBotToken* &p, CBotCStack* pStack)
                             {
                                 pStk->SetError(CBotErrNoCase, p->GetStart());
                                 delete inst;
+                                DecLvl();
                                 return pStack->Return(nullptr, pStk);
                             }
 
@@ -94,6 +96,7 @@ CBotInstr* CBotSwitch::Compile(CBotToken* &p, CBotCStack* pStack)
                             if ( !pStk->IsOk() )
                             {
                                 delete inst;
+                                DecLvl();
                                 return pStack->Return(nullptr, pStk);
                             }
                             inst->m_block->AddNext(i);
@@ -102,6 +105,7 @@ CBotInstr* CBotSwitch::Compile(CBotToken* &p, CBotCStack* pStack)
                             {
                                 pStk->SetError(CBotErrCloseBlock, -1);
                                 delete inst;
+                                DecLvl();
                                 return pStack->Return(nullptr, pStk);
                             }
                         }

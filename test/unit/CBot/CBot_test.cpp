@@ -490,6 +490,146 @@ TEST_F(CBotUT, BasicOperations)
         "    ASSERT(0xAB == 171);\n"
         "}\n"
     );
+
+    ExecuteTest(
+        "extern void UnaryOperations()\n"
+        "{\n"
+        "    ASSERT(+1 == 1);\n"
+        "    ASSERT((-1) + 1 == 0);\n"
+        "    ASSERT((not true) == false);\n"
+        "    ASSERT(!true == false);\n"
+        "}\n"
+    );
+
+    ExecuteTest(
+        "extern void UnaryOperationsBadType()\n"
+        "{\n"
+        "    +\"hello\";\n"
+        "}\n",
+        CBotErrBadType1
+    );
+
+    ExecuteTest(
+        "extern void UnaryOperationsBadType()\n"
+        "{\n"
+        "    not 5.1;\n"
+        "}\n",
+        CBotErrBadType1
+    );
+
+    ExecuteTest(
+        "extern void UnaryOperationsBadType()\n"
+        "{\n"
+        "    -true;\n"
+        "}\n",
+        CBotErrBadType1
+    );
+
+    ExecuteTest(
+        "extern void NoClosingParen()\n"
+        "{\n"
+        "    (1 + 1;\n"
+        "}\n",
+        CBotErrClosePar
+    );
+}
+
+TEST_F(CBotUT, IncrDecrExprs) {
+
+    ExecuteTest(
+        "extern void IncrDecrFunctionality()\n"
+        "{\n"
+        "    int i = 0;\n"
+        "    ASSERT(++i == 1);\n"
+        "    ASSERT(++i == 2);\n"
+        "    ASSERT(i == 2);\n"
+        "    ASSERT(i++ == 2);\n"
+        "    ASSERT(i++ == 3);\n"
+        "    ASSERT(i == 4);\n"
+        "    ASSERT(--i == 3);\n"
+        "    ASSERT(--i == 2);\n"
+        "    ASSERT(i == 2);\n"
+        "    ASSERT(i-- == 2);\n"
+        "    ASSERT(i-- == 1);\n"
+        "    ASSERT(i == 0);\n"
+        "}\n"
+    );
+
+    ExecuteTest(
+        "extern void PostIncrNonNumber()\n"
+        "{\n"
+        "    bool a = true;"
+        "    a++;\n"
+        "}\n",
+        CBotErrBadType1
+    );
+
+    ExecuteTest(
+        "extern void PreIncrNonNumber()\n"
+        "{\n"
+        "    bool a = true;"
+        "    ++a;\n"
+        "}\n",
+        CBotErrBadType1
+    );
+
+    ExecuteTest(
+        "extern void PostIncrNan()\n"
+        "{\n"
+        "    float a = nan;"
+        "    a++;\n"
+        "}\n",
+        CBotErrNan
+    );
+
+    ExecuteTest(
+        "extern void PostIncrUndefined()\n"
+        "{\n"
+        "    float a;"
+        "    a++;\n"
+        "}\n",
+        CBotErrNotInit
+    );
+
+    ExecuteTest(
+        "extern void PreIncrNan()\n"
+        "{\n"
+        "    float a = nan;"
+        "    ++a;\n"
+        "}\n",
+        CBotErrNan
+    );
+
+    ExecuteTest(
+        "extern void PreIncrUndefined()\n"
+        "{\n"
+        "    float a;"
+        "    ++a;\n"
+        "}\n",
+        CBotErrNotInit
+    );
+}
+
+TEST_F(CBotUT, TestReturns)
+{
+    ExecuteTest(
+        "extern void VoidFuncReturnValue()\n"
+        "{\n"
+        "    return 5;\n"
+        "}\n",
+        CBotErrBadType1
+    );
+    ExecuteTest(
+        "extern void VoidFuncReturnVoid()\n"
+        "{\n"
+        "    return;\n"
+        "}\n"
+    );
+    ExecuteTest(
+        "int testfunc() {return 5 5;}\n"
+        "extern void ReturnTrailingGarbage() {}\n",
+        CBotErrNoTerminator
+    );
 }
 
 TEST_F(CBotUT, VarBasic)
@@ -528,6 +668,109 @@ TEST_F(CBotUT, VarDefinitions)
         "}\n",
         CBotErrRedefVar
     );
+
+    // A lot of code is duplicated between each type of definition; for code coverage, test each one.
+    for (const std::string &vartype : {"int", "string", "float", "bool", "Test"}) {
+        ExecuteTest(
+            "public class Test {};\n"
+            "extern void TestDecl()\n"
+            "{\n"
+            "    "+vartype+" a;\n"
+            "}\n"
+        );
+
+        ExecuteTest(
+            "public class Test {};\n"
+            "extern void TestMultipleDecl()\n"
+            "{\n"
+            "    "+vartype+" a, b ,c;\n"
+            "}\n"
+        );
+
+        ExecuteTest(
+            "public class Test {};\n"
+            "extern void TestInvalidDecl()\n"
+            "{\n"
+            "    "+vartype+" a = ;\n"
+            "}\n",
+            CBotErrNoExpression
+        );
+
+        ExecuteTest(
+            "public class Test {};\n"
+            "extern void TestRedefined()\n"
+            "{\n"
+            "    "+vartype+" a;\n"
+            "    "+vartype+" a;\n"
+            "}\n",
+            CBotErrRedefVar
+        );
+
+        ExecuteTest(
+            "public class Test {};\n"
+            "extern void TestArrayDecl()\n"
+            "{\n"
+            "    "+vartype+" a[5];\n"
+            "}\n"
+        );
+
+        ExecuteTest(
+            "public class Test {};\n"
+            "extern void TestInvalidArrayDecl()\n"
+            "{\n"
+            "    "+vartype+" a[5] = ;\n"
+            "}\n",
+            CBotErrNoExpression
+        );
+
+        ExecuteTest(
+            "public class Test {};\n"
+            "extern void TestInvalidArrayDeclSize()\n"
+            "{\n"
+            "    "+vartype+" a[\"foo\"];\n"
+            "}\n",
+            CBotErrBadIndex
+        );
+    }
+}
+
+TEST_F(CBotUT, VarInvalidInitializers)
+{
+    ExecuteTest(
+        "extern void TestInvalidInitializer()\n"
+        "{\n"
+        "    int a = \"foo\";\n"
+        "}\n",
+        CBotErrBadType1
+    );
+    ExecuteTest(
+        "extern void TestInvalidInitializer()\n"
+        "{\n"
+        "    float a = \"foo\";\n"
+        "}\n",
+        CBotErrBadType1
+    );
+    ExecuteTest(
+        "extern void TestInvalidInitializer()\n"
+        "{\n"
+        "    bool a = 5;\n"
+        "}\n",
+        CBotErrBadType1
+    );
+    ExecuteTest(
+        "extern void TestInvalidInitializer()\n"
+        "{\n"
+        "    bool a = \"foo\";\n"
+        "}\n",
+        CBotErrBadType1
+    );
+    /*ExecuteTest(
+        "extern void TestInvalidInitializer()\n"
+        "{\n"
+        "    float a = 1 + ;\n"
+        "}\n",
+        CBotErrBadType1
+    );*/
 }
 
 // TODO: I don't actually know what the exact rules should be, but it looks a bit wrong
@@ -708,6 +951,15 @@ TEST_F(CBotUT, Functions)
         "{\n"
         "    ASSERT(testFunction());\n"
         "}\n"
+    );
+}
+
+TEST_F(CBotUT, FunctionNonBlock)
+{
+    ExecuteTest(
+        "extern void FunctionNonBlock()\n"
+        "    ASSERT(true);",
+        CBotErrOpenBlock
     );
 }
 
@@ -2514,5 +2766,550 @@ TEST_F(CBotUT, ParametersWithDefaultValues)
         "    ASSERT(true == b);\n"
         "    ASSERT(true == b2);\n"
         "}\n"
+    );
+}
+
+TEST_F(CBotUT, WhileLoop)
+{
+    ExecuteTest(
+        "extern void WhileLoop() {\n"
+        "    int i = 1;\n"
+        "    while(i < 12345) {\n"
+        "        i = i * 10;\n"
+        "    }\n"
+        "    ASSERT(i == 100000);\n"
+        "}\n"
+    );
+}
+
+TEST_F(CBotUT, WhileLoopRuntimeError)
+{
+    ExecuteTest(
+        "extern void WhileLoopRuntimeError() {\n"
+        "    int i = 1;\n"
+        "    while(i < 12345) {\n"
+        "        5 / 0;\n"
+        "    }\n"
+        "    ASSERT(i == 100000);\n"
+        "}\n",
+        CBotErrZeroDiv
+    );
+}
+
+TEST_F(CBotUT, WhileLoopConditionAlreadyFalse)
+{
+    ExecuteTest(
+        "extern void WhileLoopConditionAlreadyFalse() {\n"
+        "    int i = 1;\n"
+        "    while(i < 1) {\n"
+        "        ASSERT(false);\n"
+        "    }\n"
+        "    ASSERT(i == 1);\n"
+        "}\n"
+    );
+}
+
+TEST_F(CBotUT, WhileLoopContinue)
+{
+    // Continuing in the i==5 case checks that the condition gets evaluated and the loop doesn't unconditionally repeat
+    ExecuteTest(
+        "extern void WhileLoopContinue() {\n"
+        "    int i = 0;\n"
+        "    int j = 0;\n"
+        "    while(i < 5) {\n"
+        "        i = i + 1;\n"
+        "        if (i == 3 || i == 5) continue;\n"
+        "        j = j * 10 + i;\n"
+        "    }\n"
+        "    ASSERT(j == 124);\n"
+        "}\n"
+    );
+}
+
+TEST_F(CBotUT, WhileLoopBreak)
+{
+    ExecuteTest(
+        "extern void WhileLoopBreak() {\n"
+        "    int i = 0;\n"
+        "    int j = 0;\n"
+        "    while(i < 5) {\n"
+        "        i = i + 1;\n"
+        "        if (i == 3) break;\n"
+        "        j = j * 10 + i;\n"
+        "    }\n"
+        "    ASSERT(i == 3);\n"
+        "    ASSERT(j == 12);\n"
+        "}\n"
+    );
+}
+
+TEST_F(CBotUT, DoLoop)
+{
+    ExecuteTest(
+        "extern void DoLoop() {\n"
+        "    int i = 1;\n"
+        "    do {\n"
+        "        i = i * 10;\n"
+        "    } while(i < 12345);\n"
+        "    ASSERT(i == 100000);\n"
+        "}\n"
+    );
+}
+
+TEST_F(CBotUT, DoLoopConditionAlreadyFalse)
+{
+    ExecuteTest(
+        "extern void DoLoopConditionAlreadyFalse() {\n"
+        "    int i = 1;\n"
+        "    do {\n"
+        "        i = i * 10;\n"
+        "    } while(false);\n"
+        "    ASSERT(i == 10);\n"
+        "}\n"
+    );
+}
+
+TEST_F(CBotUT, DoLoopContinue)
+{
+    // Continuing in the i==5 case checks that the condition gets evaluated and the loop doesn't unconditionally repeat
+    ExecuteTest(
+        "extern void DoLoopContinue() {\n"
+        "    int i = 0;\n"
+        "    int j = 0;\n"
+        "    do {\n"
+        "        i = i + 1;\n"
+        "        if (i == 3 || i == 5) continue;\n"
+        "        j = j * 10 + i;\n"
+        "    } while(i < 5);\n"
+        "    ASSERT(j == 124);\n"
+        "}\n"
+    );
+}
+
+TEST_F(CBotUT, DoLoopBreak)
+{
+    ExecuteTest(
+        "extern void DoLoopBreak() {\n"
+        "    int i = 0;\n"
+        "    int j = 0;\n"
+        "    do {\n"
+        "        i = i + 1;\n"
+        "        if (i == 3) break;\n"
+        "        j = j * 10 + i;\n"
+        "    } while(i < 5);\n"
+        "    ASSERT(i == 3);\n"
+        "    ASSERT(j == 12);\n"
+        "}\n"
+    );
+}
+
+TEST_F(CBotUT, DoLoopWithoutWhile)
+{
+    ExecuteTest(
+        "extern void DoLoopWithoutWhile() {\n"
+        "    int i = 1;\n"
+        "    do {\n"
+        "        i = i * 10;\n"
+        "    }\n"
+        "}\n",
+        CBotErrNoWhile
+    );
+}
+
+TEST_F(CBotUT, DoLoopTrailingGarbage)
+{
+    ExecuteTest(
+        "extern void DoLoopTrailingGarbage() {\n"
+        "    int i = 1;\n"
+        "    do {\n"
+        "        i = i * 10;\n"
+        "    } while(false) false;\n"
+        "}\n",
+        CBotErrNoTerminator
+    );
+}
+
+TEST_F(CBotUT, DoLoopErrorInsideLoop)
+{
+    ExecuteTest(
+        "extern void DoLoopErrorInsideLoop() {\n"
+        "    do {\n"
+        "        int i = 5 / 0;\n"
+        "    } while(false);\n"
+        "}\n",
+        CBotErrZeroDiv
+    );
+}
+
+TEST_F(CBotUT, ForLoop)
+{
+    ExecuteTest(
+        "extern void ForLoop() {\n"
+        "    int i = 1;\n"
+        "    for (int j = 0; j < 5; j++) {\n"
+        "        i = i * 10;\n"
+        "    }\n"
+        "    ASSERT(i == 100000);\n"
+        "}\n"
+    );
+}
+
+TEST_F(CBotUT, ForLoopConditionAlreadyFalse)
+{
+    ExecuteTest(
+        "extern void ForLoopConditionAlreadyFalse() {\n"
+        "    int i = 1;\n"
+        "    for (int j = 6; j < 5; j++) {\n"
+        "        i = i * 10;\n"
+        "    }\n"
+        "    ASSERT(i == 1);\n"
+        "}\n"
+    );
+}
+
+TEST_F(CBotUT, ForLoopConditionNotBoolean) {
+    ExecuteTest(
+        "extern void ForLoopConditionNotBoolean() {\n"
+        "    for(int i = 0; 0; i++) {\n"
+        "        ASSERT(false);\n"
+        "    }\n"
+        "}\n",
+        CBotErrNotBoolean
+    );
+}
+
+TEST_F(CBotUT, ForLoopContinue)
+{
+    // Continuing in the i==5 case checks that the condition gets evaluated and the loop doesn't unconditionally repeat
+    ExecuteTest(
+        "extern void ForLoopContinue() {\n"
+        "    int j = 0;\n"
+        "    for (int i = 1; i <= 5; i++) {\n"
+        "        if (i == 3 || i == 5) continue;\n"
+        "        j = j * 10 + i;\n"
+        "    }\n"
+        "    ASSERT(j == 124);\n"
+        "}\n"
+    );
+}
+
+TEST_F(CBotUT, ForLoopBreak)
+{
+    ExecuteTest(
+        "extern void ForLoopBreak() {\n"
+        "    int j = 0;\n"
+        "    int i = 7;\n"
+        "    for (i = 1; i <= 5; i++) {\n"
+        "        if (i == 3) break;\n"
+        "        j = j * 10 + i;\n"
+        "    }\n"
+        "    ASSERT(i == 3);\n"
+        "    ASSERT(j == 12);\n"
+        "}\n"
+    );
+}
+
+TEST_F(CBotUT, Switch) {
+    ExecuteTest(
+        "extern void Switch() {\n"
+        "    int j = 0;\n"
+        "    switch(5) {\n"
+        "    case 4: j = 40; break;\n"
+        "    case 5: j = 50; break;\n"
+        "    case 6: j = 60; break;\n"
+        "    }\n"
+        "    ASSERT(j == 50);\n"
+        "}\n"
+    );
+}
+
+TEST_F(CBotUT, SwitchDefault) {
+    ExecuteTest(
+        "extern void SwitchDefault() {\n"
+        "    int j = 0;\n"
+        "    switch(7) {\n"
+        "    case 4: j = 40; break;\n"
+        "    case 5: j = 50; break;\n"
+        "    case 6: j = 60; break;\n"
+        "    default: j = -1; break;\n"
+        "    }\n"
+        "    ASSERT(j == -1);\n"
+        "}\n"
+    );
+}
+
+TEST_F(CBotUT, SwitchFallthrough) {
+    ExecuteTest(
+        "extern void SwitchFallthrough() {\n"
+        "    int j = 0;\n"
+        "    switch(5) {\n"
+        "    case 4: j++;\n"
+        "    case 5: j++;\n"
+        "    case 6: j++;\n"
+        "    default: j++;\n"
+        "    }\n"
+        "    ASSERT(j == 3);\n"
+        "}\n"
+    );
+}
+
+TEST_F(CBotUT, SwitchBeforeCase) {
+    ExecuteTest(
+        "extern void SwitchBeforeCase() {\n"
+        "    int j = 0;\n"
+        "    switch(0) {\n"
+        "        j++;\n"
+        "    case 0:\n"
+        "        j++;\n"
+        "    }\n"
+        "}\n",
+        CBotErrNoCase
+    );
+}
+
+TEST_F(CBotUT, SwitchEmpty) {
+    ExecuteTest(
+        "extern void SwitchEmpty() {\n"
+        "    int j = 0;\n"
+        "    switch(0) {\n"
+        "    }\n"
+        "}\n",
+        CBotErrNoCase
+    );
+}
+
+TEST_F(CBotUT, SwitchBadConditionType) {
+    ExecuteTest(
+        "extern void SwitchBadConditionType() {\n"
+        "    switch(\"hello\") {\n"
+        "    case 0: break;\n"
+        "    }\n"
+        "}\n",
+        CBotErrBadType1
+    );
+}
+
+TEST_F(CBotUT, SwitchBadSyntax) {
+    ExecuteTest(
+        "extern void SwitchBadSyntax1() {\n"
+        "    if(true) {\n"
+        "        switch(0} {\n"
+        "        case 0: break;\n"
+        "    }\n"
+        "}\n",
+        CBotErrClosePar
+    );
+
+    ExecuteTest(
+        "extern void SwitchBadSyntax2() {\n"
+        "    switch(0) (\n"
+        "    case 0: break;\n"
+        "    )\n"
+        "}\n",
+        CBotErrOpenBlock
+    );
+}
+
+TEST_F(CBotUT, SwitchCompileErrorInBlock) {
+    ExecuteTest(
+        "extern void SwitchCompileErrorInBlock() {\n"
+        "    switch(0) {\n"
+        "    case 0:\n"
+        "        foo;\n"
+        "    }\n"
+        "}\n",
+        CBotErrUndefVar
+    );
+}
+
+/* TEST COMMENTED - FAILS UNLESS A FIX FOR #1008 IS MERGED
+TEST_F(CBotUT, SwitchCaseNotNumber) {
+    ExecuteTest(
+        "extern void SwitchCaseNotNumber() {\n"
+        "    switch(0) {\n"
+        "    case \"hello\": break;\n"
+        "    }\n"
+        "}\n",
+        CBotErrBadNum
+    );
+}*/
+
+TEST_F(CBotUT, SwitchCaseMissingColon) {
+    ExecuteTest(
+        "extern void SwitchCaseMissingColon() {\n"
+        "    switch(0) {\n"
+        "    case 0 break;\n"
+        "    }\n"
+        "}\n",
+        CBotErrNoDoubleDots
+    );
+}
+
+TEST_F(CBotUT, LabeledBreak) {
+    ExecuteTest(
+        "extern void LabeledBreak() {\n"
+        "    outer: while(true) {\n"
+        "        while(true) {\n"
+        "            break outer;\n"
+        "        }\n"
+        "        ASSERT(false);\n"
+        "    }\n"
+        "}\n"
+    );
+}
+
+TEST_F(CBotUT, LabeledContinue) {
+    ExecuteTest(
+        "extern void LabeledContinue() {\n"
+        "    int i;\n"
+        "    outer: for(i = 0; i < 5; i++) {\n"
+        "        while(true) {\n"
+        "            continue outer;\n"
+        "        }\n"
+        "        ASSERT(false);\n"
+        "    }\n"
+        "    ASSERT(i == 5);\n"
+        "}\n"
+    );
+}
+
+TEST_F(CBotUT, BreakOutsideLoop) {
+    ExecuteTest(
+        "extern void BreakOutsideLoop() {\n"
+        "    break;\n"
+        "}\n",
+        CBotErrBreakOutside
+    );
+}
+
+TEST_F(CBotUT, ContinueOutsideLoop) {
+    ExecuteTest(
+        "extern void ContinueOutsideLoop() {\n"
+        "    continue;\n"
+        "}\n",
+        CBotErrBreakOutside
+    );
+}
+
+TEST_F(CBotUT, BreakUndefinedLabel) {
+    ExecuteTest(
+        "extern void BreakUndefinedLabel() {\n"
+        "    bar: while(false) {\n"
+        "        break foo;\n"
+        "    }\n"
+        "}\n",
+        CBotErrUndefLabel
+    );
+}
+
+TEST_F(CBotUT, ContinueUndefinedLabel) {
+    ExecuteTest(
+        "extern void ContinueUndefinedLabel() {\n"
+        "    bar: while(false) {\n"
+        "        continue foo;\n"
+        "    }\n"
+        "}\n",
+        CBotErrUndefLabel
+    );
+}
+
+TEST_F(CBotUT, BreakTrailingGarbage) {
+    ExecuteTest(
+        "extern void BreakUndefinedLabel() {\n"
+        "    bar: while(false) {\n"
+        "        break bar bar;\n"
+        "    }\n"
+        "}\n",
+        CBotErrNoTerminator
+    );
+}
+
+TEST_F(CBotUT, ContinueTrailingGarbage) {
+    ExecuteTest(
+        "extern void ContinueTrailingGarbage() {\n"
+        "    bar: while(false) {\n"
+        "        continue bar bar;\n"
+        "    }\n"
+        "}\n",
+        CBotErrNoTerminator
+    );
+}
+
+TEST_F(CBotUT, TestTernaryOperator) {
+    // AKA "Logic" operator
+    ExecuteTest(
+        "extern void TernaryBasic() {\n"
+        "    ASSERT((true ? 1 : 2) == 1);\n"
+        "    ASSERT((false ? 1 : 2) == 2);\n"
+        "    ASSERT((true ? 1.0 : 2) == 1.0);\n"
+        "    ASSERT((false ? 1.0 : 2) == 2.0);\n"
+        "}\n"
+    );
+
+    ExecuteTest(
+        "extern void TernaryNonBooleanCondition() {\n"
+        "    int i = (0 ? 1 : 2);\n"
+        "}\n",
+        CBotErrBadType1
+    );
+
+    ExecuteTest(
+        "extern void TernaryOnlyOneOperand() {\n"
+        "    int i = (true ? 1);\n"
+        "}\n",
+        CBotErrNoDoubleDots
+    );
+
+    ExecuteTest(
+        "extern void TernaryIncompatibleOperands() {\n"
+        "    float f = (true ? 1.0 : \"hello\");\n"
+        "}\n",
+        CBotErrBadType2
+    );
+
+    ExecuteTest(
+        "void voidfunc() {}\n"
+        "extern void TernaryLeftVoid() {\n"
+        "    float f = (true ? voidfunc() : 1.0);\n"
+        "}\n",
+        CBotErrBadType2
+    );
+    ExecuteTest(
+        "void voidfunc() {}\n"
+        "extern void TernaryRightVoid() {\n"
+        "    float f = (true ? 1.0 : voidfunc());\n"
+        "}\n",
+        CBotErrBadType2
+    );
+    ExecuteTest(
+        "void voidfunc() {}\n"
+        "extern void TernaryBothVoid() {\n"
+        "    (true ? voidfunc() : voidfunc());\n"
+        "}\n",
+        CBotErrBadType2
+    );
+}
+
+TEST_F(CBotUT, TestBinOpTypeErrors) {
+    ExecuteTest(
+        "void voidfunc() {}\n"
+        "extern void TestBinOpTypeErrors() {\n"
+        "    voidfunc() + 1;\n"
+        "}\n",
+        CBotErrBadType2
+    );
+    ExecuteTest(
+        "void voidfunc() {}\n"
+        "extern void TestBinOpTypeErrors() {\n"
+        "    1 + true;\n"
+        "}\n",
+        CBotErrBadType2
+    );
+    ExecuteTest(
+        "void voidfunc() {}\n"
+        "extern void TestBinOpTypeErrors() {\n"
+        "    1 + 1 + voidfunc();\n"
+        "}\n",
+        CBotErrBadType2
     );
 }
