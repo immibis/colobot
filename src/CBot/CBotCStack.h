@@ -62,17 +62,26 @@ class CBotToken;
  */
 class CBotCStack
 {
-public:
 
     /*!
      * \brief Creates a stack level.
      *
-     * \link TokenStack(CBotToken*, bool) \endlink is normally used to create new stack levels.
-     * This constructor is only used to create the outermost stack level for the program.
+     * \link TokenStack(CBotToken*, bool) \endlink is used to create new stack levels under existing levels, and
+     * \link BeginNewStack(CBotProgram*) \endlink is used to create the first level of a new stack.
+     * This constructor is only used internally.
      *
      * \param pParent Parent stack level
      */
     CBotCStack(CBotCStack* pParent);
+
+public:
+
+    /*!
+     * \brief Creates a new stack.
+     *
+     * \param pProgram Pointer to the program
+     */
+    static std::unique_ptr<CBotCStack> BeginNewStack(CBotProgram *pProgram);
 
     /*!
      * \brief Destructor.
@@ -319,16 +328,9 @@ public:
     CBotTypResult GetRetType();
 
     /*!
-     * \brief Sets m_prog.
+     * \brief Gets the current program.
      *
-     * \param p New value for m_prog
-     */
-    void SetProgram(CBotProgram* p);
-
-    /*!
-     * \brief Gets m_prog.
-     *
-     * \return Value of m_prog (previously set with \link SetProgram(CBotProgram*) \endlink somewhere up the stack)
+     * \return Value of m_pProgram (set as parameter to \link BeginNewStack(CBotProgram*)\endlink when creating the top stack level)
      */
     CBotProgram* GetProgram();
 
@@ -377,8 +379,9 @@ private:
     bool m_bBlock;
     CBotVar* m_listVar;
     //! List of compiled functions.
-    static CBotProgram* m_prog; // XXX shouldn't be static
     static CBotTypResult m_retTyp; // XXX shouldn't be static
+
+    CBotProgram* m_pProgram; // Only for outermost stack level
 };
 
 } // namespace CBot

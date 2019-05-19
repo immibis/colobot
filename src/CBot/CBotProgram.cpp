@@ -79,10 +79,9 @@ bool CBotProgram::Compile(const std::string& program, std::vector<std::string>& 
     auto tokens = CBotToken::CompileTokens(program);
     if (tokens == nullptr) return false;
 
-    auto pStack = std::unique_ptr<CBotCStack>(new CBotCStack(nullptr));
+    std::unique_ptr<CBotCStack> pStack = CBotCStack::BeginNewStack(this);
     CBotToken* p = tokens.get()->GetNext();                 // skips the first token (separator)
 
-    pStack->SetProgram(this);                               // defined used routines
     m_externalCalls->SetUserPtr(pUser);
 
     // Step 2. Find all function and class definitions

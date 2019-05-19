@@ -31,8 +31,7 @@ namespace CBot
 {
 
 ////////////////////////////////////////////////////////////////////////////////
-CBotProgram* CBotCStack::m_prog    = nullptr;            // init the static variable
-CBotError CBotCStack::m_error   = CBotNoErr;
+CBotError CBotCStack::m_error   = CBotNoErr;             // init the static variable
 int CBotCStack::m_end      = 0;
 CBotTypResult CBotCStack::m_retTyp  = CBotTypResult(0);
 
@@ -41,6 +40,7 @@ CBotCStack::CBotCStack(CBotCStack* ppapa)
 {
     m_next = nullptr;
     m_prev = ppapa;
+    m_pProgram = nullptr;
 
     if (ppapa == nullptr)
     {
@@ -56,6 +56,18 @@ CBotCStack::CBotCStack(CBotCStack* ppapa)
     }
 
     m_listVar = nullptr;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+/*static*/ std::unique_ptr<CBotCStack> CBotCStack::BeginNewStack(CBotProgram *pProgram)
+{
+    // Can't create a stack with a null program.
+    assert(pProgram != nullptr);
+
+    std::unique_ptr<CBotCStack> newStack(new CBotCStack(nullptr));
+
+    newStack->m_pProgram = pProgram;
+    return newStack;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -254,15 +266,15 @@ bool CBotCStack::NextToken(CBotToken* &p)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-void CBotCStack::SetProgram(CBotProgram* p)
-{
-    m_prog = p;
-}
-
-////////////////////////////////////////////////////////////////////////////////
 CBotProgram* CBotCStack::GetProgram()
 {
-    return m_prog;
+    CBotCStack *level = this;
+    while (level != nullptr && level->m_pProgram == nullptr)
+    {
+        level = level->m_prev;
+    }
+    assert(level != nullptr); // Can't create a stack without a program; enforced in BeginNewStack
+    return level->m_pProgram;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -350,10 +362,12 @@ CBotTypResult CBotCStack::CompileCall(CBotToken* &p, CBotVar** ppVars, long& nId
     nIdent = 0;
     CBotTypResult val(-1);
 
-    val = m_prog->GetExternalCalls()->CompileCall(p, nullptr, ppVars, this);
+    CBotProgram *prog = GetProgram();
+
+    val = prog->GetExternalCalls()->CompileCall(p, nullptr, ppVars, this);
     if (val.GetType() < 0)
     {
-        val = CBotFunction::CompileCall(m_prog->GetFunctions(), p->GetString(), ppVars, nIdent);
+        val = CBotFunction::CompileCall(prog->GetFunctions(), p->GetString(), ppVars, nIdent);
         if ( val.GetType() < 0 )
         {
     //        pVar = nullptr;                    // the error is not on a particular parameter
@@ -370,9 +384,11 @@ bool CBotCStack::CheckCall(CBotToken* &pToken, CBotDefParam* pParam)
 {
     std::string    name = pToken->GetString();
 
-    if ( m_prog->GetExternalCalls()->CheckCall(name) ) return true;
+    CBotProgram *prog = GetProgram();
 
-    for (CBotFunction* pp : m_prog->GetFunctions())
+    if ( prog->GetExternalCalls()->CheckCall(name) ) return true;
+
+    for (CBotFunction* pp : prog->GetFunctions())
     {
         if ( pToken->GetString() == pp->GetName() )
         {
