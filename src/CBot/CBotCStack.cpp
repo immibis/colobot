@@ -40,6 +40,7 @@ CBotCStack::CBotCStack(CBotCStack* ppapa)
 {
     m_next = nullptr;
     m_prev = ppapa;
+    m_toplevel = (ppapa ? ppapa->m_toplevel : this);
     m_pProgram = nullptr;
 
     if (ppapa == nullptr)
@@ -268,13 +269,7 @@ bool CBotCStack::NextToken(CBotToken* &p)
 ////////////////////////////////////////////////////////////////////////////////
 CBotProgram* CBotCStack::GetProgram()
 {
-    CBotCStack *level = this;
-    while (level != nullptr && level->m_pProgram == nullptr)
-    {
-        level = level->m_prev;
-    }
-    assert(level != nullptr); // Can't create a stack without a program; enforced in BeginNewStack
-    return level->m_pProgram;
+    return m_toplevel->m_pProgram;
 }
 
 ////////////////////////////////////////////////////////////////////////////////

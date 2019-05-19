@@ -369,6 +369,8 @@ private:
     CBotCStack* m_next;
     CBotCStack* m_prev;
 
+    CBotCStack* m_toplevel; // Outermost level of current stack.
+
     static CBotError m_error; // XXX shouldn't be static
     static int m_end; // XXX shouldn't be static
     int m_start;
