@@ -170,7 +170,6 @@ bool CBotExpression::Execute(CBotStack* &pj)
     CBotStack*  pile1 = pile;
 
     CBotVar::InitType initKind = CBotVar::InitType::DEF;
-    CBotVar*    result = nullptr;
 
     // must be done before any indexes (stack can be changed)
     if (!m_leftop->ExecuteVar(pVar, pile, nullptr, false)) return false;    // variable before accessing the value on the right
@@ -192,10 +191,10 @@ bool CBotExpression::Execute(CBotStack* &pj)
             CBotVar* value = pile2->GetVar();
             if (var->GetType() == CBotTypString && value->GetType() != CBotTypString)
             {
-                CBotVar* newVal = CBotVar::Create("", var->GetTypResult());
+                std::unique_ptr<CBotVar> newVal = CBotVar::Create("", var->GetTypResult());
                 value->Update(pj->GetUserPtr());
                 newVal->SetValString(value->GetValString());
-                pile2->SetVar(newVal);
+                pile2->SetVar(std::move(newVal));
             }
         }
         pile2->IncState();
@@ -203,6 +202,7 @@ bool CBotExpression::Execute(CBotStack* &pj)
 
     if (pile1->GetState() == 1)
     {
+        std::unique_ptr<CBotVar> result = nullptr;
         if (m_token.GetType() != ID_ASS)
         {
             pVar = pile1->GetVar();     // recovers if interrupted
@@ -221,51 +221,51 @@ bool CBotExpression::Execute(CBotStack* &pj)
             break;
         case ID_ASSADD:
             result->Add(pile1->GetVar(), pile2->GetVar());
-            pile2->SetVar(result);
+            pile2->SetVar(std::move(result));
             break;
         case ID_ASSSUB:
             result->Sub(pile1->GetVar(), pile2->GetVar());
-            pile2->SetVar(result);
+            pile2->SetVar(std::move(result));
             break;
         case ID_ASSMUL:
             result->Mul(pile1->GetVar(), pile2->GetVar());
-            pile2->SetVar(result);
+            pile2->SetVar(std::move(result));
             break;
         case ID_ASSDIV:
             if (initKind != CBotVar::InitType::UNDEF &&
                 result->Div(pile1->GetVar(), pile2->GetVar()))
                 pile2->SetError(CBotErrZeroDiv, &m_token);
-            pile2->SetVar(result);
+            pile2->SetVar(std::move(result));
             break;
         case ID_ASSMODULO:
             if (initKind != CBotVar::InitType::UNDEF &&
                 result->Modulo(pile1->GetVar(), pile2->GetVar()))
                 pile2->SetError(CBotErrZeroDiv, &m_token);
-            pile2->SetVar(result);
+            pile2->SetVar(std::move(result));
             break;
         case ID_ASSAND:
             result->And(pile1->GetVar(), pile2->GetVar());
-            pile2->SetVar(result);
+            pile2->SetVar(std::move(result));
             break;
         case ID_ASSXOR:
             result->XOr(pile1->GetVar(), pile2->GetVar());
-            pile2->SetVar(result);
+            pile2->SetVar(std::move(result));
             break;
         case ID_ASSOR:
             result->Or(pile1->GetVar(), pile2->GetVar());
-            pile2->SetVar(result);
+            pile2->SetVar(std::move(result));
             break;
         case ID_ASSSL:
             result->SL(pile1->GetVar(), pile2->GetVar());
-            pile2->SetVar(result);
+            pile2->SetVar(std::move(result));
             break;
         case ID_ASSSR:
             result->SR(pile1->GetVar(), pile2->GetVar());
-            pile2->SetVar(result);
+            pile2->SetVar(std::move(result));
             break;
         case ID_ASSASR:
             result->ASR(pile1->GetVar(), pile2->GetVar());
-            pile2->SetVar(result);
+            pile2->SetVar(std::move(result));
             break;
         default:
             assert(0);

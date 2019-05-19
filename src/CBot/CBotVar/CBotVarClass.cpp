@@ -134,10 +134,10 @@ void CBotVarClass::Copy(CBotVar* pSrc, bool bName)
     CBotVar*    pv = p->m_pVar;
     while( pv != nullptr )
     {
-        CBotVar*    pn = CBotVar::Create(pv);
+        std::unique_ptr<CBotVar> pn = CBotVar::Create(pv);
         pn->Copy( pv );
-        if ( m_pVar == nullptr ) m_pVar = pn;
-        else m_pVar->AddNext(pn);
+        if ( m_pVar == nullptr ) m_pVar = pn.release(); // \todo TODO: change m_pVar to unique_ptr
+        else m_pVar->AddNext(std::move(pn));
 
         pv = pv->GetNext();
     }
@@ -189,7 +189,7 @@ void CBotVarClass::SetClass(CBotClass* pClass)//, int &nIdent)
             pile->Delete();
         }
 
-        CBotVar*    pn = CBotVar::Create( pv );        // a copy
+        std::unique_ptr<CBotVar> pn = CBotVar::Create( pv );        // a copy
         pn->SetStatic(pv->IsStatic());
         pn->SetPrivate(pv->GetPrivate());
 
@@ -198,7 +198,7 @@ void CBotVarClass::SetClass(CBotClass* pClass)//, int &nIdent)
 #if    STACKMEM
             CBotStack* pile = CBotStack::AllocateStack();    // an independent stack
 
-            while(pile->IsOk() && !pv->m_InitExpr->Execute(pile, pn));    // evaluates the expression without timer
+            while(pile->IsOk() && !pv->m_InitExpr->Execute(pile, pn.get()));    // evaluates the expression without timer
 
             pile->Delete();
 #else
@@ -213,8 +213,8 @@ void CBotVarClass::SetClass(CBotClass* pClass)//, int &nIdent)
         pn->SetUniqNum(pv->GetUniqNum());    //++nIdent
         pn->m_pMyThis = this;
 
-        if ( m_pVar == nullptr) m_pVar = pn;
-        else m_pVar->AddNext( pn );
+        if ( m_pVar == nullptr) m_pVar = pn.release();
+        else m_pVar->AddNext( std::move(pn) );
         pv = pv->GetNext();
     }
 }
@@ -279,7 +279,7 @@ CBotVar* CBotVarClass::GetItem(int n, bool bExtend)
 
     if ( p == nullptr && bExtend )
     {
-        p = CBotVar::Create("", m_type.GetTypElem());
+        p = CBotVar::Create("", m_type.GetTypElem()).release();
         m_pVar = p;
     }
 
@@ -289,7 +289,7 @@ CBotVar* CBotVarClass::GetItem(int n, bool bExtend)
     {
         if ( p->m_next == nullptr )
         {
-            if ( bExtend ) p->m_next = CBotVar::Create("", m_type.GetTypElem());
+            if ( bExtend ) p->m_next = CBotVar::Create("", m_type.GetTypElem()).release();
             if ( p->m_next == nullptr ) return nullptr;
         }
         p = p->m_next;
@@ -391,7 +391,7 @@ void CBotVarClass::DecrementUse()
             CBotVar*    ppVars[1];
             ppVars[0] = nullptr;
 
-            CBotVar*    pThis  = CBotVar::Create("this", CBotTypNullPointer);
+            std::unique_ptr<CBotVar> pThis  = CBotVar::Create("this", CBotTypNullPointer);
             pThis->SetPointer(this);
 
             std::string    nom = std::string("~") + m_pClass->GetName();
@@ -399,12 +399,16 @@ void CBotVarClass::DecrementUse()
 
             CBotToken token(nom); // TODO
 
-            while ( pile->IsOk() && !m_pClass->ExecuteMethode(ident, pThis, ppVars, CBotTypResult(CBotTypVoid), pile, &token)) ;    // waits for the end
+            while ( pile->IsOk() && !m_pClass->ExecuteMethode(ident, pThis.get(), ppVars, CBotTypResult(CBotTypVoid), pile, &token)) ;    // waits for the end
 
             pile->ResetError(err, start,end);
 
             pile->Delete();
-            delete pThis;
+
+            // Must be before m_CptUse--, so that when this next line calls DecrementUse again it will
+            // see the object is still in use. Otherwise, we get in an infinite loop of calling the destructor.
+            pThis.reset();
+
             m_CptUse--;
         }
 

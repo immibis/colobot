@@ -22,6 +22,8 @@
 #include "CBot/CBotVar/CBotVar.h"
 #include "CBot/CBotProgram.h"
 
+#include <memory>
+
 namespace CBot
 {
 
@@ -152,6 +154,16 @@ public:
     void AddVar(CBotVar* p);
 
     /*!
+     * \brief Adds a local variable.
+     *
+     * If this stack level is not a block, it walks up the stack and adds the variable to the nearest enclosing block.
+     * Takes ownership of p.
+     *
+     * \param p The new variable.
+     */
+    void AddVar(std::unique_ptr<CBotVar> p);
+
+    /*!
      * \brief Finds a local variable by name.
      *
      * The token type is ignored as long as p->\link CBotToken::GetString() GetString()\endlink returns a variable name.
@@ -188,7 +200,7 @@ public:
      * \param Token
      * \return Copy of found variable, or null if not found.
      */
-    CBotVar* CopyVar(CBotToken& Token);
+    std::unique_ptr<CBotVar> CopyVar(CBotToken& Token);
 
     /*!
      * \brief Creates a new stack level.
@@ -229,11 +241,11 @@ public:
     /*!
      * \brief Sets m_var.
      *
-     * Sets m_var to var. Deletes any previous m_var. Takes ownership of var.
+     * Sets m_var to var. Deletes any previous m_var.
      *
      * \param var
      */
-    void SetVar( CBotVar* var );
+    void SetVar( std::unique_ptr<CBotVar> var );
 
     /*!
      * \brief Sets m_var.
@@ -360,7 +372,7 @@ private:
     int m_start;
 
     //! Result of the operations.
-    CBotVar* m_var;
+    std::unique_ptr<CBotVar> m_var;
     //! Is part of a block (variables are local to this block).
     bool m_bBlock;
     CBotVar* m_listVar;

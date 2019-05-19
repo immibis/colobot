@@ -75,7 +75,7 @@ CBotInstr* CBotNew::Compile(CBotToken* &p, CBotCStack* pStack)
 
     // creates the object on the stack
     // with a pointer to the object
-    CBotVar*    pVar = CBotVar::Create("", pClass);
+    std::unique_ptr<CBotVar> pVar = CBotVar::Create("", pClass);
 
     // do the call of the creator
     CBotCStack* pStk = pStack->TokenStack();
@@ -86,7 +86,7 @@ CBotInstr* CBotNew::Compile(CBotToken* &p, CBotCStack* pStack)
         if (!pStk->IsOk()) goto error;
 
         // constructor exist?
-        CBotTypResult r = pClass->CompileMethode(&inst->m_vartoken, pVar, ppVars, pStk, inst->m_nMethodeIdent);
+        CBotTypResult r = pClass->CompileMethode(&inst->m_vartoken, pVar.get(), ppVars, pStk, inst->m_nMethodeIdent);
         delete pStk->TokenStack();  // release extra stack
         int typ = r.GetType();
 
@@ -108,7 +108,7 @@ CBotInstr* CBotNew::Compile(CBotToken* &p, CBotCStack* pStack)
         }
 
         // makes pointer to the object on the stack
-        pStk->SetVar(pVar);
+        pStk->SetVar(std::move(pVar));
 
         pp = p;
         // chained method ?
@@ -158,18 +158,15 @@ bool CBotNew::Execute(CBotStack* &pj)
         // and initialize the pointer to that object
 
 
-        pThis = CBotVar::Create("this", pClass);
-        pThis->SetUniqNum(-2) ;
-
-        pile1->SetVar(pThis);   // place on stack1
+        std::unique_ptr<CBotVar> pThis_ = CBotVar::Create("this", pClass);
+        pThis_->SetUniqNum(-2) ;
+        pile1->SetVar(std::move(pThis_));   // place on stack1
         pile->IncState();
     }
 
-    // fetch the this pointer if it was interrupted
-    if ( pThis == nullptr)
-    {
-        pThis = pile1->GetVar();    // find the pointer
-    }
+    // fetch the this pointer if it was interrupted (or if it wasn't)
+    // The reason we fetch it back even if it wasn't interrupted is so we can transfer ownership of the unique_ptr to pile1.
+    pThis = pile1->GetVar();    // find the pointer
 
     // is there an assignment or parameters (constructor)
     if ( pile->GetState()==1)

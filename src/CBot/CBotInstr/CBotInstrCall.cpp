@@ -86,8 +86,8 @@ CBotInstr* CBotInstrCall::Compile(CBotToken* &p, CBotCStack* pStack)
         delete pStack->TokenStack();
         if ( inst->m_typRes.GetType() > 0 )
         {
-            CBotVar* pRes = CBotVar::Create("", inst->m_typRes);
-            pStack->SetVar(pRes);   // for knowing the type of the result
+            std::unique_ptr<CBotVar> pRes = CBotVar::Create("", inst->m_typRes);
+            pStack->SetVar(std::move(pRes));   // for knowing the type of the result
         }
         else pStack->SetVar(nullptr);          // routine returns void
 

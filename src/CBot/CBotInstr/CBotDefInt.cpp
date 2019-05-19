@@ -108,11 +108,11 @@ CBotInstr* CBotDefInt::Compile(CBotToken* &p, CBotCStack* pStack, bool cont, boo
         }
 
         {
-            CBotVar*    var = CBotVar::Create(*vartoken, CBotTypInt);// create the variable (evaluated after the assignment)
+            std::unique_ptr<CBotVar> var = CBotVar::Create(*vartoken, CBotTypInt);// create the variable (evaluated after the assignment)
             var->SetInit(inst->m_expr != nullptr ? CBotVar::InitType::DEF : CBotVar::InitType::UNDEF);     // if initialized with assignment
             var->SetUniqNum( //set it with a unique number
                 (static_cast<CBotLeftExprVar*>(inst->m_var))->m_nIdent = CBotVar::NextUniqNum());
-            pStack->AddVar(var);    // place it on the stack
+            pStack->AddVar(std::move(var));    // place it on the stack
         }
 suite:
         if (pStk->IsOk() && IsOfType(p,  ID_COMMA))     // chained several definitions

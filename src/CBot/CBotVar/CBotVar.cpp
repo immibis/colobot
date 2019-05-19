@@ -149,31 +149,31 @@ void CBotVar::Update(void* pUser)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-CBotVar* CBotVar::Create(const CBotToken& name, CBotType type)
+std::unique_ptr<CBotVar> CBotVar::Create(const CBotToken& name, CBotType type)
 {
     CBotTypResult    t(type);
     return Create(name, t);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-CBotVar* CBotVar::Create(const CBotToken& name, CBotTypResult type)
+std::unique_ptr<CBotVar> CBotVar::Create(const CBotToken& name, CBotTypResult type)
 {
     switch (type.GetType())
     {
     case CBotTypShort:
     case CBotTypInt:
-        return new CBotVarInt(name);
+        return std::unique_ptr<CBotVar>(new CBotVarInt(name));
     case CBotTypFloat:
-        return new CBotVarFloat(name);
+        return std::unique_ptr<CBotVar>(new CBotVarFloat(name));
     case CBotTypBoolean:
-        return new CBotVarBoolean(name);
+        return std::unique_ptr<CBotVar>(new CBotVarBoolean(name));
     case CBotTypString:
-        return new CBotVarString(name);
+        return std::unique_ptr<CBotVar>(new CBotVarString(name));
     case CBotTypPointer:
     case CBotTypNullPointer:
-        return new CBotVarPointer(name, type);
+        return std::unique_ptr<CBotVar>(new CBotVarPointer(name, type));
     case CBotTypIntrinsic:
-        return new CBotVarClass(name, type);
+        return std::unique_ptr<CBotVar>(new CBotVarClass(name, type));
 
     case CBotTypClass:
         // creates a new instance of a class
@@ -182,11 +182,11 @@ CBotVar* CBotVar::Create(const CBotToken& name, CBotTypResult type)
             CBotVarClass* instance = new CBotVarClass(name, type);
             CBotVarPointer* pointer = new CBotVarPointer(name, type);
             pointer->SetPointer( instance );
-            return pointer;
+            return std::unique_ptr<CBotVar>(pointer);
         }
 
     case CBotTypArrayPointer:
-        return new CBotVarArray(name, type);
+        return std::unique_ptr<CBotVar>(new CBotVarArray(name, type));
 
     case CBotTypArrayBody:
         {
@@ -201,7 +201,7 @@ CBotVar* CBotVar::Create(const CBotToken& name, CBotTypResult type)
                 pv = (static_cast<CBotVarArray*>(pv))->GetItem(0, true);            // creates at least the element [0]
             }
 
-            return array;
+            return std::unique_ptr<CBotVar>(array);
         }
     }
 
@@ -210,14 +210,13 @@ CBotVar* CBotVar::Create(const CBotToken& name, CBotTypResult type)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-CBotVar* CBotVar::Create( CBotVar* pVar )
+std::unique_ptr<CBotVar> CBotVar::Create( CBotVar* pVar )
 {
-    CBotVar*    p = Create(pVar->m_token->GetString(), pVar->GetTypResult(CBotVar::GetTypeMode::CLASS_AS_INTRINSIC));
-    return p;
+    return Create(pVar->m_token->GetString(), pVar->GetTypResult(CBotVar::GetTypeMode::CLASS_AS_INTRINSIC));
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-CBotVar* CBotVar::Create(const std::string& n, CBotTypResult type)
+std::unique_ptr<CBotVar> CBotVar::Create(const std::string& n, CBotTypResult type)
 {
     CBotToken    name(n);
 
@@ -225,25 +224,25 @@ CBotVar* CBotVar::Create(const std::string& n, CBotTypResult type)
     {
     case CBotTypShort:
     case CBotTypInt:
-        return new CBotVarInt(name);
+        return std::unique_ptr<CBotVar>(new CBotVarInt(name));
     case CBotTypFloat:
-        return new CBotVarFloat(name);
+        return std::unique_ptr<CBotVar>(new CBotVarFloat(name));
     case CBotTypBoolean:
-        return new CBotVarBoolean(name);
+        return std::unique_ptr<CBotVar>(new CBotVarBoolean(name));
     case CBotTypString:
-        return new CBotVarString(name);
+        return std::unique_ptr<CBotVar>(new CBotVarString(name));
     case CBotTypPointer:
     case CBotTypNullPointer:
         {
             CBotVarPointer* p = new CBotVarPointer(name, type);
 //            p->SetClass(type.GetClass());
-            return p;
+            return std::unique_ptr<CBotVar>(p);
         }
     case CBotTypIntrinsic:
         {
             CBotVarClass* p = new CBotVarClass(name, type);
 //            p->SetClass(type.GetClass());
-            return p;
+            return std::unique_ptr<CBotVar>(p);
         }
 
     case CBotTypClass:
@@ -254,11 +253,11 @@ CBotVar* CBotVar::Create(const std::string& n, CBotTypResult type)
             CBotVarPointer* pointer = new CBotVarPointer(name, type);
             pointer->SetPointer( instance );
 //            pointer->SetClass( type.GetClass() );
-            return pointer;
+            return std::unique_ptr<CBotVar>(pointer);
         }
 
     case CBotTypArrayPointer:
-        return new CBotVarArray(name, type);
+        return std::unique_ptr<CBotVar>(new CBotVarArray(name, type));
 
     case CBotTypArrayBody:
         {
@@ -273,7 +272,7 @@ CBotVar* CBotVar::Create(const std::string& n, CBotTypResult type)
                 pv = (static_cast<CBotVarArray*>(pv))->GetItem(0, true);            // creates at least the element [0]
             }
 
-            return array;
+            return std::unique_ptr<CBotVar>(array);
         }
     }
 
@@ -282,10 +281,10 @@ CBotVar* CBotVar::Create(const std::string& n, CBotTypResult type)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-CBotVar* CBotVar::Create(const std::string& name, CBotType type, CBotClass* pClass)
+std::unique_ptr<CBotVar> CBotVar::Create(const std::string& name, CBotType type, CBotClass* pClass)
 {
     CBotToken    token( name, "" );
-    CBotVar*    pVar = Create( token, type );
+    std::unique_ptr<CBotVar>    pVar = Create( token, type );
 
     if ( type == CBotTypPointer && pClass == nullptr )        // pointer "null" ?
         return pVar;
@@ -295,7 +294,6 @@ CBotVar* CBotVar::Create(const std::string& name, CBotType type, CBotClass* pCla
     {
         if (pClass == nullptr)
         {
-            delete pVar;
             return nullptr;
         }
         pVar->SetClass( pClass );
@@ -304,10 +302,10 @@ CBotVar* CBotVar::Create(const std::string& name, CBotType type, CBotClass* pCla
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-CBotVar* CBotVar::Create(const std::string& name, CBotClass* pClass)
+std::unique_ptr<CBotVar> CBotVar::Create(const std::string& name, CBotClass* pClass)
 {
     CBotToken    token( name, "" );
-    CBotVar*    pVar = Create( token, CBotTypResult( CBotTypClass, pClass ) );
+    std::unique_ptr<CBotVar>    pVar = Create( token, CBotTypResult( CBotTypClass, pClass ) );
 //    pVar->SetClass( pClass );
     return        pVar;
 }

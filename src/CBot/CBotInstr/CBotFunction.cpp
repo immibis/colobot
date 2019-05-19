@@ -199,7 +199,7 @@ CBotFunction* CBotFunction::Compile(CBotToken* &p, CBotCStack* pStack, CBotFunct
                 if (!func->m_MasterClass.empty())
                 {
                     // return "this" known
-                    CBotVar* pThis = CBotVar::Create("this", CBotTypResult( CBotTypClass, func->m_MasterClass ));
+                    CBotVar* pThis = CBotVar::Create("this", CBotTypResult( CBotTypClass, func->m_MasterClass )).release();
                     pThis->SetInit(CBotVar::InitType::IS_POINTER);
 //                  pThis->SetUniqNum(func->m_nThisIdent = -2); //CBotVar::NextUniqNum() will not
                     pThis->SetUniqNum(-2);
@@ -212,12 +212,12 @@ CBotFunction* CBotFunction::Compile(CBotToken* &p, CBotCStack* pStack, CBotFunct
 //                  int num = 1;
                     while (pv != nullptr)
                     {
-                        CBotVar* pcopy = CBotVar::Create(pv);
+                        std::unique_ptr<CBotVar> pcopy = CBotVar::Create(pv);
 //                      pcopy->SetInit(2);
                         pcopy->Copy(pv);
                         pcopy->SetPrivate(pv->GetPrivate());
 //                      pcopy->SetUniqNum(pv->GetUniqNum()); //num++);
-                        pStk->AddVar(pcopy);
+                        pStk->AddVar(std::move(pcopy));
                         pv = pv->GetNext();
                     }
                 }
@@ -393,7 +393,7 @@ bool CBotFunction::Execute(CBotVar** ppVars, CBotStack* &pj, CBotVar* pInstance)
     if ( pile->GetState() == 1 && !m_MasterClass.empty() )
     {
         // makes "this" known
-        CBotVar* pThis = nullptr;
+        std::unique_ptr<CBotVar> pThis = nullptr;
         if ( pInstance == nullptr )
         {
             pThis = CBotVar::Create("this", CBotTypResult( CBotTypClass, m_MasterClass ));
@@ -414,7 +414,7 @@ bool CBotFunction::Execute(CBotVar** ppVars, CBotStack* &pj, CBotVar* pInstance)
 
 //      pThis->SetUniqNum(m_nThisIdent);
         pThis->SetUniqNum(-2);
-        pile->AddVar(pThis);
+        pile->AddVar(std::move(pThis));
 
         pile->IncState();
     }
@@ -703,7 +703,7 @@ int CBotFunction::DoCall(CBotProgram* program, const std::list<CBotFunction*>& l
             {
                 CBotVar* pInstance = (baseProg != nullptr) ? baseProg->m_thisVar : nullptr;
                 // make "this" known
-                CBotVar* pThis ;
+                std::unique_ptr<CBotVar> pThis;
                 if ( pInstance == nullptr )
                 {
                     pThis = CBotVar::Create("this", CBotTypResult( CBotTypClass, pt->m_MasterClass ));
@@ -723,7 +723,7 @@ int CBotFunction::DoCall(CBotProgram* program, const std::list<CBotFunction*>& l
                 pThis->SetInit(CBotVar::InitType::IS_POINTER);
 
                 pThis->SetUniqNum(-2);
-                pStk1->AddVar(pThis);
+                pStk1->AddVar(std::move(pThis));
             }
             pStk3b->SetState(1); // set 'this' was created
 
@@ -856,19 +856,20 @@ int CBotFunction::DoCall(const std::list<CBotFunction*>& localFunctionList, long
             if (pStk3b->GetState() == 0)
             {
                 // sets the variable "this" on the stack
-                CBotVar* pthis = CBotVar::Create("this", CBotTypNullPointer);
+                std::unique_ptr<CBotVar> pthis = CBotVar::Create("this", CBotTypNullPointer);
                 pthis->Copy(pThis, false);
                 pthis->SetUniqNum(-2);      // special value
-                pStk->AddVar(pthis);
+                pStk->AddVar(std::move(pthis));
 
+                // Note pthis vs pThis
                 CBotClass*  pClass = pThis->GetClass()->GetParent();
                 if ( pClass )
                 {
                     // sets the variable "super" on the stack
-                    CBotVar* psuper = CBotVar::Create("super", CBotTypNullPointer);
+                    std::unique_ptr<CBotVar> psuper = CBotVar::Create("super", CBotTypNullPointer);
                     psuper->Copy(pThis, false); // in fact identical to "this"
                     psuper->SetUniqNum(-3);     // special value
-                    pStk->AddVar(psuper);
+                    pStk->AddVar(std::move(psuper));
                 }
             }
             pStk3b->SetState(1); // set 'this' was created

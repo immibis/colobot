@@ -101,9 +101,9 @@ bool CBotCatch :: TestCatch(CBotStack* &pile, int val)
 
     if ( val > 0 || pile->GetVar() == nullptr || pile->GetVar()->GetType() != CBotTypBoolean )
     {
-        CBotVar* var = CBotVar::Create("", CBotTypBoolean);
+        std::unique_ptr<CBotVar> var = CBotVar::Create("", CBotTypBoolean);
         var->SetValInt( pile->GetVal() == val );
-        pile->SetVar(var);                          // calls on the stack
+        pile->SetVar(std::move(var));                          // calls on the stack
     }
 
     return true;

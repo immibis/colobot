@@ -163,8 +163,8 @@ CBotInstr* CBotExprLitString::Compile(CBotToken* &p, CBotCStack* pStack)
             inst->SetToken(p);
             p = p->GetNext();
 
-            CBotVar* var = CBotVar::Create("", CBotTypString);
-            pStk->SetVar(var);
+            std::unique_ptr<CBotVar> var = CBotVar::Create("", CBotTypString);
+            pStk->SetVar(std::move(var));
 
             return pStack->Return(inst, pStk);
         }
@@ -181,11 +181,11 @@ bool CBotExprLitString::Execute(CBotStack* &pj)
 
     if (pile->IfStep()) return false;
 
-    CBotVar*    var = CBotVar::Create("", CBotTypString);
+    std::unique_ptr<CBotVar> var = CBotVar::Create("", CBotTypString);
 
     var->SetValString(m_valstring);
 
-    pile->SetVar(var);                            // put on the stack
+    pile->SetVar(std::move(var));                 // put on the stack
 
     return pj->Return(pile);
 }

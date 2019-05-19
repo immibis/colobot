@@ -111,7 +111,7 @@ CBotInstr* CBotDefClass::Compile(CBotToken* &p, CBotCStack* pStack, CBotClass* p
 
 
         CBotVar*    var;
-        var = CBotVar::Create(vartoken->GetString(), type); // creates the instance
+        var = CBotVar::Create(vartoken->GetString(), type).release(); // creates the instance
 //      var->SetClass(pClass);
         var->SetUniqNum(
             (static_cast<CBotLeftExprVar*>(inst->m_var))->m_nIdent = CBotVar::NextUniqNum());
@@ -199,9 +199,8 @@ CBotInstr* CBotDefClass::Compile(CBotToken* &p, CBotCStack* pStack, CBotClass* p
             if ( !bIntrinsic )
             {
                 // does not use the result on the stack, to impose the class
-                CBotVar* pvar = CBotVar::Create("", pClass);
-                var->SetPointer( pvar );                    // variable already declared instance pointer
-                delete pvar;                                // removes the second pointer
+                std::unique_ptr<CBotVar> pvar = CBotVar::Create("", pClass);
+                var->SetPointer( pvar.release() );              // variable already declared instance pointer
             }
             var->SetInit(CBotVar::InitType::DEF);                         // marks the pointer as init
         }
@@ -211,9 +210,8 @@ CBotInstr* CBotDefClass::Compile(CBotToken* &p, CBotCStack* pStack, CBotClass* p
             // with a pointer to the object
             if ( !bIntrinsic )
             {
-                CBotVar* pvar = CBotVar::Create("", pClass);
-                var->SetPointer( pvar );                    // variable already declared instance pointer
-                delete pvar;                                // removes the second pointer
+                std::unique_ptr<CBotVar> pvar = CBotVar::Create("", pClass);
+                var->SetPointer( pvar.release() );              // variable already declared instance pointer
             }
             var->SetInit(CBotVar::InitType::IS_POINTER);                            // marks the pointer as init
         }
@@ -272,11 +270,11 @@ bool CBotDefClass::Execute(CBotStack* &pj)
         std::string  name = m_var->m_token.GetString();
         if ( bIntrincic )
         {
-            pThis = CBotVar::Create(name, CBotTypResult( CBotTypIntrinsic, pClass ));
+            pThis = CBotVar::Create(name, CBotTypResult( CBotTypIntrinsic, pClass )).release();
         }
         else
         {
-            pThis = CBotVar::Create(name, CBotTypResult( CBotTypPointer, pClass ));
+            pThis = CBotVar::Create(name, CBotTypResult( CBotTypPointer, pClass )).release();
         }
 
         pThis->SetUniqNum((static_cast<CBotLeftExprVar*>(m_var))->m_nIdent); // its attribute as unique number
@@ -340,7 +338,7 @@ bool CBotDefClass::Execute(CBotStack* &pj)
                 // creates an instance of the requested class
 
                 CBotVarClass* pInstance;
-                pInstance = static_cast<CBotVarClass*>(CBotVar::Create("", pClass));
+                pInstance = static_cast<CBotVarClass*>(CBotVar::Create("", pClass).release());
                 pThis->SetPointer(pInstance);
                 delete pInstance;
 

@@ -32,24 +32,24 @@ namespace CBot
 {
 
 ////////////////////////////////////////////////////////////////////////////////
-CBotVar* MakeListVars(CBotVar** ppVars, bool bSetVal)
+std::unique_ptr<CBotVar> MakeListVars(CBotVar** ppVars, bool bSetVal)
 {
     int     i = 0;
-    CBotVar*    pVar = nullptr;
+    std::unique_ptr<CBotVar> pVar = nullptr;
 
     while( true )
     {
 //        ppVars[i];
         if ( ppVars[i] == nullptr ) break;
 
-        CBotVar*    pp = CBotVar::Create(ppVars[i]);
+        std::unique_ptr<CBotVar> pp = CBotVar::Create(ppVars[i]);
         if (bSetVal) pp->Copy(ppVars[i]);
         else
             if ( ppVars[i]->GetType() == CBotTypPointer )
                 pp->SetClass( ppVars[i]->GetClass());
 // copy the pointer according to indirections
-        if (pVar == nullptr) pVar = pp;
-        else pVar->AddNext(pp);
+        if (pVar == nullptr) pVar = std::move(pp);
+        else pVar->AddNext(std::move(pp));
         i++;
     }
     return pVar;

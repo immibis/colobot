@@ -42,10 +42,10 @@ bool CBotExprLitNull::Execute(CBotStack* &pj)
     CBotStack*    pile = pj->AddStack(this);
 
     if (pile->IfStep()) return false;
-    CBotVar*    var = CBotVar::Create("", CBotTypNullPointer);
+    std::unique_ptr<CBotVar> var = CBotVar::Create("", CBotTypNullPointer);
 
     var->SetInit(CBotVar::InitType::DEF);         // null pointer valid
-    pile->SetVar(var);          // place on the stack
+    pile->SetVar(std::move(var));          // place on the stack
     return pj->Return(pile);    // forwards below
 }
 

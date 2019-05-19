@@ -25,6 +25,7 @@
 #include "CBot/CBotUtils.h"
 
 #include <string>
+#include <memory>
 
 namespace CBot
 {
@@ -65,7 +66,7 @@ public:
      * \param name Variable name
      * \param type Variable type
      */
-    static CBotVar* Create(const std::string& name, CBotTypResult type);
+    static std::unique_ptr<CBotVar> Create(const std::string& name, CBotTypResult type);
 
     /**
      * \brief Creates a new variable of a given class type
@@ -78,7 +79,7 @@ public:
      * \param name Variable name
      * \param pClass Class type
      */
-    static CBotVar* Create(const std::string& name, CBotClass* pClass);
+    static std::unique_ptr<CBotVar> Create(const std::string& name, CBotClass* pClass);
 
     /**
      * \brief Creates a new variable of a given type
@@ -91,14 +92,14 @@ public:
      * \param name Variable name token
      * \param type Variable type
      */
-    static CBotVar* Create(const CBotToken& name, CBotType type);
+    static std::unique_ptr<CBotVar> Create(const CBotToken& name, CBotType type);
 
     /**
      * \brief Create a new variable of a given type described by CBotTypResult
      * \param name Variable name token
      * \param type Variable type
      */
-    static CBotVar* Create(const CBotToken& name, CBotTypResult type);
+    static std::unique_ptr<CBotVar> Create(const CBotToken& name, CBotTypResult type);
 
     /**
      * \brief Create a new variable of a given type of given class instance
@@ -113,7 +114,7 @@ public:
      * \param pClass Class
      * \return
      */
-    static CBotVar* Create(const std::string& name, CBotType type, CBotClass* pClass);
+    static std::unique_ptr<CBotVar> Create(const std::string& name, CBotType type, CBotClass* pClass);
 
     /**
      * \brief Create a new variable of the same type and name as another one
@@ -122,7 +123,7 @@ public:
      *
      * \param pVar other variable to take type and name from
      */
-    static CBotVar* Create(CBotVar* pVar);
+    static std::unique_ptr<CBotVar> Create(CBotVar* pVar);
 
     /**
      * \brief Destroy a variable

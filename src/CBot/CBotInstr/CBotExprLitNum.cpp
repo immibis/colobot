@@ -70,8 +70,8 @@ CBotInstr* CBotExprLitNum::Compile(CBotToken* &p, CBotCStack* pStack)
 
     if (pStk->NextToken(p))
     {
-        CBotVar*    var = CBotVar::Create("", inst->m_numtype);
-        pStk->SetVar(var);
+        std::unique_ptr<CBotVar> var = CBotVar::Create("", inst->m_numtype);
+        pStk->SetVar(std::move(var));
 
         return pStack->Return(inst, pStk);
     }
@@ -86,7 +86,7 @@ bool CBotExprLitNum::Execute(CBotStack* &pj)
 
     if (pile->IfStep()) return false;
 
-    CBotVar*    var = CBotVar::Create("", m_numtype);
+    std::unique_ptr<CBotVar> var = CBotVar::Create("", m_numtype);
 
     std::string    nombre ;
     if (m_token.GetType() == TokenTypDef)
@@ -106,7 +106,7 @@ bool CBotExprLitNum::Execute(CBotStack* &pj)
     default:
         assert(false);
     }
-    pile->SetVar(var);                            // place on the stack
+    pile->SetVar(std::move(var));                   // place on the stack
 
     return pj->Return(pile);                        // it's ok
 }

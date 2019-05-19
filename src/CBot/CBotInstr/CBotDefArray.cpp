@@ -94,7 +94,7 @@ CBotInstr* CBotDefArray::Compile(CBotToken* &p, CBotCStack* pStack, CBotTypResul
             goto error;
         }
 
-        CBotVar*   var = CBotVar::Create(*vartoken, type);               // create an instance
+        CBotVar *var = CBotVar::Create(*vartoken, type).release();      // create an instance
         inst->m_typevar = type;
 
         var->SetUniqNum(
@@ -188,10 +188,10 @@ bool CBotDefArray::Execute(CBotStack* &pj)
         m_typevar.SetArray(max);                                    // store the limitations
 
         // create simply a nullptr pointer
-        CBotVar*    var = CBotVar::Create(*(m_var->GetToken()), m_typevar);
+        std::unique_ptr<CBotVar> var = CBotVar::Create(*(m_var->GetToken()), m_typevar);
         var->SetPointer(nullptr);
         var->SetUniqNum((static_cast<CBotLeftExprVar*>(m_var))->m_nIdent);
-        pj->AddVar(var);
+        pj->AddVar(var.release());
 
 #if        STACKMEM
         pile1->AddStack()->Delete();

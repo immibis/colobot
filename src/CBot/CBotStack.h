@@ -26,6 +26,7 @@
 
 #include <cstdio>
 #include <string>
+#include <memory>
 
 namespace CBot
 {
@@ -160,6 +161,12 @@ public:
     void AddVar(CBotVar* var);
 
     /**
+     * \brief Adds a local variable
+     * \param var Variable to be added
+     */
+    void AddVar(std::unique_ptr<CBotVar> var);
+
+    /**
      * \brief Fetch a variable by its token
      * \param pToken Token upon which search is performed
      * \param bUpdate true to automatically call update function for classes, see CBotClass::SetUpdateFunc()
@@ -197,7 +204,7 @@ public:
      * \param bUpdate true to automatically call update function for classes, see CBotClass::SetUpdateFunc()
      * \return Found variable, nullptr if not found
      */
-    CBotVar*        CopyVar(CBotToken& pToken, bool bUpdate = false);
+    std::unique_ptr<CBotVar> CopyVar(CBotToken& pToken, bool bUpdate = false);
 
     //@}
 
@@ -339,17 +346,19 @@ public:
 
     /**
      * \brief Set the result variable
-     * \todo CBotStack takes over the ownership - use std::unique_ptr here
+     *
      * \param var Result variable to set
      */
-    void            SetVar(CBotVar* var);
+    void            SetVar(std::unique_ptr<CBotVar> var);
     /**
      * \brief Set the result variable to copy of given variable
+     *
      * \param var Variable to copy as result
      */
     void            SetCopyVar(CBotVar* var);
     /**
      * \brief Return result variable
+     *
      * \return Variable set with SetVar() or SetCopyVar()
      */
     CBotVar*        GetVar();
@@ -479,9 +488,9 @@ private:
     static CBotError  m_error;
     static int        m_start;
     static int        m_end;
-    static CBotVar*   m_retvar;                    // result of a return
+    static std::unique_ptr<CBotVar> m_retvar;     // result of a return
 
-    CBotVar*        m_var;                        // result of the operations
+    std::unique_ptr<CBotVar> m_var;               // result of the operations
     CBotVar*        m_listVar;                    // variables declared at this level
 
     BlockVisibilityType m_block;                    // is part of a block (variables are local to this block)

@@ -162,7 +162,7 @@ bool CBotClass::AddItem(std::string name,
 {
     CBotClass*  pClass = type.GetClass();
 
-    CBotVar*    pVar = CBotVar::Create( name, type );
+    CBotVar*    pVar = CBotVar::Create( name, type ).release();
 /// pVar->SetUniqNum(CBotVar::NextUniqNum());
     pVar->SetPrivate( mPrivate );
 
@@ -614,7 +614,7 @@ bool CBotClass::CompileDefItem(CBotToken* &p, CBotCStack* pStack, bool bSecond)
 
                     // make "this" known
                     CBotToken TokenThis(std::string("this"), std::string());
-                    CBotVar* pThis = CBotVar::Create(TokenThis, CBotTypResult( CBotTypClass, this ) );
+                    CBotVar* pThis = CBotVar::Create(TokenThis, CBotTypResult( CBotTypClass, this ) ).release();
                     pThis->SetUniqNum(-2);
                     pile->AddVar(pThis);
 
@@ -622,9 +622,9 @@ bool CBotClass::CompileDefItem(CBotToken* &p, CBotCStack* pStack, bool bSecond)
                     {
                         // makes "super" known
                         CBotToken TokenSuper(std::string("super"), std::string());
-                        CBotVar* pThis = CBotVar::Create(TokenSuper, CBotTypResult(CBotTypClass, m_parent) );
+                        std::unique_ptr<CBotVar> pThis = CBotVar::Create(TokenSuper, CBotTypResult(CBotTypClass, m_parent) );
                         pThis->SetUniqNum(-3);
-                        pile->AddVar(pThis);
+                        pile->AddVar(std::move(pThis));
                     }
 
 //                  int num = 1;
@@ -635,14 +635,14 @@ bool CBotClass::CompileDefItem(CBotToken* &p, CBotCStack* pStack, bool bSecond)
                         CBotVar* pv = my->m_pVar;
                         while (pv != nullptr)
                         {
-                            CBotVar* pcopy = CBotVar::Create(pv);
+                            std::unique_ptr<CBotVar> pcopy = CBotVar::Create(pv);
                             CBotVar::InitType initType = CBotVar::InitType::UNDEF;
                             if (!bConstructor || pv->IsStatic())
                                 initType = CBotVar::InitType::DEF;
                             pcopy->SetInit(initType);
                             pcopy->SetUniqNum(pv->GetUniqNum());
                             pcopy->SetPrivate(pv->GetPrivate());
-                            pile->AddVar(pcopy);
+                            pile->AddVar(std::move(pcopy));
                             pv = pv->GetNext();
                         }
                         my = my->m_parent;
@@ -753,7 +753,7 @@ bool CBotClass::CompileDefItem(CBotToken* &p, CBotCStack* pStack, bool bSecond)
 
             if ( !bSecond )
             {
-                CBotVar*    pv = CBotVar::Create(pp, type2);
+                CBotVar*    pv = CBotVar::Create(pp, type2).release();
                 pv -> SetStatic( bStatic );
                 pv -> SetPrivate( mProtect );
 

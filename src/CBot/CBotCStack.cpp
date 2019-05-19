@@ -56,7 +56,6 @@ CBotCStack::CBotCStack(CBotCStack* ppapa)
     }
 
     m_listVar = nullptr;
-    m_var      = nullptr;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -65,7 +64,6 @@ CBotCStack::~CBotCStack()
     if (m_next != nullptr) delete m_next;
     if (m_prev != nullptr) m_prev->m_next = nullptr;        // removes chain
 
-    delete m_var;
     delete m_listVar;
 }
 
@@ -90,9 +88,7 @@ CBotInstr* CBotCStack::Return(CBotInstr* inst, CBotCStack* pfils)
 
 
 
-    if (m_var != nullptr) delete m_var;            // value replaced?
-    m_var = pfils->m_var;                        // result transmitted
-    pfils->m_var = nullptr;                        // not to destroy the variable
+    m_var = std::move(pfils->m_var);             // result transmitted
 
     if (m_error)
     {
@@ -107,9 +103,7 @@ CBotInstr* CBotCStack::Return(CBotInstr* inst, CBotCStack* pfils)
 ////////////////////////////////////////////////////////////////////////////////
 CBotFunction* CBotCStack::ReturnFunc(CBotFunction* inst, CBotCStack* pfils)
 {
-    if (m_var != nullptr) delete m_var;            // value replaced?
-    m_var = pfils->m_var;                        // result transmitted
-    pfils->m_var = nullptr;                        // not to destroy the variable
+    m_var = std::move(pfils->m_var);             // result transmitted
 
     if (m_error)
     {
@@ -198,13 +192,13 @@ CBotVar* CBotCStack::FindVar(CBotToken& Token)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-CBotVar* CBotCStack::CopyVar(CBotToken& Token)
+std::unique_ptr<CBotVar> CBotCStack::CopyVar(CBotToken& Token)
 {
     CBotVar*    pVar = FindVar( Token );
 
     if ( pVar == nullptr) return nullptr;
 
-    CBotVar*    pCopy = CBotVar::Create( "", pVar->GetType() );
+    std::unique_ptr<CBotVar> pCopy = CBotVar::Create( "", pVar->GetType() );
     pCopy->Copy(pVar);
     return    pCopy;
 }
@@ -284,21 +278,19 @@ CBotTypResult CBotCStack::GetRetType()
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-void CBotCStack::SetVar( CBotVar* var )
+void CBotCStack::SetVar( std::unique_ptr<CBotVar> var )
 {
-    if (m_var) delete m_var;    // replacement of a variable
-    m_var = var;
+    m_var = std::move(var);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 void CBotCStack::SetCopyVar( CBotVar* var )
 {
-    if (m_var) delete m_var;    // replacement of a variable
-
-    // If this is not true, the next line leaves m_var pointing to a deleted object which will crash eventually.
-    assert(m_var == nullptr || var != nullptr);
-
-    if ( var == nullptr ) return;
+    if ( var == nullptr )
+    {
+        m_var.reset(); // set to null
+        return;
+    }
     m_var = CBotVar::Create("", var->GetTypResult(CBotVar::GetTypeMode::CLASS_AS_INTRINSIC));
     m_var->Copy( var );
 }
@@ -306,7 +298,7 @@ void CBotCStack::SetCopyVar( CBotVar* var )
 ////////////////////////////////////////////////////////////////////////////////
 CBotVar* CBotCStack::GetVar()
 {
-    return m_var;
+    return m_var.get();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -323,6 +315,12 @@ void CBotCStack::AddVar(CBotVar* pVar)
     while ( *pp != nullptr ) pp = &(*pp)->m_next;
 
     *pp = pVar;                    // added after
+}
+
+////////////////////////////////////////////////////////////////////////////////
+void CBotCStack::AddVar(std::unique_ptr<CBotVar> pVar)
+{
+    AddVar(pVar.release());
 }
 
 ////////////////////////////////////////////////////////////////////////////////

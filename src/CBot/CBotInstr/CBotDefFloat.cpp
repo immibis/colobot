@@ -62,7 +62,6 @@ CBotInstr* CBotDefFloat::Compile(CBotToken* &p, CBotCStack* pStack, bool cont, b
     inst->m_expr = nullptr;
 
     CBotToken*    vartoken = p;
-    CBotVar*    var = nullptr;
     inst->SetToken(vartoken);
 
     if (nullptr != (inst->m_var = CBotLeftExprVar::Compile( p, pStk )))
@@ -103,11 +102,13 @@ CBotInstr* CBotDefFloat::Compile(CBotToken* &p, CBotCStack* pStack, bool cont, b
             }
         }
 
-        var = CBotVar::Create(*vartoken, CBotTypFloat);
-        var->SetInit(inst->m_expr != nullptr ? CBotVar::InitType::DEF : CBotVar::InitType::UNDEF);
-        var->SetUniqNum(
-            (static_cast<CBotLeftExprVar*>(inst->m_var))->m_nIdent = CBotVar::NextUniqNum());
-        pStack->AddVar(var);
+        {
+            std::unique_ptr<CBotVar> var = CBotVar::Create(*vartoken, CBotTypFloat);
+            var->SetInit(inst->m_expr != nullptr ? CBotVar::InitType::DEF : CBotVar::InitType::UNDEF);
+            var->SetUniqNum(
+                (static_cast<CBotLeftExprVar*>(inst->m_var))->m_nIdent = CBotVar::NextUniqNum());
+            pStack->AddVar(std::move(var));
+        }
 suite:
         if (pStk->IsOk() && IsOfType(p,  ID_COMMA))
         {

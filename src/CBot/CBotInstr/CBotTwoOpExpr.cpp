@@ -335,16 +335,16 @@ bool CBotTwoOpExpr::Execute(CBotStack* &pStack)
         // for OR and AND logic does not evaluate the second expression if not necessary
         if ( (GetTokenType() == ID_LOG_AND || GetTokenType() == ID_TXT_AND ) && pStk1->GetVal() == false )
         {
-            CBotVar*    res = CBotVar::Create("", CBotTypBoolean);
+            std::unique_ptr<CBotVar> res = CBotVar::Create("", CBotTypBoolean);
             res->SetValInt(false);
-            pStk1->SetVar(res);
+            pStk1->SetVar(std::move(res));
             return pStack->Return(pStk1);               // transmits the result
         }
         if ( (GetTokenType() == ID_LOG_OR||GetTokenType() == ID_TXT_OR) && pStk1->GetVal() == true )
         {
-            CBotVar*    res = CBotVar::Create("", CBotTypBoolean);
+            std::unique_ptr<CBotVar> res = CBotVar::Create("", CBotTypBoolean);
             res->SetValInt(true);
-            pStk1->SetVar(res);
+            pStk1->SetVar(std::move(res));
             return pStack->Return(pStk1);               // transmits the result
         }
 
@@ -403,7 +403,7 @@ bool CBotTwoOpExpr::Execute(CBotStack* &pStack)
     }
 
     // creates a variable for the result
-    CBotVar*    result = CBotVar::Create("", TypeRes);
+    std::unique_ptr<CBotVar> result = CBotVar::Create("", TypeRes);
 
     // get left and right operands
     CBotVar*    left  = pStk1->GetVar();
@@ -425,7 +425,7 @@ bool CBotTwoOpExpr::Execute(CBotStack* &pStack)
         TypeRes = CBotTypString;
     }
 
-    CBotVar*    temp;
+    std::unique_ptr<CBotVar> temp;
 
     if ( TypeRes == CBotTypPointer ) TypeRes = CBotTypNullPointer;
     if ( TypeRes == CBotTypClass ) temp = CBotVar::Create("", CBotTypResult(CBotTypIntrinsic, type1.GetClass() ) );
@@ -507,9 +507,8 @@ bool CBotTwoOpExpr::Execute(CBotStack* &pStack)
     default:
         assert(0);
     }
-    delete temp;
 
-    pStk2->SetVar(result);                      // puts the result on the stack
+    pStk2->SetVar(std::move(result));           // puts the result on the stack
     if ( err ) pStk2->SetError(err, &m_token);  // and the possible error (division by zero)
 
 //  pStk1->Return(pStk2);                       // releases the stack

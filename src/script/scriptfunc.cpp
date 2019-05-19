@@ -3517,10 +3517,10 @@ CBotVar* CScriptFunctions::CreateObjectVar(CObject* obj)
         bc->SetUpdateFunc(CScriptFunctions::uObject);
     }
 
-    CBotVar* botVar = CBotVar::Create("", CBotTypResult(CBotTypClass, "object"));
+    std::unique_ptr<CBotVar> botVar = CBotVar::Create("", CBotTypResult(CBotTypClass, "object"));
     botVar->SetUserPtr(obj);
     botVar->SetIdent(obj->GetID());
-    return botVar;
+    return botVar.release(); // \todo TODO: extend usage of unique_ptr
 }
 
 void CScriptFunctions::DestroyObjectVar(CBotVar* botVar, bool permanent)

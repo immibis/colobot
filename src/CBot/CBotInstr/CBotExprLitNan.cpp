@@ -41,10 +41,10 @@ bool CBotExprLitNan::Execute(CBotStack* &pj)
     CBotStack*    pile = pj->AddStack(this);
 
     if (pile->IfStep()) return false;
-    CBotVar*    var = CBotVar::Create("", CBotTypInt);
+    std::unique_ptr<CBotVar> var = CBotVar::Create("", CBotTypInt);
 
     var->SetInit(CBotVar::InitType::IS_NAN);       // nan
-    pile->SetVar(var);          // put on the stack
+    pile->SetVar(std::move(var));          // put on the stack
     return pj->Return(pile);    // forward below
 }
 

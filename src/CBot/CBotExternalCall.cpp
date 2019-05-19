@@ -86,15 +86,15 @@ int CBotExternalCallList::DoCall(CBotToken* token, CBotVar* thisVar, CBotVar** p
     CBotStack* pile = pStack->AddStackExternalCall(pt);
 
     // lists the parameters depending on the contents of the stack (pStackVar)
-    CBotVar* pVar = MakeListVars(ppVar, true);
+    std::unique_ptr<CBotVar> pVar = MakeListVars(ppVar, true);
 
     // creates a variable to the result
-    CBotVar* pResult = rettype.Eq(CBotTypVoid) ? nullptr : CBotVar::Create("", rettype);
+    std::unique_ptr<CBotVar> pResult = rettype.Eq(CBotTypVoid) ? nullptr : CBotVar::Create("", rettype);
 
-    pile->SetVar(pVar);
+    pile->SetVar(std::move(pVar));
 
     CBotStack* pile2 = pile->AddStack();
-    pile2->SetVar(pResult);
+    pile2->SetVar(std::move(pResult));
 
     pile->SetError(CBotNoErr, token); // save token for the position in case of error
     return pt->Run(thisVar, pStack);

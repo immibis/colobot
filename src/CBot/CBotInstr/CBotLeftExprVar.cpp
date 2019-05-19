@@ -57,7 +57,7 @@ CBotInstr* CBotLeftExprVar::Compile(CBotToken* &p, CBotCStack* pStack)
 bool CBotLeftExprVar::Execute(CBotStack* &pj)
 {
     // Create the variable
-    CBotVar* var1 = CBotVar::Create(m_token.GetString(), m_typevar);
+    CBotVar* var1 = CBotVar::Create(m_token.GetString(), m_typevar).release();
     var1->SetUniqNum(m_nIdent);
     pj->AddVar(var1);
 

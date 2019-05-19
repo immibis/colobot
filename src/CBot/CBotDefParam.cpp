@@ -104,12 +104,12 @@ CBotDefParam* CBotDefParam::Compile(CBotToken* &p, CBotCStack* pStack)
                     if (!pStack->IsOk()) break;
 
                     if ( type.Eq(CBotTypArrayPointer) ) type.SetType(CBotTypArrayBody);
-                    CBotVar*    var = CBotVar::Create(pp->GetString(), type);       // creates the variable
+                    std::unique_ptr<CBotVar> var = CBotVar::Create(pp->GetString(), type);          // creates the variable
 //                  if ( pClass ) var->SetClass(pClass);
                     var->SetInit(CBotVar::InitType::IS_POINTER);                                    // mark initialized
                     param->m_nIdent = CBotVar::NextUniqNum();
                     var->SetUniqNum(param->m_nIdent);
-                    pStack->AddVar(var);                                // place on the stack
+                    pStack->AddVar(var.release());                      // place on the stack
 
                     if (IsOfType(p, ID_COMMA)) continue;
                     if (IsOfType(p, ID_CLOSEPAR)) break;
@@ -165,7 +165,7 @@ bool CBotDefParam::Execute(CBotVar** ppVars, CBotStack* &pj)
         pile->SetState(1); // mark this param done
 
         // creates a local variable on the stack
-        CBotVar*    newvar = CBotVar::Create(p->m_token.GetString(), p->m_type);
+        std::unique_ptr<CBotVar> newvar = CBotVar::Create(p->m_token.GetString(), p->m_type);
 
         // serves to make the transformation of types:
         if ((useDefault && pVar != nullptr) ||
@@ -188,7 +188,7 @@ bool CBotDefParam::Execute(CBotVar** ppVars, CBotStack* &pj)
                 newvar->SetValInt(pVar->GetValInt());
                 break;
             case CBotTypIntrinsic:
-                (static_cast<CBotVarClass*>(newvar))->Copy(pVar, false);
+                (static_cast<CBotVarClass*>(newvar.get()))->Copy(pVar, false);
                 break;
             case CBotTypPointer:
                 {
@@ -206,7 +206,7 @@ bool CBotDefParam::Execute(CBotVar** ppVars, CBotStack* &pj)
             }
         }
         newvar->SetUniqNum(p->m_nIdent);
-        pj->AddVar(newvar);     // add a variable
+        pj->AddVar(newvar.release());     // add a variable
         p = p->m_next;
         if (!useDefault) i++;
     }

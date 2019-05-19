@@ -24,6 +24,7 @@
 #include <cstdio>
 #include <string>
 #include <cassert>
+#include <memory>
 
 namespace CBot
 {
@@ -35,11 +36,11 @@ class CBotCStack;
 /*!
  * \brief MakeListVars Transforms the array of pointers to variables in a
  * chained list of variables
- * \param ppVars
- * \param bSetVal
- * \return
+ * \param ppVars Array of variable pointers ending with null
+ * \param bSetVal Whether the values should be copied
+ * \return Head of list containing copies of the variables in ppVars
  */
-CBotVar* MakeListVars(CBotVar** ppVars, bool bSetVal=false);
+std::unique_ptr<CBotVar> MakeListVars(CBotVar** ppVars, bool bSetVal=false);
 
 /*!
  * \brief TypeParam
@@ -144,6 +145,18 @@ public:
         CBotLinkedList<T>* p = this;
         while (p->m_next != nullptr) p = p->m_next;
         p->m_next = elem;
+    }
+
+    /**
+     * \brief Appends a new element at the end of the linked list
+     *
+     * \todo Use unique_ptr internally.
+     *
+     * \param elem Element to add
+     */
+    void AddNext(std::unique_ptr<T> elem)
+    {
+        AddNext(elem.release());
     }
 
 protected:

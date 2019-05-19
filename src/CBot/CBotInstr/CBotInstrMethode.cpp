@@ -82,12 +82,12 @@ CBotInstr* CBotInstrMethode::Compile(CBotToken* &p, CBotCStack* pStack, CBotVar*
             // put the result on the stack to have something
             if (inst->m_typRes.GetType() > 0)
             {
-                CBotVar*    pResult = CBotVar::Create("", inst->m_typRes);
+                std::unique_ptr<CBotVar> pResult = CBotVar::Create("", inst->m_typRes);
                 if (inst->m_typRes.Eq(CBotTypClass))
                 {
                     pResult->SetClass(inst->m_typRes.GetClass());
                 }
-                pStack->SetVar(pResult);
+                pStack->SetVar(std::move(pResult));
             }
             else pStack->SetVar(nullptr);
 
@@ -137,7 +137,7 @@ bool CBotInstrMethode::ExecuteVar(CBotVar* &pVar, CBotStack* &pj, CBotToken* pre
 
     if ( pile1->GetState() == 0)
     {
-        CBotVar*    pThis = CBotVar::Create(pVar);
+        std::unique_ptr<CBotVar> pThis = CBotVar::Create(pVar);
         pThis->Copy(pVar);
         // this value should be taken before the evaluation parameters
         // Test.Action (Test = Other);
@@ -145,7 +145,7 @@ bool CBotInstrMethode::ExecuteVar(CBotVar* &pVar, CBotStack* &pj, CBotToken* pre
 
         pThis->SetName("this");
         pThis->SetUniqNum(-2);
-        pile1->SetVar(pThis);
+        pile1->SetVar(std::move(pThis));
         pile1->IncState();
     }
     int        i = 0;
@@ -269,12 +269,12 @@ bool CBotInstrMethode::Execute(CBotStack* &pj)
 
     if ( pile1->GetState() == 0)
     {
-        CBotVar*    pThis = pile1->CopyVar(m_token);
+        std::unique_ptr<CBotVar> pThis = pile1->CopyVar(m_token);
         // this value should be taken before the evaluation parameters
         // Test.Action (Test = Other);
         // Action must act on the value before test = Other!
         pThis->SetName("this");
-        pile1->SetVar(pThis);
+        pile1->SetVar(std::move(pThis));
         pile1->IncState();
     }
     int        i = 0;

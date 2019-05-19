@@ -50,8 +50,8 @@ CBotInstr* CBotExprLitBool::Compile(CBotToken* &p, CBotCStack* pStack)
         inst->SetToken(p);  // stores the operation false or true
         p = p->GetNext();
 
-        CBotVar*    var = CBotVar::Create("", CBotTypBoolean);
-        pStk->SetVar(var);
+        std::unique_ptr<CBotVar> var = CBotVar::Create("", CBotTypBoolean);
+        pStk->SetVar(std::move(var));
     }
 
     return pStack->Return(inst, pStk);
@@ -64,12 +64,12 @@ bool CBotExprLitBool::Execute(CBotStack* &pj)
 
     if (pile->IfStep()) return false;
 
-    CBotVar*    var = CBotVar::Create("", CBotTypBoolean);
+    std::unique_ptr<CBotVar> var = CBotVar::Create("", CBotTypBoolean);
 
     if (GetTokenType() == ID_TRUE)      var->SetValInt(1);
     else                              var->SetValInt(0);
 
-    pile->SetVar(var);  // put on the stack
+    pile->SetVar(std::move(var));  // put on the stack
     return pj->Return(pile);    // forwards below
 }
 
