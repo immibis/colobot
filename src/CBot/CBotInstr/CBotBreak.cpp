@@ -43,7 +43,7 @@ CBotInstr* CBotBreak::Compile(CBotToken* &p, CBotCStack* pStack)
 
     if (!IsOfType(p, ID_BREAK, ID_CONTINUE)) return nullptr;   // should never happen
 
-    if ( !ChkLvl(std::string(), type ) )
+    if ( !pStack->CheckLoop("", type ) )
     {
         pStack->SetError(CBotErrBreakOutside, pp);
         return nullptr;                            // no object, the error is on the stack
@@ -56,7 +56,7 @@ CBotInstr* CBotBreak::Compile(CBotToken* &p, CBotCStack* pStack)
     if ( IsOfType( p, TokenTypVar ) )
     {
         inst->m_label = pp->GetString();        // register the name of label
-        if ( !ChkLvl(inst->m_label, type ) )
+        if ( !pStack->CheckLoop(inst->m_label, type ) )
         {
             delete inst;
             pStack->SetError(CBotErrUndefLabel, pp);

@@ -47,8 +47,6 @@ namespace CBot
 {
 
 ////////////////////////////////////////////////////////////////////////////////
-int CBotInstr::m_LoopLvl = 0;
-std::vector<std::string> CBotInstr::m_labelLvl = std::vector<std::string>();
 
 ////////////////////////////////////////////////////////////////////////////////
 CBotInstr::CBotInstr()
@@ -66,50 +64,6 @@ CBotInstr::~CBotInstr()
     delete m_next2b;
     delete m_next3;
     delete m_next3b;
-}
-
-////////////////////////////////////////////////////////////////////////////////
-void CBotInstr::IncLvl(std::string& label)
-{
-    m_labelLvl.resize(m_LoopLvl+1);
-    m_labelLvl[m_LoopLvl] = label;
-    m_LoopLvl++;
-}
-
-////////////////////////////////////////////////////////////////////////////////
-void CBotInstr::IncLvl()
-{
-    m_labelLvl.resize(m_LoopLvl+1);
-    m_labelLvl[m_LoopLvl] = "#SWITCH";
-    m_LoopLvl++;
-}
-
-////////////////////////////////////////////////////////////////////////////////
-void CBotInstr::DecLvl()
-{
-    m_LoopLvl--;
-    m_labelLvl[m_LoopLvl].clear();
-}
-
-////////////////////////////////////////////////////////////////////////////////
-void CBotInstr::ResetLvl()
-{
-    assert(m_LoopLvl == 0);
-    m_labelLvl.resize(0);
-    m_LoopLvl = 0;
-}
-
-////////////////////////////////////////////////////////////////////////////////
-bool CBotInstr::ChkLvl(const std::string& label, int type)
-{
-    int    i = m_LoopLvl;
-    while (--i>=0)
-    {
-        if ( type == ID_CONTINUE && m_labelLvl[i] == "#SWITCH") continue;
-        if (label.empty()) return true;
-        if (m_labelLvl[i] == label) return true;
-    }
-    return false;
 }
 
 ////////////////////////////////////////////////////////////////////////////////

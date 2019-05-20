@@ -63,9 +63,9 @@ CBotInstr* CBotWhile::Compile(CBotToken* &p, CBotCStack* pStack)
     {
         // the condition exists
 
-        IncLvl(inst->m_label);
+        pStk->SetLoop(inst->m_label);
         inst->m_block = CBotBlock::CompileBlkOrInst(p, pStk, true );
-        DecLvl();
+        pStk->ClearLoop();
 
         if ( pStk->IsOk() )
         {

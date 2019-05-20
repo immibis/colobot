@@ -222,8 +222,6 @@ CBotFunction* CBotFunction::Compile(CBotToken* &p, CBotCStack* pStack, CBotFunct
                     }
                 }
 
-                CBotInstr::ResetLvl(); // Make sure we don't leak break/continue labels
-
                 // and compiles the following instruction block
                 func->m_openblk = *p;
                 func->m_block = CBotBlock::Compile(p, pStk, false);
@@ -238,8 +236,6 @@ CBotFunction* CBotFunction::Compile(CBotToken* &p, CBotCStack* pStack, CBotFunct
                     }
                     return pStack->ReturnFunc(func, pStk);
                 }
-
-                CBotInstr::ResetLvl(); // Make sure we don't leak break/continue labels
             }
         }
 bad:

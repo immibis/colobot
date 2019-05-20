@@ -63,7 +63,7 @@ CBotInstr* CBotSwitch::Compile(CBotToken* &p, CBotCStack* pStack)
                 {
                     if ( IsOfType(p, ID_OPBLK ) )
                     {
-                        IncLvl();
+                        pStk->SetLoop("#SWITCH");
 
                         while( !IsOfType( p, ID_CLBLK ) )
                         {
@@ -75,7 +75,6 @@ CBotInstr* CBotSwitch::Compile(CBotToken* &p, CBotCStack* pStack)
                                 if (i == nullptr)
                                 {
                                     delete inst;
-                                    DecLvl();
                                     pStk->Return(nullptr, pStk2);
                                     return pStack->Return(nullptr, pStk);
                                 }
@@ -89,7 +88,6 @@ CBotInstr* CBotSwitch::Compile(CBotToken* &p, CBotCStack* pStack)
                             {
                                 pStk->SetError(CBotErrNoCase, p->GetStart());
                                 delete inst;
-                                DecLvl();
                                 return pStack->Return(nullptr, pStk);
                             }
 
@@ -97,7 +95,6 @@ CBotInstr* CBotSwitch::Compile(CBotToken* &p, CBotCStack* pStack)
                             if ( !pStk->IsOk() )
                             {
                                 delete inst;
-                                DecLvl();
                                 return pStack->Return(nullptr, pStk);
                             }
                             inst->m_block->AddNext(i);
@@ -106,11 +103,10 @@ CBotInstr* CBotSwitch::Compile(CBotToken* &p, CBotCStack* pStack)
                             {
                                 pStk->SetError(CBotErrCloseBlock, -1);
                                 delete inst;
-                                DecLvl();
                                 return pStack->Return(nullptr, pStk);
                             }
                         }
-                        DecLvl();
+                        pStk->ClearLoop();
 
                         if (inst->m_block == nullptr )
                         {

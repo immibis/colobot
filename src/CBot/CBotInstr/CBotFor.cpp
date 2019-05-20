@@ -93,9 +93,9 @@ CBotInstr* CBotFor::Compile(CBotToken* &p, CBotCStack* pStack)
             {
                 if ( IsOfType(p, ID_CLOSEPAR))              // missing parenthesis ?
                 {
-                    IncLvl(inst->m_label);
+                    pStk->SetLoop(inst->m_label);
                     inst->m_block = CBotBlock::CompileBlkOrInst(p, pStk, true );
-                    DecLvl();
+                    pStk->ClearLoop();
                     if ( pStk->IsOk() )
                         return pStack->Return(inst, pStk);;
                 }

@@ -258,35 +258,6 @@ public:
     CBotInstr* GetNext3b();
 
     /**
-     * \brief IncLvl Adds a level with a label.
-     * \param label
-     */
-    static void IncLvl(std::string& label);
-
-    /**
-     * \brief IncLvl Adds a level (switch statement).
-     */
-    static void IncLvl();
-
-    /**
-     * \brief DecLvl Free a level.
-     */
-    static void DecLvl();
-
-    /**
-     * \brief Reset loop level. Called before compiling a function.
-     */
-    static void ResetLvl();
-
-    /**
-     * \brief ChkLvl Control validity of break and continue.
-     * \param label
-     * \param type
-     * \return
-     */
-    static bool ChkLvl(const std::string& label, int type);
-
-    /**
      * \brief Check a list of instructions for a return statement.
      * \return true if a return statement was found.
      */
@@ -322,15 +293,9 @@ protected:
     //! Necessary for reporting tables.
     CBotInstr* m_next3b;
 
-    //! Counter of nested loops, to determine the break and continue valid.
-    static int m_LoopLvl;
     friend class CBotDefClass;
     friend class CBotDefInt;
     friend class CBotListArray;
-
-private:
-    //! List of labels used.
-    static std::vector<std::string> m_labelLvl;
 };
 
 } // namespace CBot

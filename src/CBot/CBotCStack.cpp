@@ -27,6 +27,8 @@
 
 #include "CBot/CBotInstr/CBotFunction.h"
 
+#define NO_LOOP_LABEL "#none"
+
 namespace CBot
 {
 
@@ -56,6 +58,8 @@ CBotCStack::CBotCStack(CBotCStack* ppapa)
         m_end = ppapa->m_end;
         m_bBlock = false;
     }
+
+    m_loopLabel = NO_LOOP_LABEL;
 
     m_listVar = nullptr;
 }
@@ -121,7 +125,6 @@ CBotInstr* CBotCStack::Return(CBotInstr* inst, CBotCStack* pfils)
     assert(pfils != nullptr);
     assert(pfils == this->m_next);
     assert(pfils->m_next == nullptr); // pfils must be bottom stack level, and this must be the next one above it.
-    if ( pfils == this ) return inst; // TODO: Can this happen?
 
     m_var = std::move(pfils->m_var);             // result transmitted
 
@@ -321,6 +324,42 @@ void CBotCStack::SetCopyVar( CBotVar* var )
 CBotVar* CBotCStack::GetVar()
 {
     return m_var.get();
+}
+
+////////////////////////////////////////////////////////////////////////////////
+void CBotCStack::SetLoop(std::string label)
+{
+    assert (label != NO_LOOP_LABEL);
+    m_loopLabel = std::move(label);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+void CBotCStack::ClearLoop()
+{
+    m_loopLabel = NO_LOOP_LABEL;
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+bool CBotCStack::CheckLoop(const std::string& label, int type)
+{
+    CBotCStack *cur = this;
+    while (cur != nullptr)
+    {
+        if (cur->m_loopLabel != NO_LOOP_LABEL) // Ignore levels that aren't loops/switches.
+        {
+            if (label == "" || cur->m_loopLabel == label) // If label is "" then match any label.
+            {
+                // Don't match switches for continue statements.
+                if (type == ID_BREAK || cur->m_loopLabel != "#SWITCH")
+                {
+                    return true;
+                }
+            }
+        }
+        cur = cur->m_prev;
+    }
+    return false;
 }
 
 ////////////////////////////////////////////////////////////////////////////////

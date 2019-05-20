@@ -61,9 +61,9 @@ CBotInstr* CBotDo::Compile(CBotToken* &p, CBotCStack* pStack)
 
 
     // looking for a statement block after the do
-    IncLvl(inst->m_label);
+    pStk->SetLoop(inst->m_label);
     inst->m_block = CBotBlock::CompileBlkOrInst(p, pStk, true );
-    DecLvl();
+    pStk->ClearLoop();
 
     if ( pStk->IsOk() )
     {

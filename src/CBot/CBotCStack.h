@@ -59,6 +59,9 @@ class CBotToken;
  * and delete its own stack level when returning.
  * Typically, the function will return a pointer to some object, or if there's an error, it will set the error
  * in the stack (which propagates up the stack) and return null.
+ *
+ * The compile stack also maintains labels for all loops/switches that are currently being compiled.
+ * This is used to check whether a 'break' or 'continue' statement has a valid label.
  */
 class CBotCStack
 {
@@ -370,6 +373,29 @@ public:
      */
     bool NextToken(CBotToken* &p);
 
+    /*!
+     * Marks this stack level as a loop and sets the loop label.
+     *
+     * \param label The label for the loop; empty string if no label.
+     */
+    void SetLoop(std::string label);
+
+    /*!
+     * Unmarks this stack level as a loop.
+     */
+    void ClearLoop();
+
+    /**
+     * \brief Check validity of break or continue.
+     *
+     * \param label Label to check for. Empty string ("") if no label.
+     * \param type ID_BREAK or ID_CONTINUE
+     * \return True if inside a loop with that label. Switches count for ID_BREAK but not for ID_CONTINUE.
+     *
+     * \todo Switch statements should be able to have labels.
+     */
+    bool CheckLoop(const std::string& label, int type);
+
 private:
     CBotCStack* m_next;
     CBotCStack* m_prev;
@@ -389,6 +415,13 @@ private:
     static CBotTypResult m_retTyp; // XXX shouldn't be static
 
     CBotProgram* m_pProgram; // Only for outermost stack level
+
+    /*! Label for this loop.
+     * Set to dummy value "#none" if this is not a loop.
+     * Set to "#SWITCH" for a switch statement (for some reason, perhaps because they can't be labelled?)
+     * If the loop has a label, this is set to it. An empty string means an unlabelled loop.
+     */
+    std::string m_loopLabel;
 };
 
 } // namespace CBot
