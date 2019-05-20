@@ -216,9 +216,9 @@ CBotInstr* CBotTwoOpExpr::Compile(CBotToken* &p, CBotCStack* pStack, int* pOpera
 
             if ( type1.Eq(99) || type2.Eq(99) )                 // operand is void
             {
-                pStack->SetError(CBotErrBadType2, &inst->m_token);
+                pStk->SetError(CBotErrBadType2, &inst->m_token);
                 delete inst;
-                return nullptr;
+                return pStack->Return(nullptr, pStk);
             }
 
             // what kind of result?

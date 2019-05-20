@@ -50,9 +50,7 @@ CBotCStack::CBotCStack(CBotCStack* ppapa)
     }
     else
     {
-        /// \todo TODO: clean up cases where errors can propagate downwards
-        /// (mostly "delete pStack->TokenStack();" in error cases)
-        //assert(ppapa->m_error == CBotNoErr);
+        assert(ppapa->m_error == CBotNoErr);
         m_start = ppapa->m_start;
         m_error = ppapa->m_error;
         m_end = ppapa->m_end;
@@ -77,6 +75,7 @@ CBotCStack::CBotCStack(CBotCStack* ppapa)
 ////////////////////////////////////////////////////////////////////////////////
 CBotCStack::~CBotCStack()
 {
+    assert(m_next == nullptr);
     if (m_next != nullptr) delete m_next;
     if (m_prev != nullptr) m_prev->m_next = nullptr;        // removes chain
 
@@ -84,8 +83,26 @@ CBotCStack::~CBotCStack()
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+void CBotCStack::DeleteChildLevels()
+{
+    CBotCStack *cur = this;
+    while (cur->m_next != nullptr)
+    {
+        cur = cur->m_next;
+    }
+
+    while (cur != this)
+    {
+        CBotCStack *prev = cur->m_prev;
+        delete cur;
+        cur = prev;
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////
 CBotCStack* CBotCStack::TokenStack(CBotToken* pToken, bool bBlock)
 {
+    assert (m_next == nullptr);
     if (m_next != nullptr) return m_next;            // include on an existing stack
 
     CBotCStack*    p = new CBotCStack(this);
@@ -102,8 +119,8 @@ CBotInstr* CBotCStack::Return(CBotInstr* inst, CBotCStack* pfils)
 {
     assert(pfils != this);
     assert(pfils != nullptr);
-    //assert(pfils == this->m_next); // In CBotInstrSwitch::Compile error cases this isn't true
-    //assert(pfils->m_next == nullptr); // pfils must be bottom stack level, and this must be the next one above it. In CBotInstrSwitch::Compile error cases this isn't true
+    assert(pfils == this->m_next);
+    assert(pfils->m_next == nullptr); // pfils must be bottom stack level, and this must be the next one above it.
     if ( pfils == this ) return inst; // TODO: Can this happen?
 
     m_var = std::move(pfils->m_var);             // result transmitted

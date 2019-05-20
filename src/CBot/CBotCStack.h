@@ -89,6 +89,11 @@ public:
     ~CBotCStack();
 
     /*!
+     * \brief Deletes all stack levels below this one. Errors and vars are not passed up to this level.
+     */
+    void DeleteChildLevels();
+
+    /*!
      * \brief Checks if an error occurred
      *
      * \return True if no error occurred

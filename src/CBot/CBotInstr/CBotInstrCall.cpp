@@ -78,12 +78,12 @@ CBotInstr* CBotInstrCall::Compile(CBotToken* &p, CBotCStack* pStack)
         {
 //          if (pVar2!=nullptr) pp = pVar2->RetToken();
             pStack->SetError( static_cast<CBotError>(inst->m_typRes.GetType()), pp );
-            delete pStack->TokenStack();
+            pStack->DeleteChildLevels();
             delete inst;
             return nullptr;
         }
 
-        delete pStack->TokenStack();
+        pStack->DeleteChildLevels();
         if ( inst->m_typRes.GetType() > 0 )
         {
             std::unique_ptr<CBotVar> pRes = CBotVar::Create("", inst->m_typRes);
@@ -94,7 +94,7 @@ CBotInstr* CBotInstrCall::Compile(CBotToken* &p, CBotCStack* pStack)
         if (nullptr != (inst->m_exprRetVar = CBotExprRetVar::Compile(p, pStack)))
         {
             inst->m_exprRetVar->SetToken(&inst->m_token);
-            delete pStack->TokenStack();
+            pStack->DeleteChildLevels();
         }
         if ( !pStack->IsOk() )
         {
@@ -105,7 +105,7 @@ CBotInstr* CBotInstrCall::Compile(CBotToken* &p, CBotCStack* pStack)
         return inst;
     }
     p = pp;
-    delete pStack->TokenStack();
+    pStack->DeleteChildLevels();
     return nullptr;
 }
 

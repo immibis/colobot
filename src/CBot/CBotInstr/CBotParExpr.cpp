@@ -132,6 +132,7 @@ CBotInstr* CBotParExpr::Compile(CBotToken* &p, CBotCStack* pStack)
         return pStack->Return(nullptr, pStk);
     }
 
+    pStack->Return(nullptr, pStk);
     return CBotParExpr::CompileLitExpr(p, pStack);
 }
 
