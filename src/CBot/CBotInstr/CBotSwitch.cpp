@@ -76,7 +76,8 @@ CBotInstr* CBotSwitch::Compile(CBotToken* &p, CBotCStack* pStack)
                                 {
                                     delete inst;
                                     DecLvl();
-                                    return pStack->Return(nullptr, pStk2);
+                                    pStk->Return(nullptr, pStk2);
+                                    return pStack->Return(nullptr, pStk);
                                 }
                                 delete pStk2;
                                 if (inst->m_block == nullptr ) inst->m_block = i;

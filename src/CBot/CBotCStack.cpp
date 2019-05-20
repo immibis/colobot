@@ -31,9 +31,7 @@ namespace CBot
 {
 
 ////////////////////////////////////////////////////////////////////////////////
-CBotError CBotCStack::m_error   = CBotNoErr;             // init the static variable
-int CBotCStack::m_end      = 0;
-CBotTypResult CBotCStack::m_retTyp  = CBotTypResult(0);
+CBotTypResult CBotCStack::m_retTyp  = CBotTypResult(0);    // init the static variable
 
 ////////////////////////////////////////////////////////////////////////////////
 CBotCStack::CBotCStack(CBotCStack* ppapa)
@@ -52,7 +50,12 @@ CBotCStack::CBotCStack(CBotCStack* ppapa)
     }
     else
     {
+        /// \todo TODO: clean up cases where errors can propagate downwards
+        /// (mostly "delete pStack->TokenStack();" in error cases)
+        //assert(ppapa->m_error == CBotNoErr);
         m_start = ppapa->m_start;
+        m_error = ppapa->m_error;
+        m_end = ppapa->m_end;
         m_bBlock = false;
     }
 
@@ -97,15 +100,18 @@ CBotCStack* CBotCStack::TokenStack(CBotToken* pToken, bool bBlock)
 ////////////////////////////////////////////////////////////////////////////////
 CBotInstr* CBotCStack::Return(CBotInstr* inst, CBotCStack* pfils)
 {
+    assert(pfils != this);
+    assert(pfils != nullptr);
+    //assert(pfils == this->m_next); // In CBotInstrSwitch::Compile error cases this isn't true
+    //assert(pfils->m_next == nullptr); // pfils must be bottom stack level, and this must be the next one above it. In CBotInstrSwitch::Compile error cases this isn't true
     if ( pfils == this ) return inst; // TODO: Can this happen?
-
-
 
     m_var = std::move(pfils->m_var);             // result transmitted
 
-    if (m_error)
+    if (pfils->m_error != CBotNoErr)
     {
-        m_start = pfils->m_start;                // retrieves the position of the error
+        m_error  = pfils->m_error;
+        m_start  = pfils->m_start; // TODO is this correct?
         m_end    = pfils->m_end;
     }
 
@@ -116,15 +122,7 @@ CBotInstr* CBotCStack::Return(CBotInstr* inst, CBotCStack* pfils)
 ////////////////////////////////////////////////////////////////////////////////
 CBotFunction* CBotCStack::ReturnFunc(CBotFunction* inst, CBotCStack* pfils)
 {
-    m_var = std::move(pfils->m_var);             // result transmitted
-
-    if (m_error)
-    {
-        m_start = pfils->m_start;                // retrieves the position of the error
-        m_end    = pfils->m_end;
-    }
-
-    delete pfils;
+    Return(nullptr, pfils);
     return inst;
 }
 
