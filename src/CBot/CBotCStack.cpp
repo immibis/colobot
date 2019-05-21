@@ -43,21 +43,10 @@ CBotCStack::CBotCStack(CBotCStack* ppapa)
     m_toplevel = (ppapa ? ppapa->m_toplevel : this);
     m_pProgram = nullptr;
 
-    if (ppapa == nullptr)
-    {
-        m_error = CBotNoErr;
-        m_start = 0;
-        m_end    = 0;
-        m_bBlock = true;
-    }
-    else
-    {
-        assert(ppapa->m_error == CBotNoErr);
-        m_start = ppapa->m_start;
-        m_error = ppapa->m_error;
-        m_end = ppapa->m_end;
-        m_bBlock = false;
-    }
+    m_error = CBotNoErr;
+    m_start = 0;
+    m_end    = 0;
+    m_bBlock = false;
 
     m_loopLabel = NO_LOOP_LABEL;
 
@@ -73,6 +62,7 @@ CBotCStack::CBotCStack(CBotCStack* ppapa)
     std::unique_ptr<CBotCStack> newStack(new CBotCStack(nullptr));
 
     newStack->m_pProgram = pProgram;
+    newStack->m_bBlock = true;
     return newStack;
 }
 
@@ -106,8 +96,8 @@ void CBotCStack::DeleteChildLevels()
 ////////////////////////////////////////////////////////////////////////////////
 CBotCStack* CBotCStack::TokenStack(CBotToken* pToken, bool bBlock)
 {
-    assert (m_next == nullptr);
-    if (m_next != nullptr) return m_next;            // include on an existing stack
+    assert (m_next == nullptr); // can only extend the stack from the end
+    assert (m_error == CBotNoErr); // can't extend a stack after an error - can only return the error upwards
 
     CBotCStack*    p = new CBotCStack(this);
     m_next = p;                                    // channel element
@@ -279,6 +269,7 @@ bool CBotCStack::NextToken(CBotToken* &p)
 
     p = p->GetNext();
     if (p!=nullptr) return true;
+    assert(0);
 
     SetError(CBotErrNoTerminator, pp->GetEnd());
     return false;
