@@ -17,10 +17,7 @@
  * along with this program. If not, see http://gnu.org/licenses
  */
 
-#include "CBot/CBotInstr/CBotDefBoolean.h"
-#include "CBot/CBotInstr/CBotDefFloat.h"
-#include "CBot/CBotInstr/CBotDefInt.h"
-#include "CBot/CBotInstr/CBotDefString.h"
+#include "CBot/CBotInstr/CBotDefVariable.h"
 #include "CBot/CBotInstr/CBotExpression.h"
 #include "CBot/CBotInstr/CBotListExpression.h"
 
@@ -34,10 +31,8 @@ namespace CBot
 /// Seeks a declaration of variable or expression
 static CBotInstr* CompileInstrOrDefVar(CBotToken* &p, CBotCStack* pStack)
 {
-    CBotInstr*  i = CBotDefInt::Compile(p, pStack, false, true );         // Is this a declaration of an integer?
-    if ( i== nullptr ) i = CBotDefFloat::Compile(p, pStack, false, true );   // or a real number?
-    if ( i== nullptr ) i = CBotDefBoolean::Compile(p, pStack, false, true ); // or a boolean?
-    if ( i== nullptr ) i = CBotDefString::Compile(p, pStack, false, true ); // ar a string?
+    CBotInstr*  i = CBotDefVariable::Compile(p, pStack, false, true );         // Is this a declaration of a primitive?
+    // TODO: shouldn't class definitions also be allowed?
     if ( i== nullptr ) i = CBotExpression::Compile( p, pStack );           // compiles an expression
     return i;
 }

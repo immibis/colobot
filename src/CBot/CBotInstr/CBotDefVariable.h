@@ -25,13 +25,13 @@ namespace CBot
 {
 
 /**
- * \brief Definition of an integer variable - int a, b = 12
+ * \brief Definition of variable - bool a, b = false
  */
-class CBotDefInt : public CBotInstr
+class CBotDefVariable : public CBotInstr
 {
 public:
-    CBotDefInt();
-    ~CBotDefInt();
+    CBotDefVariable();
+    ~CBotDefVariable();
 
     /*!
      * \brief Compile
@@ -41,10 +41,20 @@ public:
      * \param noskip
      * \return
      */
-    static CBotInstr* Compile(CBotToken* &p, CBotCStack* pStack, bool cont = false, bool noskip = false);
+    static CBotInstr* Compile(CBotToken* &p, CBotCStack* pStack, bool cont=false, bool noskip=false);
 
     /*!
-     * \brief Execute Execute the definition of the integer variable.
+     * \brief CompileAfterType
+     * \param p
+     * \param pStack
+     * \param baseType
+     * \param noskip
+     * \return
+     */
+    static CBotInstr* CompileAfterType(CBotToken* &p, CBotCStack* pStack, CBotTypResult &baseType, bool noskip=false);
+
+    /*!
+     * \brief Execute Executes a boolean variable definition.
      * \param pj
      * \return
      */
@@ -58,11 +68,11 @@ public:
     void RestoreState(CBotStack* &pj, bool bMain) override;
 
 protected:
-    virtual const std::string GetDebugName() override { return "CBotDefInt"; }
+    virtual const std::string GetDebugName() override { return "CBotDefVariable"; }
     virtual std::map<std::string, CBotInstr*> GetDebugLinks() override;
 
 private:
-    //! The variable to initialize.
+    //! Variable to initialise.
     CBotInstr* m_var;
     //! A value to put, if there is.
     CBotInstr* m_expr;

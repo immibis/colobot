@@ -21,11 +21,8 @@
 
 #include "CBot/CBotInstr/CBotBreak.h"
 #include "CBot/CBotInstr/CBotDefArray.h"
-#include "CBot/CBotInstr/CBotDefBoolean.h"
 #include "CBot/CBotInstr/CBotDefClass.h"
-#include "CBot/CBotInstr/CBotDefFloat.h"
-#include "CBot/CBotInstr/CBotDefInt.h"
-#include "CBot/CBotInstr/CBotDefString.h"
+#include "CBot/CBotInstr/CBotDefVariable.h"
 #include "CBot/CBotInstr/CBotDo.h"
 #include "CBot/CBotInstr/CBotExpression.h"
 #include "CBot/CBotInstr/CBotFor.h"
@@ -171,17 +168,11 @@ CBotInstr* CBotInstr::Compile(CBotToken* &p, CBotCStack* pStack)
         return CBotThrow::Compile(p, pStack);
 
     case ID_INT:
-        return CBotDefInt::Compile(p, pStack);
-
     case ID_FLOAT:
-        return CBotDefFloat::Compile(p, pStack);
-
     case ID_STRING:
-        return CBotDefString::Compile(p, pStack);
-
     case ID_BOOLEAN:
     case ID_BOOL:
-        return CBotDefBoolean::Compile(p, pStack);
+        return CBotDefVariable::Compile(p, pStack);
 
     case ID_IF:
         return CBotIf::Compile(p, pStack);

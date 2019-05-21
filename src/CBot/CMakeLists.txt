@@ -28,16 +28,10 @@ set(SOURCES
     CBotInstr/CBotCondition.h
     CBotInstr/CBotDefArray.cpp
     CBotInstr/CBotDefArray.h
-    CBotInstr/CBotDefBoolean.cpp
-    CBotInstr/CBotDefBoolean.h
+    CBotInstr/CBotDefVariable.cpp
+    CBotInstr/CBotDefVariable.h
     CBotInstr/CBotDefClass.cpp
     CBotInstr/CBotDefClass.h
-    CBotInstr/CBotDefFloat.cpp
-    CBotInstr/CBotDefFloat.h
-    CBotInstr/CBotDefInt.cpp
-    CBotInstr/CBotDefInt.h
-    CBotInstr/CBotDefString.cpp
-    CBotInstr/CBotDefString.h
     CBotInstr/CBotDo.cpp
     CBotInstr/CBotDo.h
     CBotInstr/CBotEmpty.cpp
