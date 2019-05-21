@@ -22,6 +22,7 @@
 #include "CBot/CBotEnums.h"
 
 #include <string>
+#include <memory>
 
 namespace CBot
 {
@@ -171,7 +172,7 @@ public:
 
 private:
     int               m_type;   //!< type, see ::CBotType and ::CBotError
-    CBotTypResult*    m_next;   //!< type of array element
+    std::unique_ptr<CBotTypResult> m_next;   //!< type of array element
     CBotClass*        m_class;  //!< class type
     int               m_limite; //!< array limit
     friend class    CBotVarClass;

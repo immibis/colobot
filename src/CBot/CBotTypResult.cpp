@@ -72,7 +72,7 @@ CBotTypResult::CBotTypResult(int type, CBotTypResult elem)
 
     if ( type == CBotTypArrayPointer ||
          type == CBotTypArrayBody )
-        m_next = new CBotTypResult(elem );
+        m_next = std::unique_ptr<CBotTypResult>(new CBotTypResult(elem));
 }
 
 CBotTypResult::CBotTypResult(const CBotTypResult& typ)
@@ -83,7 +83,7 @@ CBotTypResult::CBotTypResult(const CBotTypResult& typ)
     m_limite    = typ.m_limite;
 
     if ( typ.m_next)
-        m_next = new CBotTypResult(*typ.m_next);
+        m_next = std::unique_ptr<CBotTypResult>(new CBotTypResult(*typ.m_next));
 }
 
 CBotTypResult::CBotTypResult()
@@ -96,7 +96,6 @@ CBotTypResult::CBotTypResult()
 
 CBotTypResult::~CBotTypResult()
 {
-    delete m_next;
 }
 
 int CBotTypResult::GetType(GetTypeMode mode) const
@@ -169,12 +168,10 @@ CBotTypResult& CBotTypResult::operator=(const CBotTypResult& src)
     m_class = src.m_class;
     if (src.m_next != nullptr )
     {
-        delete m_next;
-        m_next = new CBotTypResult(*src.m_next);
+        m_next = std::unique_ptr<CBotTypResult>(new CBotTypResult(*src.m_next));
     }
     else
     {
-        delete m_next;
         m_next = nullptr;
     }
     return *this;
