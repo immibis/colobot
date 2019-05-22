@@ -75,7 +75,7 @@ CBotInstr* CBotNew::Compile(CBotToken* &p, CBotCStack* pStack)
 
     // creates the object on the stack
     // with a pointer to the object
-    std::unique_ptr<CBotVar> pVar = CBotVar::Create("", pClass);
+    std::unique_ptr<CBotVar> pVar = CBotVar::Create("", CBotTypResult(CBotTypClass, pClass));
 
     // do the call of the creator
     CBotCStack* pStk = pStack->TokenStack();
@@ -158,7 +158,7 @@ bool CBotNew::Execute(CBotStack* &pj)
         // and initialize the pointer to that object
 
 
-        std::unique_ptr<CBotVar> pThis_ = CBotVar::Create("this", pClass);
+        std::unique_ptr<CBotVar> pThis_ = CBotVar::Create("this", CBotTypResult(CBotTypClass, pClass));
         pThis_->SetUniqNum(-2) ;
         pile1->SetVar(std::move(pThis_));   // place on stack1
         pile->IncState();

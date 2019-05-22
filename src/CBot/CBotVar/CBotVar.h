@@ -69,52 +69,11 @@ public:
     static std::unique_ptr<CBotVar> Create(const std::string& name, CBotTypResult type);
 
     /**
-     * \brief Creates a new variable of a given class type
-     *
-     * This is equivalent to:
-     * \code
-     * CBotVar::Create(name, CBotTypResult(CBotTypClass, pClass))
-     * \endcode
-     *
-     * \param name Variable name
-     * \param pClass Class type
-     */
-    static std::unique_ptr<CBotVar> Create(const std::string& name, CBotClass* pClass);
-
-    /**
-     * \brief Creates a new variable of a given type
-     *
-     * This is equivalent to:
-     * \code
-     * CBotVar::Create(name, CBotTypResult(type))
-     * \endcode
-     *
-     * \param name Variable name token
-     * \param type Variable type
-     */
-    static std::unique_ptr<CBotVar> Create(const CBotToken& name, CBotType type);
-
-    /**
      * \brief Create a new variable of a given type described by CBotTypResult
      * \param name Variable name token
      * \param type Variable type
      */
     static std::unique_ptr<CBotVar> Create(const CBotToken& name, CBotTypResult type);
-
-    /**
-     * \brief Create a new variable of a given type of given class instance
-     *
-     * This is equivalent to:
-     * \code
-     * Create(name, CBotTypResult(type, pClass))
-     * \endcode
-     *
-     * \param name Variable name
-     * \param type Variable type
-     * \param pClass Class
-     * \return
-     */
-    static std::unique_ptr<CBotVar> Create(const std::string& name, CBotType type, CBotClass* pClass);
 
     /**
      * \brief Create a new variable of the same type and name as another one

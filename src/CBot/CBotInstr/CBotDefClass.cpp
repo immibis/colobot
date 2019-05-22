@@ -199,7 +199,7 @@ CBotInstr* CBotDefClass::Compile(CBotToken* &p, CBotCStack* pStack, CBotClass* p
             if ( !bIntrinsic )
             {
                 // does not use the result on the stack, to impose the class
-                std::unique_ptr<CBotVar> pvar = CBotVar::Create("", pClass);
+                std::unique_ptr<CBotVar> pvar = CBotVar::Create("", CBotTypResult(CBotTypClass, pClass));
                 var->SetPointer( pvar.release() );              // variable already declared instance pointer
             }
             var->SetInit(CBotVar::InitType::DEF);                         // marks the pointer as init
@@ -210,7 +210,7 @@ CBotInstr* CBotDefClass::Compile(CBotToken* &p, CBotCStack* pStack, CBotClass* p
             // with a pointer to the object
             if ( !bIntrinsic )
             {
-                std::unique_ptr<CBotVar> pvar = CBotVar::Create("", pClass);
+                std::unique_ptr<CBotVar> pvar = CBotVar::Create("", CBotTypResult(CBotTypClass, pClass));
                 var->SetPointer( pvar.release() );              // variable already declared instance pointer
             }
             var->SetInit(CBotVar::InitType::IS_POINTER);                            // marks the pointer as init
@@ -338,7 +338,7 @@ bool CBotDefClass::Execute(CBotStack* &pj)
                 // creates an instance of the requested class
 
                 CBotVarClass* pInstance;
-                pInstance = static_cast<CBotVarClass*>(CBotVar::Create("", pClass).release());
+                pInstance = static_cast<CBotVarClass*>(CBotVar::Create("", CBotTypResult(CBotTypClass, pClass)).release());
                 pThis->SetPointer(pInstance);
                 delete pInstance;
 
