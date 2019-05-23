@@ -775,12 +775,12 @@ bool CBotVar::Save0State(FILE* pf)
         if (GetPointer()->m_bConstructor)                    // constructor was called?
         {
             if (!WriteWord(pf, (2000 + static_cast<unsigned short>(m_binit)) )) return false;
-            return WriteString(pf, m_token->GetString());    // and variable name
+            return WriteString(pf, m_token.GetString());    // and variable name
         }
     }
 
     if (!WriteWord(pf, static_cast<unsigned short>(m_binit))) return false;          // variable defined?
-    return WriteString(pf, m_token->GetString());            // and variable name
+    return WriteString(pf, m_token.GetString());            // and variable name
 }
 
 ////////////////////////////////////////////////////////////////////////////////

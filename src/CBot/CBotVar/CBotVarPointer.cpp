@@ -197,7 +197,7 @@ void CBotVarPointer::Copy(CBotVar* pSrc, bool bName)
 
     CBotVarPointer*    p = static_cast<CBotVarPointer*>(pSrc);
 
-    if ( bName) *m_token    = *p->m_token;
+    if ( bName) m_token    = p->m_token;
     m_type        = p->m_type;
 //    m_pVarClass = p->m_pVarClass;
     m_pVarClass = p->GetPointer();

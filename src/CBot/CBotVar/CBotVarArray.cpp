@@ -61,7 +61,7 @@ void CBotVarArray::Copy(CBotVar* pSrc, bool bName)
 
     CBotVarArray*    p = static_cast<CBotVarArray*>(pSrc);
 
-    if ( bName) *m_token    = *p->m_token;
+    if ( bName) m_token    = p->m_token;
     m_type        = p->m_type;
     m_pInstance = p->GetPointer();
 

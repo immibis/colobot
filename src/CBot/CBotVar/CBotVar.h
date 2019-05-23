@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include "CBot/CBotToken.h"
 #include "CBot/CBotDefines.h"
 #include "CBot/CBotTypResult.h"
 #include "CBot/CBotEnums.h"
@@ -33,7 +34,6 @@ namespace CBot
 class CBotVarClass;
 class CBotInstr;
 class CBotClass;
-class CBotToken;
 
 /**
  * \brief A CBot variable
@@ -45,11 +45,6 @@ class CBotVar : public CBotLinkedList<CBotVar>
 public:
     //! \name Creation / destruction
     //@{
-
-    /**
-     * \brief Constructor. Do not call directly, use CBotVar::Create()
-     */
-    CBotVar();
 
     /**
      * \brief Constructor. Do not call directly, use CBotVar::Create()
@@ -610,7 +605,7 @@ public:
 
 protected:
     //! The corresponding token, defines the variable name
-    CBotToken* const m_token;
+    CBotToken m_token;
     //! Type of value.
     CBotTypResult m_type;
     //! Initialization status

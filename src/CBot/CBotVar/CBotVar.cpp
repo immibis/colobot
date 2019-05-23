@@ -49,20 +49,7 @@ namespace CBot
 long CBotVar::m_identcpt = 0;
 
 ////////////////////////////////////////////////////////////////////////////////
-CBotVar::CBotVar( ) : m_token(nullptr)
-{
-    m_pMyThis = nullptr;
-    m_pUserPtr = nullptr;
-    m_InitExpr = nullptr;
-    m_LimExpr = nullptr;
-    m_type  = -1;
-    m_binit = InitType::UNDEF;
-    m_ident = 0;
-    m_bStatic = false;
-    m_mPrivate = ProtectionLevel::Public;
-}
-
-CBotVar::CBotVar(const CBotToken &name) : m_token(new CBotToken(name))
+CBotVar::CBotVar(const CBotToken &name) : m_token(name)
 {
     m_pMyThis = nullptr;
     m_pUserPtr = nullptr;
@@ -78,7 +65,6 @@ CBotVar::CBotVar(const CBotToken &name) : m_token(new CBotToken(name))
 ////////////////////////////////////////////////////////////////////////////////
 CBotVar::~CBotVar( )
 {
-    delete  m_token;
     delete  m_InitExpr;
     delete  m_LimExpr;
 }
@@ -205,7 +191,7 @@ std::unique_ptr<CBotVar> CBotVar::Create(const CBotToken& name, CBotTypResult ty
 ////////////////////////////////////////////////////////////////////////////////
 std::unique_ptr<CBotVar> CBotVar::Create( CBotVar* pVar )
 {
-    return Create(pVar->m_token->GetString(), pVar->GetTypResult(CBotVar::GetTypeMode::CLASS_AS_INTRINSIC));
+    return Create(pVar->m_token.GetString(), pVar->GetTypResult(CBotVar::GetTypeMode::CLASS_AS_INTRINSIC));
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -291,19 +277,19 @@ void CBotVar::SetInit(CBotVar::InitType initType)
 ////////////////////////////////////////////////////////////////////////////////
 const std::string& CBotVar::GetName()
 {
-    return    m_token->GetString();
+    return    m_token.GetString();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 void CBotVar::SetName(const std::string& name)
 {
-    m_token->SetString(name);
+    m_token.SetString(name);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 CBotToken* CBotVar::GetToken()
 {
-    return    m_token;
+    return    &m_token;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -364,7 +350,7 @@ CBotVar* CBotVar::GetStaticVar()
     if ( m_bStatic == 0 || m_pMyThis == nullptr ) return this;
 
     CBotClass*    pClass = m_pMyThis->GetClass();
-    return pClass->GetItem( m_token->GetString() );
+    return pClass->GetItem( m_token.GetString() );
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -617,7 +603,7 @@ void CBotVar::Dec()
 ////////////////////////////////////////////////////////////////////////////////
 void CBotVar::Copy(CBotVar* pSrc, bool bName)
 {
-    if (bName) *m_token = *pSrc->m_token;
+    if (bName) m_token = pSrc->m_token;
     m_type = pSrc->m_type;
     m_binit = pSrc->m_binit;
 //-    m_bStatic    = pSrc->m_bStatic;
