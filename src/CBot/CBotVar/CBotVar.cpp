@@ -202,12 +202,6 @@ std::unique_ptr<CBotVar> CBotVar::Create(const std::string& n, CBotTypResult typ
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-void CBotVar::Destroy(CBotVar* var)
-{
-    delete var;
-}
-
-////////////////////////////////////////////////////////////////////////////////
 CBotTypResult CBotVar::GetTypResult(GetTypeMode mode)
 {
     CBotTypResult    r = m_type;

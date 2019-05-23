@@ -52,7 +52,7 @@ public:
     CBotVar(const CBotToken& name);
 
     /**
-     * \brief Destructor. Do not call directly, use CBotVar::Destroy()
+     * \brief Destructor.
      */
     virtual ~CBotVar();
 
@@ -78,12 +78,6 @@ public:
      * \param pVar other variable to take type and name from
      */
     static std::unique_ptr<CBotVar> Create(CBotVar* pVar);
-
-    /**
-     * \brief Destroy a variable
-     * \param var variable to be destroyed
-     */
-    static void Destroy(CBotVar* var);
 
     //@}
 

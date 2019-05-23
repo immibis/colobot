@@ -3529,7 +3529,7 @@ void CScriptFunctions::DestroyObjectVar(CBotVar* botVar, bool permanent)
 
     botVar->SetUserPtr(OBJECTDELETED);
     if (permanent)
-        CBotVar::Destroy(botVar);
+        delete botVar;
 }
 
 bool CScriptFunctions::CheckOpenFiles()
