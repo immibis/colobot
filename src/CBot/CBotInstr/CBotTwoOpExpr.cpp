@@ -304,14 +304,9 @@ CBotInstr* CBotTwoOpExpr::Compile(CBotToken* &p, CBotCStack* pStack, int* pOpera
 }
 
 
-static bool VarIsNAN(const CBotVar* var)
-{
-    return var->GetInit() > CBotVar::InitType::DEF;
-}
-
 static bool IsNan(CBotVar* left, CBotVar* right, CBotError* err = nullptr)
 {
-    if ( VarIsNAN(left) || VarIsNAN(right) )
+    if ( left->IsNAN() || right->IsNAN() )
     {
         if ( err != nullptr ) *err = CBotErrNan ;
         return true;
@@ -472,13 +467,13 @@ bool CBotTwoOpExpr::Execute(CBotStack* &pStack)
         break;
     case ID_EQ:
         if ( IsNan(left, right) )
-            result->SetValInt(left->GetInit() ==  right->GetInit()) ;
+            result->SetValInt(left->IsNAN() == right->IsNAN()) ;
         else
             result->SetValInt(temp->Eq(left , right));  // equal
         break;
     case ID_NE:
         if ( IsNan(left, right) )
-             result->SetValInt(left ->GetInit() !=  right->GetInit()) ;
+             result->SetValInt(left->IsNAN() != right->IsNAN()) ;
         else
             result->SetValInt(temp->Ne(left , right));  // different
         break;

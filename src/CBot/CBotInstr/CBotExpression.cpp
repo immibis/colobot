@@ -206,8 +206,7 @@ bool CBotExpression::Execute(CBotStack* &pj)
         if (m_token.GetType() != ID_ASS)
         {
             pVar = pile1->GetVar();     // recovers if interrupted
-            initKind = pVar->GetInit();
-            if (initKind == CBotVar::InitType::IS_NAN)
+            if (pVar->IsNAN())
             {
                 pile2->SetError(CBotErrNan, m_leftop->GetToken());
                 return pj->Return(pile2);
