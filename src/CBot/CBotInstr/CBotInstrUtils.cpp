@@ -70,7 +70,8 @@ CBotInstr* CompileParams(CBotToken* &p, CBotCStack* pStack, CBotVar** ppVars)
                     return nullptr;
                 }
                 ppVars[i] = pile->GetVar();
-                ppVars[i]->GetToken()->SetPos(start, end);
+                // TODO: was commented out as part of value/variable refactor. What does this do?
+                (void)end; //ppVars[i]->GetToken()->SetPos(start, end);
                 i++;
 
                 if (IsOfType(p, ID_COMMA)) continue;    // skips the comma

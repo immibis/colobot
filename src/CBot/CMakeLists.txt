@@ -163,4 +163,9 @@ else()
             RUNTIME DESTINATION ${COLOBOT_INSTALL_BIN_DIR})
 endif()
 
+
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
+    target_compile_options(CBot PRIVATE -fprofile-arcs -ftest-coverage)
+    target_link_options(CBot PRIVATE -fprofile-arcs -ftest-coverage)
+endif()
 group_sources("${SOURCES}" "Source Files")

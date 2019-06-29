@@ -33,20 +33,20 @@ public:
     /**
      * \brief Constructor. Do not call directly, use CBotVar::Create()
      */
-    CBotVarPointer(const CBotToken& name, CBotTypResult& type);
+    CBotVarPointer(CBotTypResult& type);
     /**
      * \brief Destructor. Do not call directly, use CBotVar::Destroy()
      */
     ~CBotVarPointer();
 
-    void Copy(CBotVar* pSrc, bool bName = true) override;
+    void Copy(CBotVar* pSrc) override;
 
     void SetClass(CBotClass* pClass) override;
     CBotClass* GetClass() override;
 
-    CBotVar* GetItem(const std::string& name) override;
-    CBotVar* GetItemRef(int nIdent) override;
-    CBotVar* GetItemList() override;
+    CBotVariable* GetItem(const std::string& name) override;
+    CBotVariable* GetItemRef(int nIdent) override;
+    std::vector<std::unique_ptr<CBotVariable>>& GetItemList() override;
     std::string GetValString() override;
 
     void SetPointer(CBotVar* p) override;

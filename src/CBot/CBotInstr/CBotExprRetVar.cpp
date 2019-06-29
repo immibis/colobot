@@ -41,21 +41,23 @@ CBotExprRetVar::~CBotExprRetVar()
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-CBotInstr* CBotExprRetVar::Compile(CBotToken*& p, CBotCStack* pStack, bool bMethodsOnly)
+CBotInstr* CBotExprRetVar::Compile(CBotToken*& p, CBotCStack* pStack, long topOfStackUniqNum, bool bMethodsOnly)
 {
     if (p->GetType() == ID_DOT)
     {
-        CBotVar*     var = pStack->GetVar();
+        CBotVar*     val = pStack->GetVar();
 
-        if (var == nullptr) return nullptr;
+        if (val == nullptr) return nullptr;
 
         CBotCStack* pStk = pStack->TokenStack();
         CBotInstr* inst = new CBotExprRetVar();
 
+        CBotVariable *var = nullptr;
+
         while (true)
         {
             pStk->SetStartError(p->GetStart());
-            if (var->GetType() == CBotTypArrayPointer)
+            if (val->GetType() == CBotTypArrayPointer)
             {
                 if (bMethodsOnly) goto err;
 
@@ -65,7 +67,9 @@ CBotInstr* CBotExprRetVar::Compile(CBotToken*& p, CBotCStack* pStack, bool bMeth
                     i->m_expr = CBotExpression::Compile(p, pStk);
                     inst->AddNext3(i);
 
-                    var = var->GetItem(0,true);
+                    var = val->GetItem(0,true);
+                    val = var->m_value.get();
+                    topOfStackUniqNum = 0;
 
                     if (i->m_expr == nullptr || pStk->GetType() != CBotTypInt)
                     {
@@ -80,7 +84,7 @@ CBotInstr* CBotExprRetVar::Compile(CBotToken*& p, CBotCStack* pStack, bool bMeth
                     continue;
                 }
             }
-            if (var->GetType(CBotVar::GetTypeMode::CLASS_AS_POINTER) == CBotTypPointer)
+            if (val->GetType(CBotVar::GetTypeMode::CLASS_AS_POINTER) == CBotTypPointer)
             {
                 if (IsOfType(p, ID_DOT))
                 {
@@ -90,7 +94,7 @@ CBotInstr* CBotExprRetVar::Compile(CBotToken*& p, CBotCStack* pStack, bool bMeth
                     {
                         if (p->GetNext()->GetType() == ID_OPENPAR)
                         {
-                            CBotInstr* i = CBotInstrMethode::Compile(p, pStk, var, bMethodsOnly);
+                            CBotInstr* i = CBotInstrMethode::Compile(p, pStk, val, 0, bMethodsOnly);
                             if (!pStk->IsOk()) goto err;
                             inst->AddNext3(i);
                             return pStack->Return(inst, pStk);
@@ -105,12 +109,14 @@ CBotInstr* CBotExprRetVar::Compile(CBotToken*& p, CBotCStack* pStack, bool bMeth
                             CBotFieldExpr* i = new CBotFieldExpr();
                             i->SetToken(pp);
                             inst->AddNext3(i);
-                            CBotVar*   preVar = var;
-                            var = var->GetItem(p->GetString());
-                            if (var != nullptr)
+                            CBotVariable *preVar = var;
+                            CBotVar*   preVal = val;
+                            var = val->GetItem(p->GetString());
+                            val = var ? var->m_value.get() : nullptr;
+                            if (val != nullptr)
                             {
                                 i->SetUniqNum(var->GetUniqNum());
-                                if (CBotFieldExpr::CheckProtectionError(pStk, preVar, var))
+                                if (CBotFieldExpr::CheckProtectionError(pStk, preVal, (preVar ? preVar->GetName() : ""), var))
                                 {
                                     pStk->SetError(CBotErrPrivate, pp);
                                     goto err;
@@ -118,8 +124,9 @@ CBotInstr* CBotExprRetVar::Compile(CBotToken*& p, CBotCStack* pStack, bool bMeth
                             }
                         }
 
-                        if (var != nullptr)
+                        if (val != nullptr)
                         {
+                            topOfStackUniqNum = 0;
                             p = p->GetNext();
                             continue;
                         }
@@ -133,7 +140,7 @@ CBotInstr* CBotExprRetVar::Compile(CBotToken*& p, CBotCStack* pStack, bool bMeth
             break;
         }
 
-        pStk->SetCopyVar(var);
+        pStk->SetCopyVar(val);
         if (pStk->IsOk()) return pStack->Return(inst, pStk);
 
         pStk->SetError(CBotErrUndefVar, p);

@@ -235,12 +235,17 @@ bool CBotProgram::GetRunPos(std::string& functionName, int& start, int& end)
 }
 
 
-CBotVar* CBotProgram::GetStackVars(std::string& functionName, int level)
+const std::vector<std::unique_ptr<CBotVariable>>& CBotProgram::GetStackVars(std::string& functionName, int level, bool &levelExists)
 {
     functionName.clear();
-    if (m_stack == nullptr) return nullptr;
+    if (m_stack == nullptr) {
+        // TODO: make return value const
+        static std::vector<std::unique_ptr<CBotVariable>> emptyvec;
+        levelExists = false;
+        return emptyvec;
+    }
 
-    return m_stack->GetStackVars(functionName, level);
+    return m_stack->GetStackVars(functionName, level, levelExists);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -303,16 +308,7 @@ static bool rSizeOf( CBotVar* pVar, CBotVar* pResult, int& ex, void* pUser )
 {
     if ( pVar == nullptr ) { ex = CBotErrLowParam; return true; }
 
-    int i = 0;
-    pVar = pVar->GetItemList();
-
-    while ( pVar != nullptr )
-    {
-        i++;
-        pVar = pVar->GetNext();
-    }
-
-    pResult->SetValInt(i);
+    pResult->SetValInt(pVar->GetItemList().size());
     return true;
 }
 

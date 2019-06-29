@@ -73,11 +73,12 @@ public:
      *
      * \param pStack Current compilation stack frame
      * \param pPrev Class instance which variable to check is part of, or nullptr when compiler inserts 'this.' before
+     * \param prevName Name of class instance. This is only used to check if it's "this" or "super".
      * \param pVar Variable to check
      * \param bCheckReadOnly True for operations that would modify the value of the variable
      * \return true if pVar is inaccessible in the current context, false if access should be allowed
      */
-    static bool CheckProtectionError(CBotCStack* pStack, CBotVar* pPrev, CBotVar* pVar, bool bCheckReadOnly = false);
+    static bool CheckProtectionError(CBotCStack* pStack, CBotVar* pPrev, const std::string &prevName, CBotVariable* pVar, bool bCheckReadOnly = false);
 
 protected:
     virtual const std::string GetDebugName() override { return "CBotFieldExpr"; }

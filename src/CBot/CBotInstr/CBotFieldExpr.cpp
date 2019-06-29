@@ -54,7 +54,8 @@ bool CBotFieldExpr::ExecuteVar(CBotVar* &pVar, CBotCStack* &pile)
     if (pVar->GetType(CBotVar::GetTypeMode::CLASS_AS_POINTER) != CBotTypPointer)
         assert(0);
 
-    pVar = pVar->GetItemRef(m_nIdent);
+    CBotVariable *pNextVar = pVar->GetItemRef(m_nIdent);
+    pVar = pNextVar ? pNextVar->m_value.get() : nullptr;
     if (pVar == nullptr)
     {
         pile->SetError(CBotErrUndefItem, &m_token);
@@ -91,18 +92,19 @@ bool CBotFieldExpr::ExecuteVar(CBotVar* &pVar, CBotStack* &pile, CBotToken* prev
 
     if (bStep && pile->IfStep()) return false;
 
-    pVar = pVar->GetItemRef(m_nIdent);
+    CBotVariable *pVar2 = pVar->GetItemRef(m_nIdent);
+    pVar = (pVar2 ? pVar2->m_value.get() : nullptr);
     if (pVar == nullptr)
     {
         pile->SetError(CBotErrUndefItem, &m_token);
         return pj->Return(pile);
     }
 
-    if (pVar->IsStatic())
+    if (pVar2->IsStatic())
     {
         // for a static variable, takes it in the class itself
         CBotClass* pClass = pItem->GetClass();
-        pVar = pClass->GetItem(m_token.GetString());
+        pVar = pClass->GetItem(m_token.GetString())->m_value.get();
     }
 
     // request the update of the element, if applicable
@@ -135,27 +137,28 @@ std::string CBotFieldExpr::GetDebugData()
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-bool CBotFieldExpr::CheckProtectionError(CBotCStack* pStack, CBotVar* pPrev, CBotVar* pVar, bool bCheckReadOnly)
+bool CBotFieldExpr::CheckProtectionError(CBotCStack* pStack, CBotVar* pPrev, const std::string &prevName, CBotVariable* pVar, bool bCheckReadOnly)
 {
-    CBotVar::ProtectionLevel varPriv = pVar->GetPrivate();
+    CBotVariable::ProtectionLevel varPriv = pVar->GetPrivate();
 
-    if (bCheckReadOnly && varPriv == CBotVar::ProtectionLevel::ReadOnly)
+    if (bCheckReadOnly && varPriv == CBotVariable::ProtectionLevel::ReadOnly)
         return true;
 
-    if (varPriv == CBotVar::ProtectionLevel::Public) return false;
-
-    std::string prevName = (pPrev == nullptr) ? "" : pPrev->GetName();
+    if (varPriv == CBotVariable::ProtectionLevel::Public) return false;
 
     // implicit 'this.'var,  this.var,  or super.var
     if (pPrev == nullptr || prevName == "this" || prevName == "super") // member of the current class
     {
-        if (varPriv == CBotVar::ProtectionLevel::Private)  // var is private ?
+        if (varPriv == CBotVariable::ProtectionLevel::Private)  // var is private ?
         {
             CBotToken  token("this");
-            CBotVar*   pThis = pStack->FindVar(token);
+            CBotVar*   pThis = pStack->FindVar(token)->m_value.get();
             CBotClass* pClass = pThis->GetClass();         // the current class
 
-            CBotVar* pVarList = pClass->GetVar();
+            // TODO: this is the only place UniqNum is used. Remove UniqNum
+            if (pClass->GetVar().size() == 0)
+                return true;
+            CBotVariable* pVarList = pClass->GetVar().front().get();
 
             int ident = pVar->GetUniqNum();
             // check if var is inherited from a parent class
@@ -168,17 +171,17 @@ bool CBotFieldExpr::CheckProtectionError(CBotCStack* pStack, CBotVar* pPrev, CBo
         if (pVar->IsPrivate())    // var is protected or private ?
         {
             CBotToken token("this");
-            CBotVar*  pThis = pStack->FindVar(token);
+            CBotVariable*  pThis = pStack->FindVar(token);
 
             if (pThis == nullptr) return true;                   // inside a function ?
-            if (pThis->GetType() != CBotTypPointer) return true;
+            if (pThis->m_value->GetType() != CBotTypPointer) return true;
 
-            CBotClass* pClass = pThis->GetClass();               // the current class
+            CBotClass* pClass = pThis->m_value->GetClass();               // the current class
 
             if (!pClass->IsChildOf(pPrev->GetClass()))     // var is member of some other class ?
                 return true;
 
-            if (varPriv == CBotVar::ProtectionLevel::Private &&  // private member of a parent class
+            if (varPriv == CBotVariable::ProtectionLevel::Private &&  // private member of a parent class
                 pClass != pPrev->GetClass()) return true;
         }
     }

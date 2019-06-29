@@ -46,27 +46,57 @@ namespace CBot
 {
 
 ////////////////////////////////////////////////////////////////////////////////
-long CBotVar::m_identcpt = 0;
+long CBotVariable::m_identcpt = 0;
 
 ////////////////////////////////////////////////////////////////////////////////
-CBotVar::CBotVar(const CBotToken &name) : m_token(name)
+CBotVariable::CBotVariable(const CBotToken &name, std::unique_ptr<CBotVar> value)
+    : m_value(std::move(value)), m_name(name)
 {
-    m_pMyThis = nullptr;
-    m_pUserPtr = nullptr;
+    m_next = nullptr;
     m_InitExpr = nullptr;
     m_LimExpr = nullptr;
-    m_type  = -1;
-    m_binit = InitType::UNDEF;
     m_ident = 0;
     m_bStatic = false;
     m_mPrivate = ProtectionLevel::Public;
+    m_pMyThis = nullptr;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+CBotVariable::CBotVariable(const std::string &name, std::unique_ptr<CBotVar> value)
+    : m_value(std::move(value)), m_name(name)
+{
+    m_next = nullptr;
+    m_InitExpr = nullptr;
+    m_LimExpr = nullptr;
+    m_ident = 0;
+    m_bStatic = false;
+    m_mPrivate = ProtectionLevel::Public;
+    m_pMyThis = nullptr;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+CBotVariable::~CBotVariable()
+{
+    delete m_next;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+std::unique_ptr<CBotVariable> CBotVariable::Create(CBotVariable *pVar)
+{
+    return std::unique_ptr<CBotVariable>(new CBotVariable(pVar->m_name, CBotVar::Create(pVar->m_value.get())));
+}
+
+////////////////////////////////////////////////////////////////////////////////
+CBotVar::CBotVar()
+{
+    m_pUserPtr = nullptr;
+    m_type  = -1;
+    m_binit = InitType::UNDEF;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 CBotVar::~CBotVar( )
 {
-    delete  m_InitExpr;
-    delete  m_LimExpr;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -93,7 +123,7 @@ void CBotVar::SetIdent(long n)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-void CBotVar::SetUniqNum(long n)
+void CBotVariable::SetUniqNum(long n)
 {
     m_ident = n;
 
@@ -101,14 +131,14 @@ void CBotVar::SetUniqNum(long n)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-long CBotVar::NextUniqNum()
+long CBotVariable::NextUniqNum()
 {
     if (++m_identcpt < 10000) m_identcpt = 10000;
     return m_identcpt;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-long CBotVar::GetUniqNum()
+long CBotVariable::GetUniqNum()
 {
     return m_ident;
 }
@@ -117,6 +147,22 @@ long CBotVar::GetUniqNum()
 void* CBotVar::GetUserPtr()
 {
     return m_pUserPtr;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+bool CBotVariable::SaveState(FILE* pf)
+{
+    // TODO
+    assert(0);
+    return false;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+bool CBotVariable::RestoreState(FILE *pf, CBotVariable*& pVar)
+{
+    // TODO
+    assert(0);
+    return false;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -135,49 +181,49 @@ void CBotVar::Update(void* pUser)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-std::unique_ptr<CBotVar> CBotVar::Create(const CBotToken& name, CBotTypResult type)
+std::unique_ptr<CBotVar> CBotVar::Create(CBotTypResult type)
 {
     switch (type.GetType())
     {
     case CBotTypShort:
     case CBotTypInt:
-        return std::unique_ptr<CBotVar>(new CBotVarInt(name));
+        return std::unique_ptr<CBotVar>(new CBotVarInt());
     case CBotTypFloat:
-        return std::unique_ptr<CBotVar>(new CBotVarFloat(name));
+        return std::unique_ptr<CBotVar>(new CBotVarFloat());
     case CBotTypBoolean:
-        return std::unique_ptr<CBotVar>(new CBotVarBoolean(name));
+        return std::unique_ptr<CBotVar>(new CBotVarBoolean());
     case CBotTypString:
-        return std::unique_ptr<CBotVar>(new CBotVarString(name));
+        return std::unique_ptr<CBotVar>(new CBotVarString());
     case CBotTypPointer:
     case CBotTypNullPointer:
-        return std::unique_ptr<CBotVar>(new CBotVarPointer(name, type));
+        return std::unique_ptr<CBotVar>(new CBotVarPointer(type));
     case CBotTypIntrinsic:
-        return std::unique_ptr<CBotVar>(new CBotVarClass(name, type));
+        return std::unique_ptr<CBotVar>(new CBotVarClass(type));
 
     case CBotTypClass:
         // creates a new instance of a class
         // and returns the POINTER on this instance
         {
-            CBotVarClass* instance = new CBotVarClass(name, type);
-            CBotVarPointer* pointer = new CBotVarPointer(name, type);
+            CBotVarClass* instance = new CBotVarClass(type);
+            CBotVarPointer* pointer = new CBotVarPointer(type);
             pointer->SetPointer( instance );
             return std::unique_ptr<CBotVar>(pointer);
         }
 
     case CBotTypArrayPointer:
-        return std::unique_ptr<CBotVar>(new CBotVarArray(name, type));
+        return std::unique_ptr<CBotVar>(new CBotVarArray(type));
 
     case CBotTypArrayBody:
         {
-            CBotVarClass* instance = new CBotVarClass(name, type);
-            CBotVarArray* array = new CBotVarArray(name, type);
+            CBotVarClass* instance = new CBotVarClass(type);
+            CBotVarArray* array = new CBotVarArray(type);
             array->SetPointer( instance );
 
             CBotVar*    pv = array;
             while (type.Eq(CBotTypArrayBody))
             {
                 type = type.GetTypElem();
-                pv = (static_cast<CBotVarArray*>(pv))->GetItem(0, true);            // creates at least the element [0]
+                pv = (static_cast<CBotVarArray*>(pv))->GetItem(0, true)->m_value.get();            // creates at least the element [0]
             }
 
             return std::unique_ptr<CBotVar>(array);
@@ -191,14 +237,7 @@ std::unique_ptr<CBotVar> CBotVar::Create(const CBotToken& name, CBotTypResult ty
 ////////////////////////////////////////////////////////////////////////////////
 std::unique_ptr<CBotVar> CBotVar::Create( CBotVar* pVar )
 {
-    return Create(pVar->m_token.GetString(), pVar->GetTypResult(CBotVar::GetTypeMode::CLASS_AS_INTRINSIC));
-}
-
-////////////////////////////////////////////////////////////////////////////////
-std::unique_ptr<CBotVar> CBotVar::Create(const std::string& n, CBotTypResult type)
-{
-    CBotToken    name(n);
-    return Create(name, type);
+    return Create(pVar->GetTypResult(CBotVar::GetTypeMode::CLASS_AS_INTRINSIC));
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -249,7 +288,7 @@ void CBotVar::SetInit(CBotVar::InitType initType)
         CBotVarClass* instance = GetPointer();
         if ( instance == nullptr )
         {
-            instance = new CBotVarClass(CBotToken(), m_type);
+            instance = new CBotVarClass(m_type);
 //            instance->SetClass((static_cast<CBotVarPointer*>(this))->m_classes);
             SetPointer(instance);
         }
@@ -258,93 +297,83 @@ void CBotVar::SetInit(CBotVar::InitType initType)
 
     if ( m_type.Eq(CBotTypClass) || m_type.Eq(CBotTypIntrinsic) )
     {
-        CBotVar*    p = (static_cast<CBotVarClass*>(this))->m_pVar;
-        while( p != nullptr )
+        for(std::unique_ptr<CBotVariable> &p : (static_cast<CBotVarClass*>(this))->m_pVar)
         {
-            p->SetInit(initType);
+            p->m_value->SetInit(initType);
             p->m_pMyThis = static_cast<CBotVarClass*>(this);
-            p = p->GetNext();
         }
     }
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-const std::string& CBotVar::GetName()
+const std::string& CBotVariable::GetName()
 {
-    return    m_token.GetString();
+    return    m_name.GetString();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-void CBotVar::SetName(const std::string& name)
+void CBotVariable::SetName(const std::string& name)
 {
-    m_token.SetString(name);
+    m_name.SetString(name);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-CBotToken* CBotVar::GetToken()
+CBotToken* CBotVariable::GetToken()
 {
-    return    &m_token;
+    return    &m_name;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-CBotVar* CBotVar::GetItem(const std::string& name)
-{
-    assert(0);
-    return nullptr;
-}
-
-////////////////////////////////////////////////////////////////////////////////
-CBotVar* CBotVar::GetItemRef(int nIdent)
+CBotVariable* CBotVar::GetItem(const std::string& name)
 {
     assert(0);
     return nullptr;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-CBotVar* CBotVar::GetItemList()
+CBotVariable* CBotVar::GetItemRef(int nIdent)
 {
     assert(0);
     return nullptr;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-CBotVar* CBotVar::GetItem(int index, bool grow)
+std::vector<std::unique_ptr<CBotVariable>>& CBotVar::GetItemList()
+{
+    assert(0);
+    // TODO: clean up dummy code
+    static std::vector<std::unique_ptr<CBotVariable>> nullItemList;
+    nullItemList.clear();
+    return nullItemList;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+CBotVariable* CBotVar::GetItem(int index, bool grow)
 {
     assert(0);
     return nullptr;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-bool CBotVar::IsElemOfClass(const std::string& name)
-{
-    CBotClass*    pc = nullptr;
-
-    if ( m_type.Eq(CBotTypPointer) )
-    {
-        pc = (static_cast<CBotVarPointer*>(this))->m_pClass;
-    }
-    if ( m_type.Eq(CBotTypClass) )
-    {
-        pc = (static_cast<CBotVarClass*>(this))->m_pClass;
-    }
-
-    while ( pc != nullptr )
-    {
-        if ( pc->GetName() == name ) return true;
-        pc = pc->GetParent();
-    }
-
-    return false;
-}
-
-////////////////////////////////////////////////////////////////////////////////
-CBotVar* CBotVar::GetStaticVar()
+CBotVariable* CBotVariable::GetStaticVar()
 {
     // makes the pointer to the variable if it is static
     if ( m_bStatic == 0 || m_pMyThis == nullptr ) return this;
 
     CBotClass*    pClass = m_pMyThis->GetClass();
-    return pClass->GetItem( m_token.GetString() );
+    return pClass->GetItem( m_name.GetString() );
+}
+
+////////////////////////////////////////////////////////////////////////////////
+void CBotVariable::SetVal(CBotVar* var)
+{
+    m_value->SetVal(var);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+void CBotVariable::Copy(CBotVariable* copyFrom)
+{
+    m_value->Copy(copyFrom->m_value.get());
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -371,9 +400,8 @@ void CBotVar::SetVal(CBotVar* var)
         break;
     case CBotTypClass:
         {
-            delete (static_cast<CBotVarClass*>(this))->m_pVar;
-            (static_cast<CBotVarClass*>(this))->m_pVar = nullptr;
-            Copy(var, false);
+            (static_cast<CBotVarClass*>(this))->m_pVar.clear();
+            Copy(var);
         }
         break;
     default:
@@ -384,31 +412,31 @@ void CBotVar::SetVal(CBotVar* var)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-void CBotVar::SetStatic(bool bStatic)
+void CBotVariable::SetStatic(bool bStatic)
 {
     m_bStatic = bStatic;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-void CBotVar::SetPrivate(ProtectionLevel mPrivate)
+void CBotVariable::SetPrivate(ProtectionLevel mPrivate)
 {
     m_mPrivate = mPrivate;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-bool CBotVar::IsStatic()
+bool CBotVariable::IsStatic()
 {
     return m_bStatic;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-bool CBotVar::IsPrivate(ProtectionLevel level)
+bool CBotVariable::IsPrivate(ProtectionLevel level)
 {
     return static_cast<int>(m_mPrivate) >= static_cast<int>(level);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-CBotVar::ProtectionLevel CBotVar::GetPrivate()
+CBotVariable::ProtectionLevel CBotVariable::GetPrivate()
 {
     return m_mPrivate;
 }
@@ -595,18 +623,18 @@ void CBotVar::Dec()
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-void CBotVar::Copy(CBotVar* pSrc, bool bName)
+void CBotVar::Copy(CBotVar* pSrc)
 {
-    if (bName) m_token = pSrc->m_token;
+    //if (bName) m_token = pSrc->m_token; // TODO remove commented code
     m_type = pSrc->m_type;
     m_binit = pSrc->m_binit;
 //-    m_bStatic    = pSrc->m_bStatic;
     m_next = nullptr;
-    m_pMyThis = nullptr;//p->m_pMyThis;
     m_pUserPtr = pSrc->m_pUserPtr;
 
     // keeps indentificator the same (by default)
-    if (m_ident == 0) m_ident = pSrc->m_ident;
+    // TODO remove commented code
+    //if (m_ident == 0) m_ident = pSrc->m_ident;
 }
 
 ////////////////////////////////////////////////////////////////////////////////

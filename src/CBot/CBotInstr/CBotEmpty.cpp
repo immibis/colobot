@@ -29,7 +29,7 @@ namespace CBot
 ////////////////////////////////////////////////////////////////////////////////
 bool CBotEmpty::Execute(CBotStack* &pj)
 {
-    std::unique_ptr<CBotVar> pVar = CBotVar::Create("", CBotTypInt);
+    std::unique_ptr<CBotVar> pVar = CBotVar::Create(CBotTypInt);
     pVar->SetValInt(-1);
     pj->SetVar(std::move(pVar));
     return true;

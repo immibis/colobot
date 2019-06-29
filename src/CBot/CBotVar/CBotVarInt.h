@@ -30,12 +30,12 @@ namespace CBot
 class CBotVarInt : public CBotVarNumber<int, CBotTypInt>
 {
 public:
-    CBotVarInt(const CBotToken &name) : CBotVarNumber(name) {}
+    CBotVarInt() : CBotVarNumber() {}
 
     void SetValInt(int val, const std::string& s = "") override;
     std::string GetValString() override;
 
-    void Copy(CBotVar* pSrc, bool bName = true) override;
+    void Copy(CBotVar* pSrc) override;
 
     void Neg() override;
     void Inc() override;
@@ -50,11 +50,11 @@ public:
     void SR(CBotVar* left, CBotVar* right) override;
     void ASR(CBotVar* left, CBotVar* right) override;
 
-    bool Save0State(FILE* pf) override;
     bool Save1State(FILE* pf) override;
 
 protected:
     //! The name if given by DefineNum.
+    //! TODO: remove
     std::string m_defnum;
     friend class CBotVar;
 };

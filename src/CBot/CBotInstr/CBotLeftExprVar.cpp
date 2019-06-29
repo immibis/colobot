@@ -57,7 +57,7 @@ CBotInstr* CBotLeftExprVar::Compile(CBotToken* &p, CBotCStack* pStack)
 bool CBotLeftExprVar::Execute(CBotStack* &pj)
 {
     // Create the variable
-    CBotVar* var1 = CBotVar::Create(m_token.GetString(), m_typevar).release();
+    CBotVariable* var1 = new CBotVariable(m_token.GetString(), CBotVar::Create(m_typevar));
     var1->SetUniqNum(m_nIdent);
     pj->AddVar(var1);
 
@@ -67,7 +67,7 @@ bool CBotLeftExprVar::Execute(CBotStack* &pj)
         if (m_typevar.Eq(CBotTypString) && var2->GetType() != CBotTypString)
         {
             var2->Update(pj->GetUserPtr());
-            var1->SetValString(var2->GetValString());
+            var1->m_value->SetValString(var2->GetValString());
             return true;
         }
         var1->SetVal(var2); // Set the value
@@ -78,7 +78,7 @@ bool CBotLeftExprVar::Execute(CBotStack* &pj)
 
 void CBotLeftExprVar::RestoreState(CBotStack* &pj, bool bMain)
 {
-    CBotVar*     var1;
+    CBotVariable*     var1;
 
     var1 = pj->FindVar(m_token.GetString());
     if (var1 == nullptr) assert(false);

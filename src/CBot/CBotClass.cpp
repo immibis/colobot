@@ -53,7 +53,6 @@ CBotClass::CBotClass(const std::string& name,
 {
     m_parent    = parent;
     m_name      = name;
-    m_pVar      = nullptr;
     m_externalMethods = new CBotExternalCallList();
     m_rUpdate   = nullptr;
     m_IsDef     = true;
@@ -68,7 +67,6 @@ CBotClass::~CBotClass()
 {
     m_publicClasses.erase(this);
 
-    delete  m_pVar;
     delete  m_externalMethods;
 }
 
@@ -93,8 +91,7 @@ void CBotClass::ClearPublic()
 ////////////////////////////////////////////////////////////////////////////////
 void CBotClass::Purge()
 {
-    delete      m_pVar;
-    m_pVar      = nullptr;
+    m_pVar.clear();
     m_externalMethods->Clear();
     for (CBotFunction* f : m_pMethod) delete f;
     m_pMethod.clear();
@@ -158,11 +155,11 @@ void CBotClass::FreeLock(CBotProgram* prog)
 ////////////////////////////////////////////////////////////////////////////////
 bool CBotClass::AddItem(std::string name,
                         CBotTypResult type,
-                        CBotVar::ProtectionLevel mPrivate)
+                        CBotVariable::ProtectionLevel mPrivate)
 {
     CBotClass*  pClass = type.GetClass();
 
-    CBotVar*    pVar = CBotVar::Create( name, type ).release();
+    std::unique_ptr<CBotVariable> pVar(new CBotVariable( name, CBotVar::Create(type) ));
 /// pVar->SetUniqNum(CBotVar::NextUniqNum());
     pVar->SetPrivate( mPrivate );
 
@@ -177,16 +174,16 @@ bool CBotClass::AddItem(std::string name,
             pVar->m_InitExpr->SetToken(&nom);
         }
     }
-    return AddItem( pVar );
+    return AddItem( pVar.release() );
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-bool CBotClass::AddItem(CBotVar* pVar)
+bool CBotClass::AddItem(CBotVariable* pVar)
 {
     pVar->SetUniqNum(++m_nbVar);
 
-    if ( m_pVar == nullptr ) m_pVar = pVar;
-    else m_pVar->AddNext(pVar);
+    // TODO: should take a unique_ptr as argument
+    m_pVar.emplace_back(std::unique_ptr<CBotVariable>(pVar));
 
     return true;
 }
@@ -216,35 +213,33 @@ bool  CBotClass::IsChildOf(CBotClass* pClass)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-CBotVar* CBotClass::GetVar()
+std::vector<std::unique_ptr<CBotVariable>>& CBotClass::GetVar()
 {
     return  m_pVar;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-CBotVar* CBotClass::GetItem(const std::string& name)
+CBotVariable* CBotClass::GetItem(const std::string& name)
 {
-    CBotVar*    p = m_pVar;
-
-    while ( p != nullptr )
+    for (std::unique_ptr<CBotVariable> &var : m_pVar)
     {
-        if ( p->GetName() == name ) return p;
-        p = p->GetNext();
+        if (var->GetName() == name)
+            return var.get();
     }
+
     if (m_parent != nullptr ) return m_parent->GetItem(name);
     return nullptr;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-CBotVar* CBotClass::GetItemRef(int nIdent)
+CBotVariable* CBotClass::GetItemRef(int nIdent)
 {
-    CBotVar*    p = m_pVar;
-
-    while ( p != nullptr )
+    for (std::unique_ptr<CBotVariable> &var : m_pVar)
     {
-        if ( p->GetUniqNum() == nIdent ) return p;
-        p = p->GetNext();
+        if (var->GetUniqNum() == nIdent)
+            return var.get();
     }
+
     if (m_parent != nullptr ) return m_parent->GetItemRef(nIdent);
     return nullptr;
 }
@@ -252,13 +247,12 @@ CBotVar* CBotClass::GetItemRef(int nIdent)
 ////////////////////////////////////////////////////////////////////////////////
 bool CBotClass::CheckVar(const std::string &name)
 {
-    CBotVar*    p = m_pVar;
-
-    while ( p != nullptr )
+    for (std::unique_ptr<CBotVariable> &var : m_pVar)
     {
-        if ( p->GetName() == name ) return true;
-        p = p->GetNext();
+        if (var->GetName() == name)
+            return true;
     }
+
     return false;
 }
 
@@ -375,19 +369,16 @@ bool CBotClass::SaveStaticState(FILE* pf)
         // save the name of the class
         if (!WriteString( pf, p->GetName() )) return false;
 
-        CBotVar*    pv = p->GetVar();
-        while( pv != nullptr )
+        for (std::unique_ptr<CBotVariable> &pv : p->m_pVar)
         {
             if ( pv->IsStatic() )
             {
                 if (!WriteWord( pf, 1 )) return false;
                 if (!WriteString( pf, pv->GetName() )) return false;
 
-                if ( !pv->Save0State(pf) ) return false;             // common header
-                if ( !pv->Save1State(pf) ) return false;                // saves as the child class
+                assert(0); // TODO: save pv
                 if ( !WriteWord( pf, 0 ) ) return false;
             }
-            pv = pv->GetNext();
         }
 
         if (!WriteWord( pf, 0 )) return false;
@@ -420,13 +411,13 @@ bool CBotClass::RestoreStaticState(FILE* pf)
             if (!ReadWord( pf, w )) return false;
             if ( w == 0 ) break;
 
-            CBotVar*    pVar = nullptr;
-            CBotVar*    pv = nullptr;
+            CBotVariable*    pVar = nullptr;
+            CBotVariable*    pv = nullptr;
 
             if (!ReadString( pf, VarName )) return false;
             if ( pClass != nullptr ) pVar = pClass->GetItem(VarName);
 
-            if (!CBotVar::RestoreState(pf, pv)) return false;   // the temp variable
+            if (!CBotVariable::RestoreState(pf, pv)) return false;   // the temp variable
 
             if ( pVar != nullptr ) pVar->Copy(pv);
             delete pv;
@@ -546,7 +537,7 @@ void CBotClass::DefineClasses(std::list<CBotClass*> pClassList, CBotCStack* pSta
 bool CBotClass::CompileDefItem(CBotToken* &p, CBotCStack* pStack, bool bSecond)
 {
     bool    bStatic = false;
-    CBotVar::ProtectionLevel mProtect = CBotVar::ProtectionLevel::Public;
+    CBotVariable::ProtectionLevel mProtect = CBotVariable::ProtectionLevel::Public;
     bool    bSynchro = false;
 
     while (IsOfType(p, ID_SEP)) ;
@@ -557,9 +548,9 @@ bool CBotClass::CompileDefItem(CBotToken* &p, CBotCStack* pStack, bool bSecond)
     CBotToken*      pBase = p;
 
     if ( IsOfType(p, ID_STATIC) ) bStatic = true;
-    if ( IsOfType(p, ID_PUBLIC) ) mProtect = CBotVar::ProtectionLevel::Public;
-    if ( IsOfType(p, ID_PRIVATE) ) mProtect = CBotVar::ProtectionLevel::Private;
-    if ( IsOfType(p, ID_PROTECTED) ) mProtect = CBotVar::ProtectionLevel::Protected;
+    if ( IsOfType(p, ID_PUBLIC) ) mProtect = CBotVariable::ProtectionLevel::Public;
+    if ( IsOfType(p, ID_PRIVATE) ) mProtect = CBotVariable::ProtectionLevel::Private;
+    if ( IsOfType(p, ID_PROTECTED) ) mProtect = CBotVariable::ProtectionLevel::Protected;
     if ( IsOfType(p, ID_STATIC) ) bStatic = true;
 
 //  CBotClass* pClass = nullptr;
@@ -614,7 +605,7 @@ bool CBotClass::CompileDefItem(CBotToken* &p, CBotCStack* pStack, bool bSecond)
 
                     // make "this" known
                     CBotToken TokenThis(std::string("this"), std::string());
-                    CBotVar* pThis = CBotVar::Create(TokenThis, CBotTypResult( CBotTypClass, this ) ).release();
+                    CBotVariable* pThis = new CBotVariable(TokenThis, CBotVar::Create(CBotTypResult( CBotTypClass, this ) ));
                     pThis->SetUniqNum(-2);
                     pile->AddVar(pThis);
 
@@ -622,7 +613,7 @@ bool CBotClass::CompileDefItem(CBotToken* &p, CBotCStack* pStack, bool bSecond)
                     {
                         // makes "super" known
                         CBotToken TokenSuper(std::string("super"), std::string());
-                        std::unique_ptr<CBotVar> pThis = CBotVar::Create(TokenSuper, CBotTypResult(CBotTypClass, m_parent) );
+                        std::unique_ptr<CBotVariable> pThis(new CBotVariable(TokenSuper, CBotVar::Create(CBotTypResult(CBotTypClass, m_parent)) ));
                         pThis->SetUniqNum(-3);
                         pile->AddVar(std::move(pThis));
                     }
@@ -632,18 +623,16 @@ bool CBotClass::CompileDefItem(CBotToken* &p, CBotCStack* pStack, bool bSecond)
                     while (my != nullptr)
                     {
                         // places a copy of variables of a class (this) on a stack
-                        CBotVar* pv = my->m_pVar;
-                        while (pv != nullptr)
+                        for (std::unique_ptr<CBotVariable> &pv : my->m_pVar)
                         {
-                            std::unique_ptr<CBotVar> pcopy = CBotVar::Create(pv);
+                            std::unique_ptr<CBotVariable> pcopy = CBotVariable::Create(pv.get());
                             CBotVar::InitType initType = CBotVar::InitType::UNDEF;
                             if (!bConstructor || pv->IsStatic())
                                 initType = CBotVar::InitType::DEF;
-                            pcopy->SetInit(initType);
+                            pcopy->m_value->SetInit(initType);
                             pcopy->SetUniqNum(pv->GetUniqNum());
                             pcopy->SetPrivate(pv->GetPrivate());
                             pile->AddVar(std::move(pcopy));
-                            pv = pv->GetNext();
                         }
                         my = my->m_parent;
                     }
@@ -753,7 +742,7 @@ bool CBotClass::CompileDefItem(CBotToken* &p, CBotCStack* pStack, bool bSecond)
 
             if ( !bSecond )
             {
-                CBotVar*    pv = CBotVar::Create(pp, type2).release();
+                CBotVariable*    pv = new CBotVariable(pp, CBotVar::Create(type2));
                 pv -> SetStatic( bStatic );
                 pv -> SetPrivate( mProtect );
 
@@ -768,7 +757,7 @@ bool CBotClass::CompileDefItem(CBotToken* &p, CBotCStack* pStack, bool bSecond)
                     CBotStack* pile = CBotStack::AllocateStack();              // independent stack
                     if ( type2.Eq(CBotTypArrayPointer) )
                     {
-                        while(pile->IsOk() && !pv->m_InitExpr->Execute(pile, pv));
+                        while(pile->IsOk() && !pv->m_InitExpr->Execute(pile, pv->m_value.get()));
                     }
                     else
                     {

@@ -23,6 +23,7 @@
 #include "CBot/CBotEnums.h"
 
 #include <vector>
+#include <memory>
 #include <list>
 
 namespace CBot
@@ -33,6 +34,7 @@ class CBotClass;
 class CBotStack;
 class CBotVar;
 class CBotExternalCallList;
+class CBotVariable;
 
 /**
  * \brief Class that manages a CBot program. This is the main entry point into the CBot engine.
@@ -190,10 +192,11 @@ public:
     /**
      * \brief Provides the pointer to the variables on the execution stack
      * \param[out] functionName Name of the function that this stack is part of
+     * \param[out] levelExists True if there is such a level; false if we went past the beginning of the stack
      * \param level 0 for the last level, -1, -2 etc. for previous ones
      * \return Variables on the given stack level. Process using CBotVar::GetNext(). If the stack level is invalid, returns nullptr.
      */
-    CBotVar* GetStackVars(std::string& functionName, int level);
+    const std::vector<std::unique_ptr<CBotVariable>>& GetStackVars(std::string& functionName, int level, bool &levelExists);
 
     /**
      * \brief Stops execution of the program

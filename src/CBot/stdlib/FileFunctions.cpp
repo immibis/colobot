@@ -59,11 +59,11 @@ bool FileClassOpenFile(CBotVar* pThis, CBotVar* pVar, CBotVar* pResult, int& Exc
     }
 
     // saves the file name
-    pVar = pThis->GetItem("filename");
+    pVar = pThis->GetItem("filename")->m_value.get();
     pVar->SetValString(filename);
 
     // retrieve the item "handle"
-    pVar = pThis->GetItem("handle");
+    pVar = pThis->GetItem("handle")->m_value.get();
     // which must not be initialized
     if ( pVar->IsDefined()) { Exception = CBotErrFileOpen; return false; }
 
@@ -78,7 +78,7 @@ bool FileClassOpenFile(CBotVar* pThis, CBotVar* pVar, CBotVar* pResult, int& Exc
     g_files[fileHandle] = std::move(file);
 
     // save the file handle
-    pVar = pThis->GetItem("handle");
+    pVar = pThis->GetItem("handle")->m_value.get();
     pVar->SetValInt(fileHandle);
 
     return true;
@@ -128,7 +128,7 @@ CBotTypResult cfconstruct (CBotVar* pThis, CBotVar* &pVar)
 bool rfdestruct (CBotVar* pThis, CBotVar* pVar, CBotVar* pResult, int& Exception, void* user)
 {
     // retrieve the item "handle"
-    pVar = pThis->GetItem("handle");
+    pVar = pThis->GetItem("handle")->m_value.get();
 
     if (!pVar->IsDefined()) return true; // file not opened
     g_files.erase(pVar->GetValInt());
@@ -188,7 +188,7 @@ bool rfclose (CBotVar* pThis, CBotVar* pVar, CBotVar* pResult, int& Exception, v
     if (pVar != nullptr) { Exception = CBotErrOverParam; return false; }
 
     // retrieve the item "handle"
-    pVar = pThis->GetItem("handle");
+    pVar = pThis->GetItem("handle")->m_value.get();
 
     if (!pVar->IsDefined()) { Exception = CBotErrNotOpen; return false; }
 
@@ -231,7 +231,7 @@ bool rfwrite (CBotVar* pThis, CBotVar* pVar, CBotVar* pResult, int& Exception, v
     std::string param = pVar->GetValString();
 
     // retrieve the item "handle"
-    pVar = pThis->GetItem("handle");
+    pVar = pThis->GetItem("handle")->m_value.get();
 
     if ( !pVar->IsDefined()) { Exception = CBotErrNotOpen; return false; }
 
@@ -277,7 +277,7 @@ bool rfread(CBotVar* pThis, CBotVar* pVar, CBotVar* pResult, int& Exception, voi
     if (pVar != nullptr) { Exception = CBotErrOverParam; return false; }
 
     // retrieve the item "handle"
-    pVar = pThis->GetItem("handle");
+    pVar = pThis->GetItem("handle")->m_value.get();
 
     if (!pVar->IsDefined()) { Exception = CBotErrNotOpen; return false; }
 
@@ -319,7 +319,7 @@ bool rfeof (CBotVar* pThis, CBotVar* pVar, CBotVar* pResult, int& Exception, voi
     if ( pVar != nullptr ) { Exception = CBotErrOverParam; return false; }
 
     // retrieve the item "handle"
-    pVar = pThis->GetItem("handle");
+    pVar = pThis->GetItem("handle")->m_value.get();
 
     if ( !pVar->IsDefined()) { Exception = CBotErrNotOpen; return false; }
 
@@ -372,7 +372,7 @@ void InitFileFunctions()
     // adds the component ".filename"
     bc->AddItem("filename", CBotTypString);
     // adds the component ".handle"
-    bc->AddItem("handle", CBotTypInt, CBotVar::ProtectionLevel::Private);
+    bc->AddItem("handle", CBotTypInt, CBotVariable::ProtectionLevel::Private);
 
     // define a constructor and a destructor
     bc->AddFunction("file", rfconstruct, cfconstruct);

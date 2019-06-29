@@ -41,14 +41,14 @@ public:
     /**
      * \brief Constructor. Do not call directly, use CBotVar::Create()
      */
-    CBotVarValue(const CBotToken& name) : CBotVar(name)
+    CBotVarValue() : CBotVar()
     {
         m_type = type;
     }
 
-    void Copy(CBotVar* pSrc, bool bName = true) override
+    void Copy(CBotVar* pSrc) override
     {
-        CBotVar::Copy(pSrc, bName);
+        CBotVar::Copy(pSrc);
 
         CBotVarValue* p = static_cast<CBotVarValue*>(pSrc);
         m_val = p->m_val;
@@ -86,7 +86,7 @@ template <typename T, CBotType type>
 class CBotVarNumberBase : public CBotVarValue<T, type>
 {
 public:
-    CBotVarNumberBase(const CBotToken &name) : CBotVarValue<T, type>(name) {}
+    CBotVarNumberBase() : CBotVarValue<T, type>() {}
 
     void SetValInt(int val, const std::string &s = "") override
     {
@@ -128,7 +128,7 @@ template <typename T, CBotType type>
 class CBotVarNumber : public CBotVarNumberBase<T, type>
 {
 public:
-    CBotVarNumber(const CBotToken &name) : CBotVarNumberBase<T, type>(name) {}
+    CBotVarNumber() : CBotVarNumberBase<T, type>() {}
 
     void Mul(CBotVar* left, CBotVar* right) override
     {

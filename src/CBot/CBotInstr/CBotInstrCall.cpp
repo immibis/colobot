@@ -86,12 +86,12 @@ CBotInstr* CBotInstrCall::Compile(CBotToken* &p, CBotCStack* pStack)
         pStack->DeleteChildLevels();
         if ( inst->m_typRes.GetType() > 0 )
         {
-            std::unique_ptr<CBotVar> pRes = CBotVar::Create("", inst->m_typRes);
+            std::unique_ptr<CBotVar> pRes = CBotVar::Create(inst->m_typRes);
             pStack->SetVar(std::move(pRes));   // for knowing the type of the result
         }
         else pStack->SetVar(nullptr);          // routine returns void
 
-        if (nullptr != (inst->m_exprRetVar = CBotExprRetVar::Compile(p, pStack)))
+        if (nullptr != (inst->m_exprRetVar = CBotExprRetVar::Compile(p, pStack, 0)))
         {
             inst->m_exprRetVar->SetToken(&inst->m_token);
             pStack->DeleteChildLevels();

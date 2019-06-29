@@ -89,7 +89,7 @@ int CBotExternalCallList::DoCall(CBotToken* token, CBotVar* thisVar, CBotVar** p
     std::unique_ptr<CBotVar> pVar = MakeListVars(ppVar, true);
 
     // creates a variable to the result
-    std::unique_ptr<CBotVar> pResult = rettype.Eq(CBotTypVoid) ? nullptr : CBotVar::Create("", rettype);
+    std::unique_ptr<CBotVar> pResult = rettype.Eq(CBotTypVoid) ? nullptr : CBotVar::Create(rettype);
 
     pile->SetVar(std::move(pVar));
 

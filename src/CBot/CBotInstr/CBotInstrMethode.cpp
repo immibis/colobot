@@ -48,7 +48,7 @@ CBotInstrMethode::~CBotInstrMethode()
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-CBotInstr* CBotInstrMethode::Compile(CBotToken* &p, CBotCStack* pStack, CBotVar* var, bool bMethodChain)
+CBotInstr* CBotInstrMethode::Compile(CBotToken* &p, CBotCStack* pStack, CBotVar* var, long varUniqNum, bool bMethodChain)
 {
     CBotInstrMethode* inst = new CBotInstrMethode();
     inst->SetToken(p);  // corresponding token
@@ -66,7 +66,7 @@ CBotInstr* CBotInstrMethode::Compile(CBotToken* &p, CBotCStack* pStack, CBotVar*
 
         if (pStack->IsOk())
         {
-            inst->m_thisIdent = var->GetUniqNum();
+            inst->m_thisIdent = varUniqNum; // This is needed to see if it's a 'super' call or not. TODO redesign
             CBotClass* pClass = var->GetClass();    // pointer to the class
             inst->m_className = pClass->GetName();  // name of the class
             CBotTypResult r = pClass->CompileMethode(pp, var, ppVars, pStack, inst->m_MethodeIdent);
@@ -82,7 +82,7 @@ CBotInstr* CBotInstrMethode::Compile(CBotToken* &p, CBotCStack* pStack, CBotVar*
             // put the result on the stack to have something
             if (inst->m_typRes.GetType() > 0)
             {
-                std::unique_ptr<CBotVar> pResult = CBotVar::Create("", inst->m_typRes);
+                std::unique_ptr<CBotVar> pResult = CBotVar::Create(inst->m_typRes);
                 if (inst->m_typRes.Eq(CBotTypClass))
                 {
                     pResult->SetClass(inst->m_typRes.GetClass());
@@ -92,7 +92,7 @@ CBotInstr* CBotInstrMethode::Compile(CBotToken* &p, CBotCStack* pStack, CBotVar*
             else pStack->SetVar(nullptr);
 
             pp = p;
-            if (nullptr != (inst->m_exprRetVar = CBotExprRetVar::Compile(p, pStack, bMethodChain)))
+            if (nullptr != (inst->m_exprRetVar = CBotExprRetVar::Compile(p, pStack, 0, bMethodChain)))
             {
                 inst->m_exprRetVar->SetToken(pp);
                 pStack->DeleteChildLevels();
@@ -143,8 +143,8 @@ bool CBotInstrMethode::ExecuteVar(CBotVar* &pVar, CBotStack* &pj, CBotToken* pre
         // Test.Action (Test = Other);
         // action must act on the value before test = Other!
 
-        pThis->SetName("this");
-        pThis->SetUniqNum(-2);
+        //pThis->SetName("this"); // XXX: Commented out in value/variable refactor. Check correctness.
+        //pThis->SetUniqNum(-2); // XXX: Commented out in value/variable refactor. Check correctness.
         pile1->SetVar(std::move(pThis));
         pile1->IncState();
     }
@@ -218,7 +218,7 @@ void CBotInstrMethode::RestoreStateVar(CBotStack* &pile, bool bMain)
 
     assert(pThis != nullptr); // see fix for issues #256 & #436
 
-    pThis->SetUniqNum(-2);
+    //pThis->SetUniqNum(-2); // XXX: Commented out in value/variable refactor. Check correctness.
 
     int        i = 0;
 
@@ -269,11 +269,11 @@ bool CBotInstrMethode::Execute(CBotStack* &pj)
 
     if ( pile1->GetState() == 0)
     {
-        std::unique_ptr<CBotVar> pThis = pile1->CopyVar(m_token);
+        std::unique_ptr<CBotVar> pThis = std::move(pile1->CopyVar(m_token)->m_value); // XXX why copy a var then pull a field out from it?
         // this value should be taken before the evaluation parameters
         // Test.Action (Test = Other);
         // Action must act on the value before test = Other!
-        pThis->SetName("this");
+        //pThis->SetName("this"); // TODO removed in value/variable refactor. Double-check correctness.
         pile1->SetVar(std::move(pThis));
         pile1->IncState();
     }
@@ -308,8 +308,8 @@ bool CBotInstrMethode::Execute(CBotStack* &pj)
     if ( !pClass->ExecuteMethode(m_MethodeIdent, pThis, ppVars, m_typRes, pile2, GetToken())) return false;    // interupted
 
     // set the new value of this in place of the old variable
-    CBotVar*    old = pile1->FindVar(m_token, false);
-    old->Copy(pThis, false);
+    CBotVariable*    old = pile1->FindVar(m_token, false);
+    old->m_value->Copy(pThis);
 
     return pj->Return(pile2);    // release the entire stack
 }

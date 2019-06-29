@@ -191,7 +191,7 @@ bool CBotExpression::Execute(CBotStack* &pj)
             CBotVar* value = pile2->GetVar();
             if (var->GetType() == CBotTypString && value->GetType() != CBotTypString)
             {
-                std::unique_ptr<CBotVar> newVal = CBotVar::Create("", var->GetTypResult());
+                std::unique_ptr<CBotVar> newVal = CBotVar::Create(var->GetTypResult());
                 value->Update(pj->GetUserPtr());
                 newVal->SetValString(value->GetValString());
                 pile2->SetVar(std::move(newVal));
@@ -211,7 +211,7 @@ bool CBotExpression::Execute(CBotStack* &pj)
                 pile2->SetError(CBotErrNan, m_leftop->GetToken());
                 return pj->Return(pile2);
             }
-            result = CBotVar::Create("", pVar->GetTypResult(CBotVar::GetTypeMode::CLASS_AS_INTRINSIC));
+            result = CBotVar::Create(pVar->GetTypResult(CBotVar::GetTypeMode::CLASS_AS_INTRINSIC));
         }
 
         switch (m_token.GetType())

@@ -99,18 +99,18 @@ private:
 
     // Modified version of PutList from src/script/script.cpp
     // Should be probably moved somewhere into the CBot library
-    void PrintVars(std::stringstream& ss, CBotVar* var, const std::string& baseName = "", bool bArray = false)
+    void PrintVars(std::stringstream& ss, const std::vector<std::unique_ptr<CBotVariable>> &vars, const std::string& baseName = "", bool bArray = false)
     {
-        if (var == nullptr && !baseName.empty())
+        if (vars.size() == 0 && !baseName.empty())
         {
             ss << "    " << baseName << " = null" << std::endl;
             return;
         }
 
         int index = 0;
-        while (var != nullptr)
+        for (const std::unique_ptr<CBotVariable> &var : vars)
         {
-            CBotVar* pStatic = var->GetStaticVar();  // finds the static element
+            CBotVariable* pStatic = var->GetStaticVar();  // finds the static element
 
             std::string p = pStatic->GetName();  // variable name
 
@@ -131,23 +131,23 @@ private:
                 }
             }
 
-            CBotType type = pStatic->GetType();
+            CBotType type = pStatic->m_value->GetType();
             if ( type < CBotTypBoolean )
             {
-                ss << "    " << varName.str() << " = " << pStatic->GetValString() << std::endl;
+                ss << "    " << varName.str() << " = " << pStatic->m_value->GetValString() << std::endl;
             }
             else if ( type == CBotTypString )
             {
-                ss << "    " << varName.str() << " = " << "\"" << pStatic->GetValString() << "\"" << std::endl;
+                ss << "    " << varName.str() << " = " << "\"" << pStatic->m_value->GetValString() << "\"" << std::endl;
             }
             else if ( type == CBotTypArrayPointer )
             {
-                PrintVars(ss, pStatic->GetItemList(), varName.str(), true);
+                PrintVars(ss, pStatic->m_value->GetItemList(), varName.str(), true);
             }
             else if ( type == CBotTypClass   ||
                       type == CBotTypPointer )
             {
-                PrintVars(ss, pStatic->GetItemList(), varName.str(), false);
+                PrintVars(ss, pStatic->m_value->GetItemList(), varName.str(), false);
             }
             else
             {
@@ -155,7 +155,6 @@ private:
             }
 
             index ++;
-            var = var->GetNext();
         }
     }
 
@@ -274,11 +273,12 @@ protected:
                     int level = 0;
                     while (true)
                     {
-                        CBotVar* var = program->GetStackVars(funcName, level--);
-                        if (var == nullptr) break;
+                        bool levelExists;
+                        const std::vector<std::unique_ptr<CBotVariable>> &levelVars = program->GetStackVars(funcName, level--, levelExists);
+                        if (!levelExists) break;
 
                         ss << "  Block " << -level << ":" << std::endl;
-                        PrintVars(ss, var);
+                        PrintVars(ss, levelVars);
                     }
                 }
 

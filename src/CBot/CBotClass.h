@@ -159,7 +159,7 @@ public:
      * \return
      */
     bool AddItem(std::string name, CBotTypResult type,
-                 CBotVar::ProtectionLevel mPrivate = CBotVar::ProtectionLevel::Public);
+                 CBotVariable::ProtectionLevel mPrivate = CBotVariable::ProtectionLevel::Public);
 
     /*!
      * \brief AddItem Adds an item by passing the pointer to an instance of a
@@ -167,7 +167,7 @@ public:
      * \param pVar
      * \return
      */
-    bool AddItem(CBotVar* pVar);
+    bool AddItem(CBotVariable* pVar);
 
     /*!
      * \brief GetName Gives the name of the class.
@@ -204,22 +204,26 @@ public:
 
     /*!
      * \brief GetVar Return the list of variables.
+     *
+     * TODO: is this still used?
+     *
      * \return
      */
-    CBotVar* GetVar();
+    std::vector<std::unique_ptr<CBotVariable>>& GetVar();
+
     /*!
      * \brief GetItem One of the variables according to its name.
      * \param name
      * \return
      */
-    CBotVar* GetItem(const std::string& name);
+    CBotVariable* GetItem(const std::string& name);
 
     /*!
      * \brief GetItemRef
      * \param nIdent
      * \return
      */
-    CBotVar* GetItemRef(int nIdent);
+    CBotVariable* GetItemRef(int nIdent);
 
     /*!
      * \brief Check whether a variable is already defined in a class
@@ -389,8 +393,8 @@ private:
     int m_nbVar;
     //! Intrinsic class
     bool m_bIntrinsic;
-    //! Linked list of all class fields
-    CBotVar* m_pVar;
+    //! List of all class fields
+    std::vector<std::unique_ptr<CBotVariable>> m_pVar;
     //! Linked list of all class external calls
     CBotExternalCallList* m_externalMethods;
     //! List of all class methods

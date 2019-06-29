@@ -227,6 +227,7 @@ bool CBotInstr::Execute(CBotStack* &pj)
 {
     assert(0);            // should never go through this routine
                             // but use the routines of the subclasses
+    // TODO: make it pure virtual then.
     return false;
 }
 
@@ -248,6 +249,7 @@ void CBotInstr::RestoreState(CBotStack* &pj, bool bMain)
 ////////////////////////////////////////////////////////////////////////////////
 bool CBotInstr::ExecuteVar(CBotVar* &pVar, CBotCStack* &pile)
 {
+    // XXX what
     assert(0);            // dad do not know, see the girls
     return false;
 }
@@ -255,6 +257,7 @@ bool CBotInstr::ExecuteVar(CBotVar* &pVar, CBotCStack* &pile)
 ////////////////////////////////////////////////////////////////////////////////
 bool CBotInstr::ExecuteVar(CBotVar* &pVar, CBotStack* &pile, CBotToken* prevToken, bool bStep, bool bExtend)
 {
+    // XXX what
     assert(0);            // dad do not know, see the girls
     return false;
 }
@@ -262,6 +265,7 @@ bool CBotInstr::ExecuteVar(CBotVar* &pVar, CBotStack* &pile, CBotToken* prevToke
 ////////////////////////////////////////////////////////////////////////////////
 void CBotInstr::RestoreStateVar(CBotStack* &pile, bool bMain)
 {
+    // XXX what
     assert(0);            // dad do not know, see the girls
 }
 

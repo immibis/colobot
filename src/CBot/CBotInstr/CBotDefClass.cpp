@@ -106,116 +106,115 @@ CBotInstr* CBotDefClass::Compile(CBotToken* &p, CBotCStack* pStack, CBotClass* p
 
             inst = static_cast<CBotDefClass*>(CBotDefArray::Compile(p, pStk, type ));
 
-            goto suite;         // no assignment, variable already created
         }
-
-
-        CBotVar*    var;
-        var = CBotVar::Create(vartoken->GetString(), type).release(); // creates the instance
-//      var->SetClass(pClass);
-        var->SetUniqNum(
-            (static_cast<CBotLeftExprVar*>(inst->m_var))->m_nIdent = CBotVar::NextUniqNum());
-                                                            // its attribute a unique number
-        pStack->AddVar(var);                                // placed on the stack
-
-        // look if there are parameters
-        inst->m_hasParams = (p->GetType() == ID_OPENPAR);
-
-        CBotVar*    ppVars[1000];
-        inst->m_parameters = CompileParams(p, pStk, ppVars);
-        if ( !pStk->IsOk() ) goto error;
-
-        // if there are parameters, is the equivalent to the stament "new"
-        // CPoint A ( 0, 0 ) is equivalent to
-        // CPoint A = new CPoint( 0, 0 )
-
-//      if ( nullptr != inst->m_parameters )
-        if ( inst->m_hasParams )
+        else
         {
-            // the constructor is there?
-//          std::string  noname;
-            CBotTypResult r = pClass->CompileMethode(&token, var, ppVars, pStk, inst->m_nMethodeIdent);
-            pStk->DeleteChildLevels();                          // releases the supplement stack
-            int typ = r.GetType();
+            CBotVariable*    var = new CBotVariable(vartoken->GetString(), CBotVar::Create(type)); // creates the instance
+    //      var->SetClass(pClass);
+            var->SetUniqNum(
+                (static_cast<CBotLeftExprVar*>(inst->m_var))->m_nIdent = CBotVariable::NextUniqNum());
+                                                                // its attribute a unique number
+            pStack->AddVar(var);                                // placed on the stack
 
-            if (typ == CBotErrUndefCall)
+            // look if there are parameters
+            inst->m_hasParams = (p->GetType() == ID_OPENPAR);
+
+            CBotVar*    ppVars[1000];
+            inst->m_parameters = CompileParams(p, pStk, ppVars);
+            if ( !pStk->IsOk() ) goto error;
+
+            // if there are parameters, is the equivalent to the stament "new"
+            // CPoint A ( 0, 0 ) is equivalent to
+            // CPoint A = new CPoint( 0, 0 )
+
+    //      if ( nullptr != inst->m_parameters )
+            if ( inst->m_hasParams )
             {
-                // si le constructeur n'existe pas
-                if (inst->m_parameters != nullptr)                 // with parameters
+                // the constructor is there?
+    //          std::string  noname;
+                CBotTypResult r = pClass->CompileMethode(&token, var->m_value.get(), ppVars, pStk, inst->m_nMethodeIdent);
+                pStk->DeleteChildLevels();                          // releases the supplement stack
+                int typ = r.GetType();
+
+                if (typ == CBotErrUndefCall)
                 {
-                    pStk->SetError(CBotErrNoConstruct, vartoken);
+                    // si le constructeur n'existe pas
+                    if (inst->m_parameters != nullptr)                 // with parameters
+                    {
+                        pStk->SetError(CBotErrNoConstruct, vartoken);
+                        goto error;
+                    }
+                    typ = 0;
+                }
+
+                if (typ>20) // XXX
+                {
+                    pStk->SetError(static_cast<CBotError>(typ), vartoken->GetEnd());
                     goto error;
                 }
-                typ = 0;
+
+                pStk->SetCopyVar(var->m_value.get());
+                // chained method ?
+                if (nullptr != (inst->m_exprRetVar = CBotExprRetVar::Compile(p, pStk, -2, true)))
+                {
+                    inst->m_exprRetVar->SetToken(vartoken);
+                    pStk->DeleteChildLevels();
+                }
+                pStk->SetVar(nullptr);
+
+                if ( !pStk->IsOk() ) goto error;
             }
 
-            if (typ>20) // XXX
+            if (IsOfType(p,  ID_ASS))                           // with a assignment?
             {
-                pStk->SetError(static_cast<CBotError>(typ), vartoken->GetEnd());
-                goto error;
-            }
+                pStk->SetStartError(p->GetStart());
+                if (inst->m_hasParams)
+                {
+                    pStk->SetError(CBotErrNoTerminator, p->GetStart());
+                    goto error;
+                }
 
-            pStk->SetCopyVar(var);
-            // chained method ?
-            if (nullptr != (inst->m_exprRetVar = CBotExprRetVar::Compile(p, pStk, true)))
+                if ( IsOfType(p, ID_SEP) )
+                {
+                    pStk->SetError(CBotErrNoExpression, p->GetStart());
+                    goto error;
+                }
+
+                if ( nullptr == ( inst->m_expr = CBotTwoOpExpr::Compile( p, pStk )) )
+                {
+                    goto error;
+                }
+                CBotClass* result = pStk->GetClass();
+                if ( !pStk->GetTypResult(CBotVar::GetTypeMode::CLASS_AS_POINTER).Eq(CBotTypNullPointer) &&
+                   ( !pStk->GetTypResult(CBotVar::GetTypeMode::CLASS_AS_POINTER).Eq(CBotTypPointer) ||
+                     ( result != nullptr && !(pClass->IsChildOf(result) ||
+                                              result->IsChildOf(pClass)))))     // type compatible ?
+                {
+                    pStk->SetError(CBotErrBadType1, p->GetStart());
+                    goto error;
+                }
+    //          if ( !bIntrinsic ) var->SetPointer(pStk->GetVar()->GetPointer());
+                if ( !bIntrinsic )
+                {
+                    // does not use the result on the stack, to impose the class
+                    std::unique_ptr<CBotVar> pvar = CBotVar::Create(CBotTypResult(CBotTypClass, pClass));
+                    var->m_value->SetPointer( pvar.release() );              // variable already declared instance pointer
+                }
+                var->m_value->SetInit(CBotVar::InitType::DEF);                         // marks the pointer as init
+            }
+            else if (inst->m_hasParams)
             {
-                inst->m_exprRetVar->SetToken(vartoken);
-                pStk->DeleteChildLevels();
+                // creates the object on the stack
+                // with a pointer to the object
+                if ( !bIntrinsic )
+                {
+                    std::unique_ptr<CBotVar> pvar = CBotVar::Create(CBotTypResult(CBotTypClass, pClass));
+                    var->m_value->SetPointer( pvar.release() );              // variable already declared instance pointer
+                }
+                var->m_value->SetInit(CBotVar::InitType::IS_POINTER);                            // marks the pointer as init
             }
-            pStk->SetVar(nullptr);
-
-            if ( !pStk->IsOk() ) goto error;
         }
 
-        if (IsOfType(p,  ID_ASS))                           // with a assignment?
-        {
-            pStk->SetStartError(p->GetStart());
-            if (inst->m_hasParams)
-            {
-                pStk->SetError(CBotErrNoTerminator, p->GetStart());
-                goto error;
-            }
-
-            if ( IsOfType(p, ID_SEP) )
-            {
-                pStk->SetError(CBotErrNoExpression, p->GetStart());
-                goto error;
-            }
-
-            if ( nullptr == ( inst->m_expr = CBotTwoOpExpr::Compile( p, pStk )) )
-            {
-                goto error;
-            }
-            CBotClass* result = pStk->GetClass();
-            if ( !pStk->GetTypResult(CBotVar::GetTypeMode::CLASS_AS_POINTER).Eq(CBotTypNullPointer) &&
-               ( !pStk->GetTypResult(CBotVar::GetTypeMode::CLASS_AS_POINTER).Eq(CBotTypPointer) ||
-                 ( result != nullptr && !(pClass->IsChildOf(result) ||
-                                          result->IsChildOf(pClass)))))     // type compatible ?
-            {
-                pStk->SetError(CBotErrBadType1, p->GetStart());
-                goto error;
-            }
-//          if ( !bIntrinsic ) var->SetPointer(pStk->GetVar()->GetPointer());
-            if ( !bIntrinsic )
-            {
-                // does not use the result on the stack, to impose the class
-                std::unique_ptr<CBotVar> pvar = CBotVar::Create("", CBotTypResult(CBotTypClass, pClass));
-                var->SetPointer( pvar.release() );              // variable already declared instance pointer
-            }
-            var->SetInit(CBotVar::InitType::DEF);                         // marks the pointer as init
-        }
-        else if (inst->m_hasParams)
-        {
-            // creates the object on the stack
-            // with a pointer to the object
-            if ( !bIntrinsic )
-            {
-                std::unique_ptr<CBotVar> pvar = CBotVar::Create("", CBotTypResult(CBotTypClass, pClass));
-                var->SetPointer( pvar.release() );              // variable already declared instance pointer
-            }
-            var->SetInit(CBotVar::InitType::IS_POINTER);                            // marks the pointer as init
-        }
-suite:
         if (pStk->IsOk() && IsOfType(p,  ID_COMMA))         // several chained definitions
         {
             if ( nullptr != ( inst->m_next = CBotDefClass::Compile(p, pStk, pClass) ))    // compiles the following
@@ -240,7 +239,7 @@ error:
 ////////////////////////////////////////////////////////////////////////////////
 bool CBotDefClass::Execute(CBotStack* &pj)
 {
-    CBotVar*    pThis = nullptr;
+    CBotVariable*    pThis = nullptr;
 
     CBotStack*  pile = pj->AddStack(this);//essential for SetState()
 //  if ( pile == EOX ) return true;
@@ -270,11 +269,11 @@ bool CBotDefClass::Execute(CBotStack* &pj)
         std::string  name = m_var->m_token.GetString();
         if ( bIntrincic )
         {
-            pThis = CBotVar::Create(name, CBotTypResult( CBotTypIntrinsic, pClass )).release();
+            pThis = new CBotVariable(name, CBotVar::Create(CBotTypResult( CBotTypIntrinsic, pClass )));
         }
         else
         {
-            pThis = CBotVar::Create(name, CBotTypResult( CBotTypPointer, pClass )).release();
+            pThis = new CBotVariable(name, CBotVar::Create(CBotTypResult( CBotTypPointer, pClass )));
         }
 
         pThis->SetUniqNum((static_cast<CBotLeftExprVar*>(m_var))->m_nIdent); // its attribute as unique number
@@ -304,7 +303,7 @@ bool CBotDefClass::Execute(CBotStack* &pj)
                     pile->SetError(CBotErrNull, &m_token);
                     return pj->Return(pile);
                 }
-                pThis->Copy(pile->GetVar(), false);
+                pThis->m_value->Copy(pile->GetVar());
             }
             else
             {
@@ -319,11 +318,11 @@ bool CBotDefClass::Execute(CBotStack* &pj)
 
                 CBotVarClass* pInstance;
                 pInstance = pv->GetPointer();    // value for the assignment
-                CBotTypResult type = pThis->GetTypResult();
-                pThis->SetPointer(pInstance);
-                pThis->SetType(type);        // keep pointer type
+                CBotTypResult type = pThis->m_value->GetTypResult();
+                pThis->m_value->SetPointer(pInstance);
+                pThis->m_value->SetType(type);        // keep pointer type
             }
-            pThis->SetInit(CBotVar::InitType::DEF);
+            pThis->m_value->SetInit(CBotVar::InitType::DEF);
         }
 
         else if ( m_hasParams )
@@ -338,8 +337,8 @@ bool CBotDefClass::Execute(CBotStack* &pj)
                 // creates an instance of the requested class
 
                 CBotVarClass* pInstance;
-                pInstance = static_cast<CBotVarClass*>(CBotVar::Create("", CBotTypResult(CBotTypClass, pClass)).release());
-                pThis->SetPointer(pInstance);
+                pInstance = static_cast<CBotVarClass*>(CBotVar::Create(CBotTypResult(CBotTypClass, pClass)).release());
+                pThis->m_value->SetPointer(pInstance);
                 delete pInstance;
 
                 pile->IncState();
@@ -370,10 +369,10 @@ bool CBotDefClass::Execute(CBotStack* &pj)
             ppVars[i] = nullptr;
 
             // creates a variable for the result
-            if ( !pClass->ExecuteMethode(m_nMethodeIdent, pThis, ppVars, CBotTypResult(CBotTypVoid), pile2, GetToken())) return false; // interrupt
+            if ( !pClass->ExecuteMethode(m_nMethodeIdent, pThis->m_value.get(), ppVars, CBotTypResult(CBotTypVoid), pile2, GetToken())) return false; // interrupt
 
-            pThis->SetInit(CBotVar::InitType::DEF);
-            pThis->ConstructorSet();        // indicates that the constructor has been called
+            pThis->m_value->SetInit(CBotVar::InitType::DEF);
+            pThis->m_value->ConstructorSet();        // indicates that the constructor has been called
             pile->Return(pile2);                                // releases a piece of stack
 
 //          pInstance = pThis->GetPointer();
@@ -388,7 +387,7 @@ bool CBotDefClass::Execute(CBotStack* &pj)
     if (m_exprRetVar != nullptr && pile->GetState() == 3) // Class c().method();
     {
         CBotStack* pile3 = pile->AddStack();
-        pile3->SetCopyVar(pThis);
+        pile3->SetCopyVar(pThis->m_value.get());
         pile->SetState(4);
         return false;              // go back to the top ^^^
     }
@@ -404,7 +403,7 @@ bool CBotDefClass::Execute(CBotStack* &pj)
 ////////////////////////////////////////////////////////////////////////////////
 void CBotDefClass::RestoreState(CBotStack* &pj, bool bMain)
 {
-    CBotVar*    pThis = nullptr;
+    CBotVariable*    pThis = nullptr;
 
     CBotStack*  pile = pj;
     if ( bMain ) pile = pj->RestoreStack(this);
@@ -480,7 +479,7 @@ void CBotDefClass::RestoreState(CBotStack* &pj, bool bMain)
             ppVars[i] = nullptr;
 
             // creates a variable for the result
-            pClass->RestoreMethode(m_nMethodeIdent, pt, pThis, ppVars, pile2);
+            pClass->RestoreMethode(m_nMethodeIdent, pt, pThis->m_value.get(), ppVars, pile2);
             return;
         }
     }

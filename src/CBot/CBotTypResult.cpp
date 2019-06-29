@@ -198,4 +198,22 @@ std::string CBotTypResult::ToString()
     return ss.str();
 }
 
+bool CBotTypResult::IsSpecifiedClassOrSubclass(const std::string& name)
+{
+    if ( m_type != CBotTypPointer && m_type != CBotTypClass )
+    {
+        return false;
+    }
+
+    CBotClass*    pc = m_class;
+
+    while ( pc != nullptr )
+    {
+        if ( pc->GetName() == name ) return true;
+        pc = pc->GetParent();
+    }
+
+    return false;
+}
+
 } // namespace CBot

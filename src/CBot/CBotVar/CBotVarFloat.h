@@ -30,7 +30,7 @@ namespace CBot
 class CBotVarFloat : public CBotVarNumber<float, CBotTypFloat>
 {
 public:
-    CBotVarFloat(const CBotToken &name) : CBotVarNumber(name) {}
+    CBotVarFloat() : CBotVarNumber() {}
 
     bool Save1State(FILE* pf) override;
 };

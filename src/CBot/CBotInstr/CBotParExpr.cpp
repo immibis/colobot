@@ -183,7 +183,7 @@ CBotInstr* CBotParExpr::CompileLitExpr(CBotToken* &p, CBotCStack* pStack)
     {
         CBotInstr* inst = new CBotExprLitNull();
         inst->SetToken(pp);
-        std::unique_ptr<CBotVar> var = CBotVar::Create("", CBotTypNullPointer);
+        std::unique_ptr<CBotVar> var = CBotVar::Create(CBotTypNullPointer);
         pStk->SetVar(std::move(var));
         return pStack->Return(inst, pStk);
     }
@@ -194,7 +194,7 @@ CBotInstr* CBotParExpr::CompileLitExpr(CBotToken* &p, CBotCStack* pStack)
         CBotInstr* inst = new CBotExprLitNan();
         inst->SetToken(pp);
         // XXX: Why is NAN an int?
-        std::unique_ptr<CBotVar> var = CBotVar::Create("", CBotTypInt);
+        std::unique_ptr<CBotVar> var = CBotVar::Create(CBotTypInt);
         var->SetInit(CBotVar::InitType::IS_NAN);
         pStk->SetVar(std::move(var));
         return pStack->Return(inst, pStk);

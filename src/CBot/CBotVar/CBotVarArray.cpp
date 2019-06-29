@@ -31,13 +31,12 @@ namespace CBot
 {
 
 ////////////////////////////////////////////////////////////////////////////////
-CBotVarArray::CBotVarArray(const CBotToken& name, CBotTypResult& type) : CBotVar(name)
+CBotVarArray::CBotVarArray(CBotTypResult& type)
 {
     if ( !type.Eq(CBotTypArrayPointer) &&
          !type.Eq(CBotTypArrayBody)) assert(0);
 
     m_next        = nullptr;
-    m_pMyThis    = nullptr;
     m_pUserPtr    = nullptr;
 
     m_type        = type;
@@ -54,14 +53,13 @@ CBotVarArray::~CBotVarArray()
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-void CBotVarArray::Copy(CBotVar* pSrc, bool bName)
+void CBotVarArray::Copy(CBotVar* pSrc)
 {
     if ( pSrc->GetType() != CBotTypArrayPointer )
         assert(0);
 
     CBotVarArray*    p = static_cast<CBotVarArray*>(pSrc);
 
-    if ( bName) m_token    = p->m_token;
     m_type        = p->m_type;
     m_pInstance = p->GetPointer();
 
@@ -69,12 +67,7 @@ void CBotVarArray::Copy(CBotVar* pSrc, bool bName)
          m_pInstance->IncrementUse();            // a reference increase
 
     m_binit        = p->m_binit;
-//-    m_bStatic    = p->m_bStatic;
-    m_pMyThis    = nullptr;//p->m_pMyThis;
     m_pUserPtr    = p->m_pUserPtr;
-
-    // keeps indentificator the same (by default)
-    if (m_ident == 0 ) m_ident     = p->m_ident;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -109,23 +102,30 @@ CBotVarClass* CBotVarArray::GetPointer()
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-CBotVar* CBotVarArray::GetItem(int n, bool bExtend)
+CBotVariable* CBotVarArray::GetItem(int n, bool bExtend)
 {
     if ( m_pInstance == nullptr )
     {
         if ( !bExtend ) return nullptr;
         // creates an instance of the table
 
-        CBotVarClass* instance = new CBotVarClass(CBotToken(), m_type);
+        CBotVarClass* instance = new CBotVarClass(m_type);
         SetPointer( instance );
     }
     return m_pInstance->GetItem(n, bExtend);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-CBotVar* CBotVarArray::GetItemList()
+std::vector<std::unique_ptr<CBotVariable>>& CBotVarArray::GetItemList()
 {
-    if ( m_pInstance == nullptr) return nullptr;
+    if (m_pInstance == nullptr)
+    {
+        // TODO: fix this (should be const, what happens if the caller modifies this vector?
+        // but if it's const maybe the caller needs to modify the vector)
+        static std::vector<std::unique_ptr<CBotVariable>> emptyvec;
+        emptyvec.clear();
+        return emptyvec;
+    }
     return m_pInstance->GetItemList();
 }
 
@@ -140,7 +140,7 @@ std::string CBotVarArray::GetValString()
 bool CBotVarArray::Save1State(FILE* pf)
 {
     if ( !WriteType(pf, m_type) ) return false;
-    return SaveVars(pf, m_pInstance);                        // saves the instance that manages the table
+    return m_pInstance->Save1State(pf);                        // saves the instance that manages the table
 }
 
 } // namespace CBot

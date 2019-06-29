@@ -60,7 +60,7 @@ target_link_libraries(colobot_ut ${LIBS})
 
 add_test(
     NAME colobot_ut
-    COMMAND ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/colobot_ut
+    COMMAND sh -c "lcov --zerocounters  --directory . && ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/colobot_ut && lcov --directory . --directory ${CMAKE_CURRENT_SOURCE_DIR}/../../src --no-external --capture --output-file colobot_ut.lcov.info && genhtml colobot_ut.lcov.info --output-directory lcov"
     WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
 )
 
@@ -68,4 +68,9 @@ add_test(
 # see https://github.com/google/googletest/issues/1063
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU" AND NOT CMAKE_CXX_COMPILER_VERSION VERSION_LESS 5.0)
     target_compile_options(colobot_ut PRIVATE "-Wno-suggest-override")
+endif()
+
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
+    target_compile_options(colobot_ut PRIVATE -fprofile-arcs -ftest-coverage)
+    target_link_options(colobot_ut PRIVATE -fprofile-arcs -ftest-coverage)
 endif()

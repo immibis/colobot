@@ -58,7 +58,7 @@ CBotInstr* CBotExprVar::Compile(CBotToken*& p, CBotCStack* pStack, bool bCheckRe
 
         inst->SetToken(p);
 
-        CBotVar*     var;
+        CBotVariable*     var;
 
         if (nullptr != (var = pStk->FindVar(p)))   // seek if known variable
         {
@@ -67,7 +67,7 @@ CBotInstr* CBotExprVar::Compile(CBotToken*& p, CBotCStack* pStack, bool bCheckRe
 
             if (ident > 0 && ident < 9000)
             {
-                if (CBotFieldExpr::CheckProtectionError(pStk, nullptr, var, bCheckReadOnly))
+                if (CBotFieldExpr::CheckProtectionError(pStk, nullptr, "", var, bCheckReadOnly))
                 {
                     pStk->SetError(CBotErrPrivate, p);
                     goto err;
@@ -91,7 +91,7 @@ CBotInstr* CBotExprVar::Compile(CBotToken*& p, CBotCStack* pStack, bool bCheckRe
 
             while (true)
             {
-                if (var->GetType() == CBotTypArrayPointer)
+                if (var->m_value->GetType() == CBotTypArrayPointer)
                 {
                     if (IsOfType( p, ID_OPBRK ))    // check if there is an aindex
                     {
@@ -99,7 +99,7 @@ CBotInstr* CBotExprVar::Compile(CBotToken*& p, CBotCStack* pStack, bool bCheckRe
                         i->m_expr = CBotExpression::Compile(p, pStk);   // compile the formula
                         inst->AddNext3(i);  // add to the chain
 
-                        var = (static_cast<CBotVarArray*>(var))->GetItem(0,true);    // gets the component [0]
+                        var = (static_cast<CBotVarArray*>(var->m_value.get()))->GetItem(0,true);    // gets the component [0]
 
                         if (i->m_expr == nullptr)
                         {
@@ -114,7 +114,7 @@ CBotInstr* CBotExprVar::Compile(CBotToken*& p, CBotCStack* pStack, bool bCheckRe
                         continue;
                     }
                 }
-                if (var->GetType(CBotVar::GetTypeMode::CLASS_AS_POINTER) == CBotTypPointer)  // for classes
+                if (var->m_value->GetType(CBotVar::GetTypeMode::CLASS_AS_POINTER) == CBotTypPointer)  // for classes
                 {
                     if (IsOfType(p, ID_DOT))
                     {
@@ -126,7 +126,7 @@ CBotInstr* CBotExprVar::Compile(CBotToken*& p, CBotCStack* pStack, bool bCheckRe
                             {
                                 if (bCheckReadOnly) goto err; // don't allow increment a method call "++"
 
-                                CBotInstr* i = CBotInstrMethode::Compile(p, pStk, var);
+                                CBotInstr* i = CBotInstrMethode::Compile(p, pStk, var->m_value.get(), var->GetUniqNum());
                                 if (!pStk->IsOk()) goto err;
                                 inst->AddNext3(i);  // added after
                                 return pStack->Return(inst, pStk);
@@ -136,12 +136,12 @@ CBotInstr* CBotExprVar::Compile(CBotToken*& p, CBotCStack* pStack, bool bCheckRe
                                 CBotFieldExpr* i = new CBotFieldExpr();     // new element
                                 i->SetToken(pp);                            // keeps the name of the token
                                 inst->AddNext3(i);                          // add after
-                                CBotVar*   preVar = var;
-                                var = var->GetItem(p->GetString());         // get item correspondent
+                                CBotVariable*   preVar = var;
+                                var = var->m_value->GetItem(p->GetString());         // get item correspondent
                                 if (var != nullptr)
                                 {
                                     i->SetUniqNum(var->GetUniqNum());
-                                    if (CBotFieldExpr::CheckProtectionError(pStk, preVar, var, bCheckReadOnly))
+                                    if (CBotFieldExpr::CheckProtectionError(pStk, preVar->m_value.get(), preVar->GetName(), var, bCheckReadOnly))
                                     {
                                         pStk->SetError(CBotErrPrivate, pp);
                                         goto err;
@@ -166,7 +166,7 @@ CBotInstr* CBotExprVar::Compile(CBotToken*& p, CBotCStack* pStack, bool bCheckRe
                 break;
             }
 
-            pStk->SetCopyVar(var);  // place the copy of the variable on the stack (for type)
+            pStk->SetCopyVar(var->m_value.get());  // place the copy of the variable on the stack (for type)
             if (pStk->IsOk()) return pStack->Return(inst, pStk);
         }
         pStk->SetError(CBotErrUndefVar, p);
@@ -190,7 +190,7 @@ CBotInstr* CBotExprVar::CompileMethode(CBotToken* &p, CBotCStack* pStack)
     if (pp->GetType() == TokenTypVar)
     {
         CBotToken pthis("this");
-        CBotVar*     var = pStk->FindVar(pthis);
+        CBotVariable* var = pStk->FindVar(pthis);
         if (var == nullptr) return pStack->Return(nullptr, pStk);
 
         CBotInstr* inst = new CBotExprVar();
@@ -209,7 +209,7 @@ CBotInstr* CBotExprVar::CompileMethode(CBotToken* &p, CBotCStack* pStack)
         {
             if (pp->GetNext()->GetType() == ID_OPENPAR)        // a method call?
             {
-                CBotInstr* i = CBotInstrMethode::Compile(pp, pStk, var);
+                CBotInstr* i = CBotInstrMethode::Compile(pp, pStk, var->m_value.get(), var->GetUniqNum());
                 if (pStk->IsOk())
                 {
                     inst->AddNext3(i);                            // add after
@@ -286,7 +286,8 @@ bool CBotExprVar::ExecuteVar(CBotVar* &pVar, CBotStack* &pj, CBotToken* prevToke
 
     if (bStep && m_nIdent>0 && pj->IfStep()) return false;
 
-    pVar = pj->FindVar(m_nIdent, true);     // tries with the variable update if necessary
+    CBotVariable *pRealVar = pj->FindVar(m_nIdent, true);     // tries with the variable update if necessary
+    pVar = (pRealVar ? pRealVar->m_value.get() : nullptr);
     if (pVar == nullptr)
     {
         assert(false);

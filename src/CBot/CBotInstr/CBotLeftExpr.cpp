@@ -57,14 +57,14 @@ CBotLeftExpr* CBotLeftExpr::Compile(CBotToken* &p, CBotCStack* pStack)
 
         inst->SetToken(p);
 
-        CBotVar*     var;
+        CBotVariable*     var;
 
         if (nullptr != (var = pStk->FindVar(p)))   // seek if known variable
         {
             inst->m_nIdent = var->GetUniqNum();
             if (inst->m_nIdent > 0 && inst->m_nIdent < 9000)
             {
-                if (CBotFieldExpr::CheckProtectionError(pStk, nullptr, var, true))
+                if (CBotFieldExpr::CheckProtectionError(pStk, nullptr, "", var, true))
                 {
                     pStk->SetError(CBotErrPrivate, p);
                     goto err;
@@ -82,14 +82,14 @@ CBotLeftExpr* CBotLeftExpr::Compile(CBotToken* &p, CBotCStack* pStack)
                 inst->AddNext3(i);  // add after
 
                 var = pStk->FindVar(pthis);
-                var = var->GetItem(p->GetString());
+                var = var->m_value->GetItem(p->GetString());
                 i->SetUniqNum(var->GetUniqNum());
             }
             p = p->GetNext();   // next token
 
             while (true)
             {
-                if (var->GetType() == CBotTypArrayPointer)
+                if (var->m_value->GetType() == CBotTypArrayPointer)
                 {
                     if (IsOfType( p, ID_OPBRK ))
                     {
@@ -97,7 +97,7 @@ CBotLeftExpr* CBotLeftExpr::Compile(CBotToken* &p, CBotCStack* pStack)
                         i->m_expr = CBotExpression::Compile(p, pStk);
                         inst->AddNext3(i);  // add to the chain
 
-                        var = (static_cast<CBotVarArray*>(var))->GetItem(0,true);    // gets the component [0]
+                        var = (static_cast<CBotVarArray*>(var->m_value.get()))->GetItem(0,true);    // gets the component [0]
 
                         if (i->m_expr == nullptr)
                         {
@@ -114,7 +114,7 @@ CBotLeftExpr* CBotLeftExpr::Compile(CBotToken* &p, CBotCStack* pStack)
                     }
                 }
 
-                if (var->GetType(CBotVar::GetTypeMode::CLASS_AS_POINTER) == CBotTypPointer)                // for classes
+                if (var->m_value->GetType(CBotVar::GetTypeMode::CLASS_AS_POINTER) == CBotTypPointer)                // for classes
                 {
                     if (IsOfType(p, ID_DOT))
                     {
@@ -126,11 +126,11 @@ CBotLeftExpr* CBotLeftExpr::Compile(CBotToken* &p, CBotCStack* pStack)
 
                         if (p->GetType() == TokenTypVar)                // must be a name
                         {
-                            CBotVar*   preVar = var;
-                            var = var->GetItem(p->GetString());            // get item correspondent
+                            CBotVariable*   preVar = var;
+                            var = var->m_value->GetItem(p->GetString());            // get item correspondent
                             if (var != nullptr)
                             {
-                                if (CBotFieldExpr::CheckProtectionError(pStk, preVar, var, true))
+                                if (CBotFieldExpr::CheckProtectionError(pStk, preVar->m_value.get(), preVar->GetName(), var, true))
                                 {
                                     pStk->SetError(CBotErrPrivate, pp);
                                     goto err;
@@ -206,7 +206,8 @@ bool CBotLeftExpr::Execute(CBotStack* &pj, CBotStack* array)
 ////////////////////////////////////////////////////////////////////////////////
 bool CBotLeftExpr::ExecuteVar(CBotVar* &pVar, CBotCStack* &pile)
 {
-    pVar = pile->FindVar(m_token);
+    CBotVariable *pVar2 = pile->FindVar(m_token);
+    pVar = (pVar2 ? pVar2->m_value.get() : nullptr);
     if (pVar == nullptr) return false;
 
     if ( m_next3 != nullptr &&
@@ -220,7 +221,8 @@ bool CBotLeftExpr::ExecuteVar(CBotVar* &pVar, CBotStack* &pile, CBotToken* prevT
 {
     pile = pile->AddStack(this);
 
-    pVar = pile->FindVar(m_nIdent, false);
+    CBotVariable *pVar2 = pile->FindVar(m_nIdent, false);
+    pVar = (pVar2 ? pVar2->m_value.get() : nullptr);
     if (pVar == nullptr)
     {
         assert(false);

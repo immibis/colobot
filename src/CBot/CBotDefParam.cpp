@@ -104,10 +104,11 @@ CBotDefParam* CBotDefParam::Compile(CBotToken* &p, CBotCStack* pStack)
                     if (!pStack->IsOk()) break;
 
                     if ( type.Eq(CBotTypArrayPointer) ) type.SetType(CBotTypArrayBody);
-                    std::unique_ptr<CBotVar> var = CBotVar::Create(pp->GetString(), type);          // creates the variable
+                    std::unique_ptr<CBotVar> val = CBotVar::Create(type);          // creates the variable
 //                  if ( pClass ) var->SetClass(pClass);
-                    var->SetInit(CBotVar::InitType::IS_POINTER);                                    // mark initialized
-                    param->m_nIdent = CBotVar::NextUniqNum();
+                    val->SetInit(CBotVar::InitType::IS_POINTER);                                    // mark initialized
+                    param->m_nIdent = CBotVariable::NextUniqNum();
+                    std::unique_ptr<CBotVariable> var(new CBotVariable(pp->GetString(), std::move(val)));
                     var->SetUniqNum(param->m_nIdent);
                     pStack->AddVar(var.release());                      // place on the stack
 
@@ -165,7 +166,7 @@ bool CBotDefParam::Execute(CBotVar** ppVars, CBotStack* &pj)
         pile->SetState(1); // mark this param done
 
         // creates a local variable on the stack
-        std::unique_ptr<CBotVar> newvar = CBotVar::Create(p->m_token.GetString(), p->m_type);
+        std::unique_ptr<CBotVar> newval = CBotVar::Create(p->m_type);
 
         // serves to make the transformation of types:
         if ((useDefault && pVar != nullptr) ||
@@ -174,37 +175,39 @@ bool CBotDefParam::Execute(CBotVar** ppVars, CBotStack* &pj)
             switch (p->m_type.GetType())
             {
             case CBotTypInt:
-                newvar->SetValInt(pVar->GetValInt());
-                newvar->SetInit(pVar->GetInit()); // copy nan
+                newval->SetValInt(pVar->GetValInt());
+                newval->SetInit(pVar->GetInit()); // copy nan
                 break;
             case CBotTypFloat:
-                newvar->SetValFloat(pVar->GetValFloat());
-                newvar->SetInit(pVar->GetInit()); // copy nan
+                newval->SetValFloat(pVar->GetValFloat());
+                newval->SetInit(pVar->GetInit()); // copy nan
                 break;
             case CBotTypString:
-                newvar->SetValString(pVar->GetValString());
+                newval->SetValString(pVar->GetValString());
                 break;
             case CBotTypBoolean:
-                newvar->SetValInt(pVar->GetValInt());
+                newval->SetValInt(pVar->GetValInt());
                 break;
             case CBotTypIntrinsic:
-                (static_cast<CBotVarClass*>(newvar.get()))->Copy(pVar, false);
+                (static_cast<CBotVarClass*>(newval.get()))->Copy(pVar);
                 break;
             case CBotTypPointer:
                 {
-                    newvar->SetPointer(pVar->GetPointer());
-                    newvar->SetType(p->m_type);     // keep pointer type
+                    newval->SetPointer(pVar->GetPointer());
+                    newval->SetType(p->m_type);     // keep pointer type
                 }
                 break;
             case CBotTypArrayPointer:
                 {
-                    newvar->SetPointer(pVar->GetPointer());
+                    newval->SetPointer(pVar->GetPointer());
                 }
                 break;
             default:
                 assert(0);
             }
         }
+
+        std::unique_ptr<CBotVariable> newvar(new CBotVariable(p->m_token.GetString(), std::move(newval)));
         newvar->SetUniqNum(p->m_nIdent);
         pj->AddVar(newvar.release());     // add a variable
         p = p->m_next;
@@ -241,7 +244,7 @@ void CBotDefParam::RestoreState(CBotStack* &pj, bool bMain)
             }
         }
         // creates a local variable on the stack
-        CBotVar*    var = pj->FindVar(p->m_token.GetString());
+        CBotVariable*    var = pj->FindVar(p->m_token.GetString());
         if (var != nullptr) var->SetUniqNum(p->m_nIdent);
         p = p->m_next;
     }

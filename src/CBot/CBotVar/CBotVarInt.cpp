@@ -22,9 +22,9 @@
 namespace CBot
 {
 
-void CBotVarInt::Copy(CBotVar* pSrc, bool bName)
+void CBotVarInt::Copy(CBotVar* pSrc)
 {
-    CBotVarNumber::Copy(pSrc, bName);
+    CBotVarNumber::Copy(pSrc);
     CBotVarInt* p = static_cast<CBotVarInt*>(pSrc);
     m_defnum = p->m_defnum;
 }
@@ -92,19 +92,13 @@ void CBotVarInt::Not()
     m_val = ~m_val;
 }
 
-bool CBotVarInt::Save0State(FILE* pf)
+bool CBotVarInt::Save1State(FILE* pf)
 {
     if (!m_defnum.empty())
     {
         if(!WriteWord(pf, 200)) return false; // special marker
         if(!WriteString(pf, m_defnum)) return false;
     }
-
-    return CBotVar::Save0State(pf);
-}
-
-bool CBotVarInt::Save1State(FILE* pf)
-{
     return WriteWord(pf, m_val);
 }
 

@@ -75,7 +75,7 @@ CBotInstr* CBotNew::Compile(CBotToken* &p, CBotCStack* pStack)
 
     // creates the object on the stack
     // with a pointer to the object
-    std::unique_ptr<CBotVar> pVar = CBotVar::Create("", CBotTypResult(CBotTypClass, pClass));
+    std::unique_ptr<CBotVar> pVar = CBotVar::Create(CBotTypResult(CBotTypClass, pClass));
 
     // do the call of the creator
     CBotCStack* pStk = pStack->TokenStack();
@@ -112,7 +112,7 @@ CBotInstr* CBotNew::Compile(CBotToken* &p, CBotCStack* pStack)
 
         pp = p;
         // chained method ?
-        if (nullptr != (inst->m_exprRetVar = CBotExprRetVar::Compile(p, pStk, true)))
+        if (nullptr != (inst->m_exprRetVar = CBotExprRetVar::Compile(p, pStk, 0, true)))
         {
             inst->m_exprRetVar->SetToken(pp);
             pStk->DeleteChildLevels();
@@ -158,9 +158,9 @@ bool CBotNew::Execute(CBotStack* &pj)
         // and initialize the pointer to that object
 
 
-        std::unique_ptr<CBotVar> pThis_ = CBotVar::Create("this", CBotTypResult(CBotTypClass, pClass));
+        std::unique_ptr<CBotVariable> pThis_(new CBotVariable("this", CBotVar::Create(CBotTypResult(CBotTypClass, pClass))));
         pThis_->SetUniqNum(-2) ;
-        pile1->SetVar(std::move(pThis_));   // place on stack1
+        pile1->SetVar(std::move(pThis_->m_value));   // place on stack1
         pile->IncState();
     }
 
@@ -246,7 +246,6 @@ void CBotNew::RestoreState(CBotStack* &pj, bool bMain)
     }
 
     CBotVar* pThis = pile1->GetVar();   // find the pointer
-    pThis->SetUniqNum(-2);
 
     // is ther an assignment or parameters (constructor)
     if ( pile->GetState()==1)

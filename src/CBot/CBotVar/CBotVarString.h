@@ -30,7 +30,7 @@ namespace CBot
 class CBotVarString : public CBotVarValue<std::string, CBotTypString>
 {
 public:
-    CBotVarString(const CBotToken &name) : CBotVarValue(name) {}
+    CBotVarString() : CBotVarValue() {}
 
     void SetValString(const std::string& val) override
     {

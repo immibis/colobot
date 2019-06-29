@@ -168,7 +168,7 @@ public:
      *
      * \param p The new variable.
      */
-    void AddVar(CBotVar* p);
+    void AddVar(CBotVariable* p);
 
     /*!
      * \brief Adds a local variable.
@@ -178,7 +178,7 @@ public:
      *
      * \param p The new variable.
      */
-    void AddVar(std::unique_ptr<CBotVar> p);
+    void AddVar(std::unique_ptr<CBotVariable> p);
 
     /*!
      * \brief Finds a local variable by name.
@@ -187,7 +187,7 @@ public:
      * \param p Token to search
      * \return Variable found, or null if not found.
      */
-    CBotVar* FindVar(CBotToken* &p);
+    CBotVariable* FindVar(CBotToken* &p);
 
     /*!
      * \brief Finds a local variable by name.
@@ -196,7 +196,7 @@ public:
      * \param Token Token to search
      * \return Variable found, or null if not found.
      */
-    CBotVar* FindVar(CBotToken& Token);
+    CBotVariable* FindVar(CBotToken& Token);
 
     /*!
      * \brief Test whether a local variable is already defined.
@@ -217,7 +217,7 @@ public:
      * \param Token
      * \return Copy of found variable, or null if not found.
      */
-    std::unique_ptr<CBotVar> CopyVar(CBotToken& Token);
+    std::unique_ptr<CBotVariable> CopyVar(CBotToken& Token);
 
     /*!
      * \brief Creates a new stack level.
@@ -410,7 +410,7 @@ private:
     std::unique_ptr<CBotVar> m_var;
     //! Is part of a block (variables are local to this block).
     bool m_bBlock;
-    CBotVar* m_listVar;
+    CBotVariable* m_listVar;
     //! List of compiled functions.
     static CBotTypResult m_retTyp; // XXX shouldn't be static
 

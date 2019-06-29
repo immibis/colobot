@@ -37,21 +37,21 @@ public:
     /**
      * \brief Constructor. Do not call directly, use CBotVar::Create()
      */
-    CBotVarClass(const CBotToken& name, const CBotTypResult& type);
+    CBotVarClass(const CBotTypResult& type);
     /**
      * \brief Destructor. Do not call directly, use CBotVar::Destroy()
      */
     ~CBotVarClass();
 
-    void Copy(CBotVar* pSrc, bool bName = true) override;
+    void Copy(CBotVar* pSrc) override;
 
     void SetClass(CBotClass* pClass) override;
     CBotClass* GetClass() override;
 
-    CBotVar* GetItem(const std::string& name) override;
-    CBotVar* GetItemRef(int nIdent) override;
-    CBotVar* GetItem(int n, bool bExtend) override;
-    CBotVar* GetItemList() override;
+    CBotVariable* GetItem(const std::string& name) override;
+    CBotVariable* GetItemRef(int nIdent) override;
+    CBotVariable* GetItem(int n, bool bExtend) override;
+    std::vector<std::unique_ptr<CBotVariable>>& GetItemList() override;
     std::string GetValString() override;
 
     bool Save1State(FILE* pf) override;
@@ -102,7 +102,7 @@ private:
     //! Parent class instance
     CBotVarClass* m_pParent;
     //! Class members
-    CBotVar* m_pVar;
+    std::vector<std::unique_ptr<CBotVariable>> m_pVar;
     //! Reference counter
     int m_CptUse;
     //! Identifier (unique) of an instance

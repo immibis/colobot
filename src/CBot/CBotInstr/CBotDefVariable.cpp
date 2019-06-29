@@ -108,10 +108,11 @@ CBotInstr* CBotDefVariable::CompileAfterType(CBotToken* &p, CBotCStack* pStack, 
             }
         }
 
-        std::unique_ptr<CBotVar> var = CBotVar::Create(*vartoken, baseType);// create the variable (evaluated after the assignment)
-        var->SetInit(inst_defvar->m_expr != nullptr ? CBotVar::InitType::DEF : CBotVar::InitType::UNDEF);
+        std::unique_ptr<CBotVar> val = CBotVar::Create(baseType);// create the variable (evaluated after the assignment)
+        val->SetInit(inst_defvar->m_expr != nullptr ? CBotVar::InitType::DEF : CBotVar::InitType::UNDEF);
+        std::unique_ptr<CBotVariable> var(new CBotVariable(*vartoken, std::move(val)));
         var->SetUniqNum(
-            (static_cast<CBotLeftExprVar*>(inst_defvar->m_var))->m_nIdent = CBotVar::NextUniqNum());
+            (static_cast<CBotLeftExprVar*>(inst_defvar->m_var))->m_nIdent = CBotVariable::NextUniqNum());
         pStack->AddVar(var.release());
 
         inst = inst_defvar;

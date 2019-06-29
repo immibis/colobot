@@ -38,10 +38,11 @@ public:
      * \param p
      * \param pStack
      * \param pVar
+     * \param varUniqNum UniqNum of variable - we only care if it's "this" (-2) or "super" (-3) or not (anything else, use 0 if not applicable). TODO remove me
      * \param bMethodChain If true, allows chaining methods only
      * \return
      */
-    static CBotInstr* Compile(CBotToken* &p, CBotCStack* pStack, CBotVar* pVar, bool bMethodChain = false);
+    static CBotInstr* Compile(CBotToken* &p, CBotCStack* pStack, CBotVar* pVar, long varUniqNum, bool bMethodChain = false);
 
     /*!
      * \brief Execute

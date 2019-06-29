@@ -99,7 +99,7 @@ static CBotTypResult cPoint(CBotVar* &var, void* user)
 
     if ( var->GetType() == CBotTypClass )
     {
-        if ( !var->IsElemOfClass("point") )  return CBotTypResult(CBotErrBadParam);
+        if ( !var->GetTypResult().IsSpecifiedClassOrSubclass("point") )  return CBotTypResult(CBotErrBadParam);
         var = var->GetNext();
         return CBotTypResult(0);
     }
@@ -138,21 +138,21 @@ static bool GetPoint(CBotVar* &var, int& exception, Math::Vector& pos)
     }
     else
     {
-        pX = var->GetItem("x");
+        pX = var->GetItem("x")->m_value.get();
         if ( pX == nullptr )
         {
             exception = CBotErrUndefItem;  return true;
         }
         pos.x = pX->GetValFloat()*g_unit;
 
-        pY = var->GetItem("y");
+        pY = var->GetItem("y")->m_value.get();
         if ( pY == nullptr )
         {
             exception = CBotErrUndefItem;  return true;
         }
         pos.z = pY->GetValFloat()*g_unit;  // attention y -> z !
 
-        pZ = var->GetItem("z");
+        pZ = var->GetItem("z")->m_value.get();
         if ( pZ == nullptr )
         {
             exception = CBotErrUndefItem;  return true;
@@ -735,30 +735,32 @@ CBotTypResult CScriptFunctions::cSearchAll(CBotVar* &var, void* user)
 
 static bool runSearch(CBotVar* var, Math::Vector pos, int& exception, std::function<bool(std::vector<ObjectType>, Math::Vector, float, float, bool, RadarFilter)> code)
 {
-    CBotVar*    array;
     RadarFilter filter;
     float       minDist, maxDist, sens;
-    int         type;
-    bool        bArray = false;
 
-    type    = OBJECT_NULL;
-    array   = nullptr;
     minDist = 0.0f*g_unit;
     maxDist = 1000.0f*g_unit;
     sens    = 1.0f;
     filter  = FILTER_NONE;
 
+    std::vector<ObjectType> type_v;
     if ( var != nullptr )
     {
         if ( var->GetType() == CBotTypArrayPointer )
         {
-            array = var->GetItemList();
-            bArray = true;
+            for (std::unique_ptr<CBotVariable> &entry : var->GetItemList())
+            {
+                type_v.push_back(static_cast<ObjectType>(entry->m_value->GetValInt()));
+            }
         }
         else
         {
-            type = var->GetValInt();
-            bArray = false;
+            int type = var->GetValInt();
+
+            if (type != OBJECT_NULL)
+            {
+                type_v.push_back(static_cast<ObjectType>(type));
+            }
         }
 
         var = var->GetNext();
@@ -788,23 +790,6 @@ static bool runSearch(CBotVar* var, Math::Vector pos, int& exception, std::funct
                     }
                 }
             }
-        }
-    }
-
-    std::vector<ObjectType> type_v;
-    if (bArray)
-    {
-        while ( array != nullptr )
-        {
-            type_v.push_back(static_cast<ObjectType>(array->GetValInt()));
-            array = array->GetNext();
-        }
-    }
-    else
-    {
-        if (type != OBJECT_NULL)
-        {
-            type_v.push_back(static_cast<ObjectType>(type));
         }
     }
 
@@ -844,7 +829,7 @@ bool CScriptFunctions::rSearchAll(CBotVar* var, CBotVar* result, int& exception,
         result->SetInit(CBotVar::InitType::DEF);
         for (CObject* obj : best)
         {
-            result->GetItem(i++, true)->SetPointer(obj->GetBotVar());
+            result->GetItem(i++, true)->m_value->SetPointer(obj->GetBotVar());
         }
 
         return true;
@@ -854,14 +839,12 @@ bool CScriptFunctions::rSearchAll(CBotVar* var, CBotVar* result, int& exception,
 
 static CBotTypResult compileRadar(CBotVar* &var, void* user, CBotTypResult returnValue)
 {
-    CBotVar*    array;
-
     if ( var == nullptr )  return returnValue;
     if ( var->GetType() == CBotTypArrayPointer )
     {
-        array = var->GetItemList();
-        if ( array == nullptr )  return returnValue;
-        if ( array->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);  // type
+        CBotVariable *arrayElement = var->GetItem(0, false);
+        if ( arrayElement == nullptr )  return returnValue;
+        if ( arrayElement->m_value->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);  // type
     }
     else if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);  // type
     var = var->GetNext();
@@ -901,14 +884,9 @@ CBotTypResult CScriptFunctions::cRadar(CBotVar* &var, void* user)
 
 static bool runRadar(CBotVar* var, std::function<bool(std::vector<ObjectType>, float, float, float, float, bool, RadarFilter)> code)
 {
-    CBotVar*    array;
     RadarFilter filter;
     float       minDist, maxDist, sens, angle, focus;
-    int         type;
-    bool        bArray = false;
 
-    type    = OBJECT_NULL;
-    array   = nullptr;
     angle   = 0.0f;
     focus   = Math::PI*2.0f;
     minDist = 0.0f*g_unit;
@@ -916,17 +894,24 @@ static bool runRadar(CBotVar* var, std::function<bool(std::vector<ObjectType>, f
     sens    = 1.0f;
     filter  = FILTER_NONE;
 
+    std::vector<ObjectType> type_v;
     if ( var != nullptr )
     {
         if ( var->GetType() == CBotTypArrayPointer )
         {
-            array = var->GetItemList();
-            bArray = true;
+            for (std::unique_ptr<CBotVariable> &entry : var->GetItemList())
+            {
+                type_v.push_back(static_cast<ObjectType>(entry->m_value->GetValInt()));
+            }
         }
         else
         {
-            type = var->GetValInt();
-            bArray = false;
+            int type = var->GetValInt();
+
+            if (type != OBJECT_NULL)
+            {
+                type_v.push_back(static_cast<ObjectType>(type));
+            }
         }
 
         var = var->GetNext();
@@ -966,23 +951,6 @@ static bool runRadar(CBotVar* var, std::function<bool(std::vector<ObjectType>, f
         }
     }
 
-    std::vector<ObjectType> type_v;
-    if (bArray)
-    {
-        while ( array != nullptr )
-        {
-            type_v.push_back(static_cast<ObjectType>(array->GetValInt()));
-            array = array->GetNext();
-        }
-    }
-    else
-    {
-        if (type != OBJECT_NULL)
-        {
-            type_v.push_back(static_cast<ObjectType>(type));
-        }
-    }
-
     return code(type_v, angle, focus, minDist, maxDist, sens < 0, filter);
 }
 
@@ -1019,7 +987,7 @@ bool CScriptFunctions::rRadarAll(CBotVar* var, CBotVar* result, int& exception, 
         result->SetInit(CBotVar::InitType::DEF);
         for (CObject* obj : best)
         {
-            result->GetItem(i++, true)->SetPointer(obj->GetBotVar());
+            result->GetItem(i++, true)->m_value->SetPointer(obj->GetBotVar());
         }
 
         return true;
@@ -1111,46 +1079,30 @@ bool CScriptFunctions::rDetect(CBotVar* var, CBotVar* result, int& exception, vo
     CScript*    script = static_cast<CScript*>(user);
     CObject*    pThis = script->m_object;
     CObject     *pBest;
-    CBotVar*    array;
-    int         type;
-    bool        bArray = false;
     Error       err;
 
     exception = 0;
 
     if ( !script->m_taskExecutor->IsForegroundTask() )  // no task in progress?
     {
-        type    = OBJECT_NULL;
-        array   = nullptr;
-
+        std::vector<ObjectType> type_v;
         if ( var != nullptr )
         {
             if ( var->GetType() == CBotTypArrayPointer )
             {
-                array = var->GetItemList();
-                bArray = true;
+                for (std::unique_ptr<CBotVariable> &entry : var->GetItemList())
+                {
+                    type_v.push_back(static_cast<ObjectType>(entry->m_value->GetValInt()));
+                }
             }
             else
             {
-                type = var->GetValInt();
-                bArray = false;
-            }
-        }
+                int type = var->GetValInt();
 
-        std::vector<ObjectType> type_v;
-        if (bArray)
-        {
-            while ( array != nullptr )
-            {
-                type_v.push_back(static_cast<ObjectType>(array->GetValInt()));
-                array = array->GetNext();
-            }
-        }
-        else
-        {
-            if (type != OBJECT_NULL)
-            {
-                type_v.push_back(static_cast<ObjectType>(type));
+                if (type != OBJECT_NULL)
+                {
+                    type_v.push_back(static_cast<ObjectType>(type));
+                }
             }
         }
 
@@ -1596,13 +1548,13 @@ bool CScriptFunctions::rSpace(CBotVar* var, CBotVar* result, int& exception, voi
 
     if ( result != nullptr )
     {
-        pSub = result->GetItemList();
+        pSub = result->GetItemList()[0]->m_value.get();  // "x"
         if ( pSub != nullptr )
         {
             pSub->SetValFloat(center.x/g_unit);
-            pSub = pSub->GetNext();  // "y"
+            pSub = result->GetItemList()[1]->m_value.get();  // "y"
             pSub->SetValFloat(center.z/g_unit);
-            pSub = pSub->GetNext();  // "z"
+            pSub = result->GetItemList()[2]->m_value.get();  // "z"
             pSub->SetValFloat(center.y/g_unit);
         }
     }
@@ -1676,13 +1628,13 @@ bool CScriptFunctions::rFlatSpace(CBotVar* var, CBotVar* result, int& exception,
 
     if ( result != nullptr )
     {
-        pSub = result->GetItemList();
+        pSub = result->GetItemList()[0]->m_value.get();  // "x"
         if ( pSub != nullptr )
         {
             pSub->SetValFloat(center.x/g_unit);
-            pSub = pSub->GetNext();  // "y"
+            pSub = result->GetItemList()[1]->m_value.get();  // "y"
             pSub->SetValFloat(center.z/g_unit);
-            pSub = pSub->GetNext();  // "z"
+            pSub = result->GetItemList()[2]->m_value.get();  // "z"
             pSub->SetValFloat(center.y/g_unit);
         }
     }
@@ -2968,7 +2920,7 @@ bool CScriptFunctions::rCameraFocus(CBotVar* var, CBotVar* result, int& exceptio
 
 CBotTypResult CScriptFunctions::cPointConstructor(CBotVar* pThis, CBotVar* &var)
 {
-    if ( !pThis->IsElemOfClass("point") )  return CBotTypResult(CBotErrBadNum);
+    if ( !pThis->GetTypResult().IsSpecifiedClassOrSubclass("point") )  return CBotTypResult(CBotErrBadNum);
 
     if ( var == nullptr )  return CBotTypResult(0);  // ok if no parameter
 
@@ -3007,7 +2959,7 @@ bool CScriptFunctions::rPointConstructor(CBotVar* pThis, CBotVar* var, CBotVar* 
         Exception = CBotErrBadNum;  return false;
     }
 
-    pX = pThis->GetItem("x");
+    pX = pThis->GetItem("x")->m_value.get();
     if ( pX == nullptr )
     {
         Exception = CBotErrUndefItem;  return false;
@@ -3025,7 +2977,7 @@ bool CScriptFunctions::rPointConstructor(CBotVar* pThis, CBotVar* var, CBotVar* 
         Exception = CBotErrBadNum;  return false;
     }
 
-    pY = pThis->GetItem("y");
+    pY = pThis->GetItem("y")->m_value.get();
     if ( pY == nullptr )
     {
         Exception = CBotErrUndefItem;  return false;
@@ -3038,7 +2990,7 @@ bool CScriptFunctions::rPointConstructor(CBotVar* pThis, CBotVar* var, CBotVar* 
         return true;  // ok with only two parameters
     }
 
-    pZ = pThis->GetItem("z");
+    pZ = pThis->GetItem("z")->m_value.get();
     if ( pZ == nullptr )
     {
         Exception = CBotErrUndefItem;  return false;
@@ -3269,21 +3221,21 @@ void CScriptFunctions::Init()
 
     // Adds the class Object.
     bc = CBotClass::Create("object", nullptr);
-    bc->AddItem("category",    CBotTypResult(CBotTypInt), CBotVar::ProtectionLevel::ReadOnly);
-    bc->AddItem("position",    CBotTypResult(CBotTypClass, "point"), CBotVar::ProtectionLevel::ReadOnly);
-    bc->AddItem("orientation", CBotTypResult(CBotTypFloat), CBotVar::ProtectionLevel::ReadOnly);
-    bc->AddItem("pitch",       CBotTypResult(CBotTypFloat), CBotVar::ProtectionLevel::ReadOnly);
-    bc->AddItem("roll",        CBotTypResult(CBotTypFloat), CBotVar::ProtectionLevel::ReadOnly);
-    bc->AddItem("energyLevel", CBotTypResult(CBotTypFloat), CBotVar::ProtectionLevel::ReadOnly);
-    bc->AddItem("shieldLevel", CBotTypResult(CBotTypFloat), CBotVar::ProtectionLevel::ReadOnly);
-    bc->AddItem("temperature", CBotTypResult(CBotTypFloat), CBotVar::ProtectionLevel::ReadOnly);
-    bc->AddItem("altitude",    CBotTypResult(CBotTypFloat), CBotVar::ProtectionLevel::ReadOnly);
-    bc->AddItem("lifeTime",    CBotTypResult(CBotTypFloat), CBotVar::ProtectionLevel::ReadOnly);
-    bc->AddItem("energyCell",  CBotTypResult(CBotTypPointer, "object"), CBotVar::ProtectionLevel::ReadOnly);
-    bc->AddItem("load",        CBotTypResult(CBotTypPointer, "object"), CBotVar::ProtectionLevel::ReadOnly);
-    bc->AddItem("id",          CBotTypResult(CBotTypInt), CBotVar::ProtectionLevel::ReadOnly);
-    bc->AddItem("team",        CBotTypResult(CBotTypInt), CBotVar::ProtectionLevel::ReadOnly);
-    bc->AddItem("velocity",    CBotTypResult(CBotTypClass, "point"), CBotVar::ProtectionLevel::ReadOnly);
+    bc->AddItem("category",    CBotTypResult(CBotTypInt), CBotVariable::ProtectionLevel::ReadOnly);
+    bc->AddItem("position",    CBotTypResult(CBotTypClass, "point"), CBotVariable::ProtectionLevel::ReadOnly);
+    bc->AddItem("orientation", CBotTypResult(CBotTypFloat), CBotVariable::ProtectionLevel::ReadOnly);
+    bc->AddItem("pitch",       CBotTypResult(CBotTypFloat), CBotVariable::ProtectionLevel::ReadOnly);
+    bc->AddItem("roll",        CBotTypResult(CBotTypFloat), CBotVariable::ProtectionLevel::ReadOnly);
+    bc->AddItem("energyLevel", CBotTypResult(CBotTypFloat), CBotVariable::ProtectionLevel::ReadOnly);
+    bc->AddItem("shieldLevel", CBotTypResult(CBotTypFloat), CBotVariable::ProtectionLevel::ReadOnly);
+    bc->AddItem("temperature", CBotTypResult(CBotTypFloat), CBotVariable::ProtectionLevel::ReadOnly);
+    bc->AddItem("altitude",    CBotTypResult(CBotTypFloat), CBotVariable::ProtectionLevel::ReadOnly);
+    bc->AddItem("lifeTime",    CBotTypResult(CBotTypFloat), CBotVariable::ProtectionLevel::ReadOnly);
+    bc->AddItem("energyCell",  CBotTypResult(CBotTypPointer, "object"), CBotVariable::ProtectionLevel::ReadOnly);
+    bc->AddItem("load",        CBotTypResult(CBotTypPointer, "object"), CBotVariable::ProtectionLevel::ReadOnly);
+    bc->AddItem("id",          CBotTypResult(CBotTypInt), CBotVariable::ProtectionLevel::ReadOnly);
+    bc->AddItem("team",        CBotTypResult(CBotTypInt), CBotVariable::ProtectionLevel::ReadOnly);
+    bc->AddItem("velocity",    CBotTypResult(CBotTypClass, "point"), CBotVariable::ProtectionLevel::ReadOnly);
     bc->AddFunction("busy",     rBusy,     cBusy);
     bc->AddFunction("factory",  rFactory,  cFactory);
     bc->AddFunction("research", rResearch, cClassOneFloat);
@@ -3378,19 +3330,19 @@ void CScriptFunctions::uObject(CBotVar* botThis, void* user)
     physics = object->GetPhysics();
 
     // Updates the object's type.
-    pVar = botThis->GetItemList();  // "category"
+    pVar = botThis->GetItemList()[0]->m_value.get(); // "category"
     type = object->GetType();
     pVar->SetValInt(type, object->GetName());
 
     // Updates the position of the object.
-    pVar = pVar->GetNext();  // "position"
+    pVar = botThis->GetItemList()[1]->m_value.get(); // "position"
     if (IsObjectBeingTransported(object))
     {
-        pSub = pVar->GetItemList();  // "x"
+        pSub = pVar->GetItemList()[0]->m_value.get(); // "x"
         pSub->SetInit(CBotVar::InitType::IS_NAN);
-        pSub = pSub->GetNext();  // "y"
+        pSub = pVar->GetItemList()[1]->m_value.get(); // "y"
         pSub->SetInit(CBotVar::InitType::IS_NAN);
-        pSub = pSub->GetNext();  // "z"
+        pSub = pVar->GetItemList()[2]->m_value.get(); // "z"
         pSub->SetInit(CBotVar::InitType::IS_NAN);
     }
     else
@@ -3398,54 +3350,54 @@ void CScriptFunctions::uObject(CBotVar* botThis, void* user)
         pos = object->GetPosition();
         float waterLevel = Gfx::CEngine::GetInstancePointer()->GetWater()->GetLevel();
         pos.y -= waterLevel;  // relative to sea level!
-        pSub = pVar->GetItemList();  // "x"
+        pSub = pVar->GetItemList()[0]->m_value.get(); // "x"
         pSub->SetValFloat(pos.x/g_unit);
-        pSub = pSub->GetNext();  // "y"
+        pSub = pVar->GetItemList()[1]->m_value.get(); // "y"
         pSub->SetValFloat(pos.z/g_unit);
-        pSub = pSub->GetNext();  // "z"
+        pSub = pVar->GetItemList()[2]->m_value.get(); // "z"
         pSub->SetValFloat(pos.y/g_unit);
     }
 
     // Updates the angle.
     pos = object->GetRotation();
     pos += object->GetTilt();
-    pVar = pVar->GetNext();  // "orientation"
+    pVar = botThis->GetItemList()[2]->m_value.get();  // "orientation"
     pVar->SetValFloat(Math::NormAngle(2*Math::PI - pos.y)*180.0f/Math::PI);
-    pVar = pVar->GetNext();  // "pitch"
+    pVar = botThis->GetItemList()[3]->m_value.get();  // "pitch"
     pVar->SetValFloat((Math::NormAngle(pos.z + Math::PI) - Math::PI)*180.0f/Math::PI);
-    pVar = pVar->GetNext();  // "roll"
+    pVar = botThis->GetItemList()[4]->m_value.get();  // "roll"
     pVar->SetValFloat((Math::NormAngle(pos.x + Math::PI) - Math::PI)*180.0f/Math::PI);
 
     // Updates the energy level of the object.
-    pVar = pVar->GetNext();  // "energyLevel"
+    pVar = botThis->GetItemList()[5]->m_value.get();  // "energyLevel"
     value = object->GetEnergyLevel();
     pVar->SetValFloat(value);
 
     // Updates the shield level of the object.
-    pVar = pVar->GetNext();  // "shieldLevel"
+    pVar = botThis->GetItemList()[6]->m_value.get();  // "shieldLevel"
     if ( !obj->Implements(ObjectInterfaceType::Shielded) ) value = 1.0f;
     else value = dynamic_cast<CShieldedObject*>(object)->GetShield();
     pVar->SetValFloat(value);
 
     // Updates the temperature of the reactor.
-    pVar = pVar->GetNext();  // "temperature"
+    pVar = botThis->GetItemList()[7]->m_value.get();  // "temperature"
     if ( !obj->Implements(ObjectInterfaceType::JetFlying) )  value = 0.0f;
     else value = 1.0f-dynamic_cast<CJetFlyingObject*>(object)->GetReactorRange();
     pVar->SetValFloat(value);
 
     // Updates the height above the ground.
-    pVar = pVar->GetNext();  // "altitude"
+    pVar = botThis->GetItemList()[8]->m_value.get();  // "altitude"
     if ( physics == nullptr )  value = 0.0f;
     else                 value = physics->GetFloorHeight();
     pVar->SetValFloat(value/g_unit);
 
     // Updates the lifetime of the object.
-    pVar = pVar->GetNext();  // "lifeTime"
+    pVar = botThis->GetItemList()[9]->m_value.get();  // "lifeTime"
     value = object->GetAbsTime();
     pVar->SetValFloat(value);
 
     // Updates the type of battery.
-    pVar = pVar->GetNext();  // "energyCell"
+    pVar = botThis->GetItemList()[10]->m_value.get();  // "energyCell"
     if (object->Implements(ObjectInterfaceType::Powered))
     {
         CObject* power = dynamic_cast<CPoweredObject*>(object)->GetPower();
@@ -3460,7 +3412,7 @@ void CScriptFunctions::uObject(CBotVar* botThis, void* user)
     }
 
     // Updates the transported object's type.
-    pVar = pVar->GetNext();  // "load"
+    pVar = botThis->GetItemList()[11]->m_value.get();  // "load"
     if (object->Implements(ObjectInterfaceType::Carrier))
     {
         CObject* cargo = dynamic_cast<CCarrierObject*>(object)->GetCargo();
@@ -3474,23 +3426,23 @@ void CScriptFunctions::uObject(CBotVar* botThis, void* user)
         }
     }
 
-    pVar = pVar->GetNext();  // "id"
+    pVar = botThis->GetItemList()[12]->m_value.get();  // "id"
     value = object->GetID();
     pVar->SetValInt(value);
 
-    pVar = pVar->GetNext();  // "team"
+    pVar = botThis->GetItemList()[13]->m_value.get();  // "team"
     value = object->GetTeam();
     pVar->SetValInt(value);
 
     // Updates the velocity of the object.
-    pVar = pVar->GetNext();  // "velocity"
+    pVar = botThis->GetItemList()[14]->m_value.get();  // "velocity"
     if (IsObjectBeingTransported(object) || physics == nullptr)
     {
-        pSub = pVar->GetItemList();  // "x"
+        pSub = pVar->GetItemList()[0]->m_value.get();  // "x"
         pSub->SetInit(CBotVar::InitType::IS_NAN);
-        pSub = pSub->GetNext();  // "y"
+        pSub = pVar->GetItemList()[1]->m_value.get();  // "y"
         pSub->SetInit(CBotVar::InitType::IS_NAN);
-        pSub = pSub->GetNext();  // "z"
+        pSub = pVar->GetItemList()[2]->m_value.get();  // "z"
         pSub->SetInit(CBotVar::InitType::IS_NAN);
     }
     else
@@ -3500,11 +3452,11 @@ void CScriptFunctions::uObject(CBotVar* botThis, void* user)
         pos = physics->GetLinMotion(MO_CURSPEED);
         pos = Transform(matRotate, pos);
 
-        pSub = pVar->GetItemList();  // "x"
+        pSub = pVar->GetItemList()[0]->m_value.get();  // "x"
         pSub->SetValFloat(pos.x/g_unit);
-        pSub = pSub->GetNext();  // "y"
+        pSub = pVar->GetItemList()[1]->m_value.get();  // "y"
         pSub->SetValFloat(pos.z/g_unit);
-        pSub = pSub->GetNext();  // "z"
+        pSub = pVar->GetItemList()[2]->m_value.get();  // "z"
         pSub->SetValFloat(pos.y/g_unit);
     }
 }
@@ -3517,7 +3469,7 @@ CBotVar* CScriptFunctions::CreateObjectVar(CObject* obj)
         bc->SetUpdateFunc(CScriptFunctions::uObject);
     }
 
-    std::unique_ptr<CBotVar> botVar = CBotVar::Create("", CBotTypResult(CBotTypClass, "object"));
+    std::unique_ptr<CBotVar> botVar = CBotVar::Create(CBotTypResult(CBotTypClass, "object"));
     botVar->SetUserPtr(obj);
     botVar->SetIdent(obj->GetID());
     return botVar.release(); // \todo TODO: extend usage of unique_ptr

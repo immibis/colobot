@@ -20,12 +20,15 @@
 #pragma once
 
 #include <cstdio>
+#include <memory>
 #include <string>
+#include <vector>
 
 namespace CBot
 {
 
 class CBotVar;
+class CBotVariable;
 class CBotTypResult;
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -73,12 +76,15 @@ std::size_t fRead(void *buffer,
                   FILE* filehandle);
 
 /*!
- * \brief SaveVars
- * \param pf
- * \param pVar
- * \return
+ * \brief SaveVars Save an explicit list of variables
+ *
+ * TODO DOCUMENT EXACTLY WHAT THIS SAVES
+ *
+ * \param pf   File to write vars to
+ * \param vars List of variables
+ * \return True if saved successfully; false if an error occurred.
  */
-bool SaveVars(FILE* pf, CBotVar* pVar);
+bool SaveVars(FILE* pf, std::vector<std::unique_ptr<CBotVariable>> &vars);
 
 /*!
  * \brief WriteWord

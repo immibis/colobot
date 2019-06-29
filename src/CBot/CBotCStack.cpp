@@ -184,14 +184,14 @@ void CBotCStack::SetType(CBotTypResult& type)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-CBotVar* CBotCStack::FindVar(CBotToken* &pToken)
+CBotVariable* CBotCStack::FindVar(CBotToken* &pToken)
 {
     CBotCStack*    p = this;
     std::string    name = pToken->GetString();
 
     while (p != nullptr)
     {
-        CBotVar*    pp = p->m_listVar;
+        CBotVariable* pp = p->m_listVar;
         while ( pp != nullptr)
         {
             if (name == pp->GetName())
@@ -206,20 +206,20 @@ CBotVar* CBotCStack::FindVar(CBotToken* &pToken)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-CBotVar* CBotCStack::FindVar(CBotToken& Token)
+CBotVariable* CBotCStack::FindVar(CBotToken& Token)
 {
     CBotToken*    pt = &Token;
     return FindVar(pt);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-std::unique_ptr<CBotVar> CBotCStack::CopyVar(CBotToken& Token)
+std::unique_ptr<CBotVariable> CBotCStack::CopyVar(CBotToken& Token)
 {
-    CBotVar*    pVar = FindVar( Token );
+    CBotVariable*    pVar = FindVar( Token );
 
     if ( pVar == nullptr) return nullptr;
 
-    std::unique_ptr<CBotVar> pCopy = CBotVar::Create( "", pVar->GetType() );
+    std::unique_ptr<CBotVariable> pCopy(new CBotVariable( "", CBotVar::Create(pVar->m_value->GetType()) ));
     pCopy->Copy(pVar);
     return    pCopy;
 }
@@ -284,6 +284,7 @@ CBotProgram* CBotCStack::GetProgram()
 ////////////////////////////////////////////////////////////////////////////////
 void CBotCStack::SetRetType(CBotTypResult& type)
 {
+    //assert(GetRetType() == nullptr);
     m_retTyp = type;
 }
 
@@ -307,7 +308,7 @@ void CBotCStack::SetCopyVar( CBotVar* var )
         m_var.reset(); // set to null
         return;
     }
-    m_var = CBotVar::Create("", var->GetTypResult(CBotVar::GetTypeMode::CLASS_AS_INTRINSIC));
+    m_var = CBotVar::Create(var->GetTypResult(CBotVar::GetTypeMode::CLASS_AS_INTRINSIC));
     m_var->Copy( var );
 }
 
@@ -354,7 +355,7 @@ bool CBotCStack::CheckLoop(const std::string& label, int type)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-void CBotCStack::AddVar(CBotVar* pVar)
+void CBotCStack::AddVar(CBotVariable* pVar)
 {
     CBotCStack*    p = this;
 
@@ -363,14 +364,14 @@ void CBotCStack::AddVar(CBotVar* pVar)
 
     if ( p == nullptr ) return;
 
-    CBotVar**    pp = &p->m_listVar;
+    CBotVariable**    pp = &p->m_listVar;
     while ( *pp != nullptr ) pp = &(*pp)->m_next;
 
     *pp = pVar;                    // added after
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-void CBotCStack::AddVar(std::unique_ptr<CBotVar> pVar)
+void CBotCStack::AddVar(std::unique_ptr<CBotVariable> pVar)
 {
     AddVar(pVar.release());
 }
@@ -383,7 +384,7 @@ bool CBotCStack::CheckVarLocal(CBotToken* &pToken)
 
     while (p != nullptr)
     {
-        CBotVar*    pp = p->m_listVar;
+        CBotVariable*    pp = p->m_listVar;
         while ( pp != nullptr)
         {
             if (name == pp->GetName())

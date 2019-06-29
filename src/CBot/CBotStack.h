@@ -158,13 +158,13 @@ public:
      * \brief Adds a local variable
      * \param var Variable to be added
      */
-    void AddVar(CBotVar* var);
+    void AddVar(CBotVariable* var);
 
     /**
      * \brief Adds a local variable
      * \param var Variable to be added
      */
-    void AddVar(std::unique_ptr<CBotVar> var);
+    void AddVar(std::unique_ptr<CBotVariable> var);
 
     /**
      * \brief Fetch a variable by its token
@@ -172,19 +172,19 @@ public:
      * \param bUpdate true to automatically call update function for classes, see CBotClass::SetUpdateFunc()
      * \return Found variable, nullptr if not found
      */
-    CBotVar* FindVar(CBotToken*& pToken, bool bUpdate);
+    CBotVariable* FindVar(CBotToken*& pToken, bool bUpdate);
 
     /**
      * \copydoc FindVar(CBotToken*&, bool)
      */
-    CBotVar* FindVar(CBotToken& pToken, bool bUpdate);
+    CBotVariable* FindVar(CBotToken& pToken, bool bUpdate);
 
     /**
      * \brief Fetch variable by its name
      * \param name Name of variable to find
      * \return Found variable, nullptr if not found
      */
-    CBotVar* FindVar(const std::string& name);
+    CBotVariable* FindVar(const std::string& name);
 
     /**
      * \brief Fetch a variable on the stack according to its unique identifier
@@ -195,7 +195,7 @@ public:
      * \param bUpdate true to automatically call update function for classes, see CBotClass::SetUpdateFunc()
      * \return Found variable, nullptr if not found
      */
-    CBotVar* FindVar(long ident, bool bUpdate);
+    CBotVariable* FindVar(long ident, bool bUpdate);
 
     /**
      * \brief Find variable by its token and returns a copy of it
@@ -204,7 +204,7 @@ public:
      * \param bUpdate true to automatically call update function for classes, see CBotClass::SetUpdateFunc()
      * \return Found variable, nullptr if not found
      */
-    std::unique_ptr<CBotVar> CopyVar(CBotToken& pToken, bool bUpdate = false);
+    std::unique_ptr<CBotVariable> CopyVar(CBotToken& pToken, bool bUpdate = false);
 
     //@}
 
@@ -472,9 +472,10 @@ public:
     /**
      * \brief Get local variables at the given stack level
      * \param[out] functionName Name of instruction being executed at this level
+     * \param[out] levelExists True if there is such a level; false if we went past the beginning of the stack
      * \param level 0 for current level, -1, -2, -3 etc. for next levels
      */
-    CBotVar*        GetStackVars(std::string& functionName, int level);
+    const std::vector<std::unique_ptr<CBotVariable>>& GetStackVars(std::string& functionName, int level, bool &levelExists);
 
     bool            IsCallFinished();
 
@@ -491,7 +492,7 @@ private:
     static std::unique_ptr<CBotVar> m_retvar;     // result of a return
 
     std::unique_ptr<CBotVar> m_var;               // result of the operations
-    CBotVar*        m_listVar;                    // variables declared at this level
+    std::vector<std::unique_ptr<CBotVariable>> m_listVar; // variables declared at this level
 
     BlockVisibilityType m_block;                    // is part of a block (variables are local to this block)
     bool            m_bOver;                    // stack limits?

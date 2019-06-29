@@ -35,8 +35,231 @@ class CBotVarClass;
 class CBotInstr;
 class CBotClass;
 
+class CBotVar;
+
 /**
  * \brief A CBot variable
+ */
+class CBotVariable
+{
+public:
+    //! \name Creation / destruction
+    //@{
+
+    /**
+     * \brief Constructor.
+     * \param name Variable name
+     * \param value Initial value of variable.
+     */
+    CBotVariable(const CBotToken &name, std::unique_ptr<CBotVar> value);
+
+    /**
+     * \brief Constructor.
+     * \param name Variable name
+     * \param value Initial value of variable.
+     */
+    CBotVariable(const std::string &name, std::unique_ptr<CBotVar> value);
+
+    /**
+     * \brief Copies the name and type of this variable, but not its value.
+     *
+     * \deprecated
+     * \todo TODO: REMOVE ME
+     */
+    static std::unique_ptr<CBotVariable> Create(CBotVariable* pVar);
+
+    /**
+     * \brief Destructor.
+     */
+    ~CBotVariable();
+
+    //@}
+
+    /// TODO REMOVE ME
+    CBotVariable *m_next = nullptr;
+
+    /// TODO DOCUMENT ME
+    void Copy(CBotVariable *copyFrom);
+
+    /**
+     * \brief Set unique identifier of this variable
+     * Note: For classes, this is unique within the class only - see CBotClass:AddItem
+     * \param n New identifier
+     */
+    void SetUniqNum(long n);
+
+    /**
+     * \brief Return unique identifier of this variable
+     * Note: For classes, this is unique within the class only - see CBotClass:AddItem
+     * \return unique identifier
+     * \see SetUniqNum()
+     */
+    long GetUniqNum();
+
+    /**
+     * \brief Generate next unique identifier
+     *
+     * Used by both variables (CBotVar) and functions (CBotFunction)
+     */
+    static long NextUniqNum();
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    //! \name Variable name and type
+    //@{
+
+    /**
+     * \brief Returns the name of the variable
+     * \return The name of the variable, empty string if unknown
+     */
+    const std::string& GetName();
+
+    /**
+     * \brief SetName Changes the name of the variable
+     * \param name New name
+     */
+    void SetName(const std::string& name);
+
+    /**
+     * \brief Returns the CBotToken this variable is associated with
+     *
+     * This token is either passed in CBotVar::Create() or created from name string
+     */
+    CBotToken* GetToken();
+
+    //@}
+
+    // TODO make private
+    std::unique_ptr<CBotVar> m_value;
+
+    // TODO DOCUMENT ME
+    void SetVal(CBotVar *val);
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    //! \name Class member properties
+    //! \todo TODO: make a ClassField class
+    //@{
+
+    /**
+     * \brief Marks the variable as "static"
+     *
+     * Useful only for class members
+     *
+     * \param bStatic static or not
+     */
+    void SetStatic(bool bStatic);
+
+    /**
+     * \brief Checks if the variable is static
+     *
+     * Useful only for class members
+     *
+     * \return true for static variables
+     */
+    bool IsStatic();
+
+    /**
+     * \brief If this is a static class variable, return the static var from the class
+     * \return Static variable from CBotClass instance if this variable is static, or this otherwise
+     */
+    CBotVariable* GetStaticVar();
+
+    /**
+     * \enum ProtectionLevel
+     * \brief Class member protection level (public/protected/private)
+     */
+    enum class ProtectionLevel
+    {
+        Public = 0,    //!< public variable
+        ReadOnly = 1,  //!< read only (can't be set from CBot, only from the engine)
+        Protected = 2, //!< protected
+        Private = 3    //!< private
+    };
+
+    /**
+     * \brief Sets variable protection level
+     *
+     * Useful only for class members
+     *
+     * \param mPrivate New protection level
+     */
+    void SetPrivate(ProtectionLevel mPrivate);
+
+    /**
+     * \brief Checks if the variable is accessible at the given protection level
+     *
+     * This means that the variable protection level is greater or equal to given level
+     *
+     * \param level Protection level to check access at
+     */
+    bool IsPrivate(ProtectionLevel level = ProtectionLevel::Protected);
+
+    /**
+     * \brief Get variable protection level
+     * \return Variable protection level
+     */
+    ProtectionLevel GetPrivate();
+
+    //@}
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    //! \name Save / restore state
+    //@{
+
+    /**
+     * \brief Save common variable header (name, type, etc.)
+     * \param pf file pointer
+     * \return false on write error
+     */
+    bool SaveState(FILE* pf);
+
+    /**
+     * \brief Restore variable
+     * \param pf file pointer
+     * \param[out] pVar Pointer to recieve the variable
+     * \return false on read error
+     */
+    static bool RestoreState(FILE* pf, CBotVariable* &pVar);
+
+    //@}
+
+    //! Expression describing initial value
+    //! TODO: make private
+    CBotInstr* m_InitExpr;
+
+    //! Expression describing array limit
+    //! TODO: make private
+    CBotInstr* m_LimExpr;
+
+private:
+    CBotToken m_name;
+    int m_UniqNum;
+
+    //! Identifier
+    /**
+     * \see SetUniqNum()
+     * \see GetUniqNum()
+     */
+    long m_ident;
+
+    //! true if the variable is static (for classes)
+    bool m_bStatic;
+    //! Element protection level - public, protected or private (for classes)
+    ProtectionLevel m_mPrivate;
+
+    //! Next UniqNum
+    static long m_identcpt;
+
+    //! Class instance which this variable is a member of
+    CBotVarClass* m_pMyThis;
+
+    friend class CBotVar;
+    friend class CBotVarClass;
+};
+
+/**
+ * \brief A CBot variable
+ *
+ * \todo TODO: remove CBotLinkedList base class
  *
  * \nosubgrouping
  */
@@ -49,7 +272,7 @@ public:
     /**
      * \brief Constructor. Do not call directly, use CBotVar::Create()
      */
-    CBotVar(const CBotToken& name);
+    CBotVar();
 
     /**
      * \brief Destructor.
@@ -57,18 +280,13 @@ public:
     virtual ~CBotVar();
 
     /**
-     * \brief Creates a new variable from a type described by CBotTypResult
-     * \param name Variable name
+     * \brief Creates a new value from a type described by CBotTypResult
+     *
+     * \todo TODO: what value does it have?
+     *
      * \param type Variable type
      */
-    static std::unique_ptr<CBotVar> Create(const std::string& name, CBotTypResult type);
-
-    /**
-     * \brief Create a new variable of a given type described by CBotTypResult
-     * \param name Variable name token
-     * \param type Variable type
-     */
-    static std::unique_ptr<CBotVar> Create(const CBotToken& name, CBotTypResult type);
+    static std::unique_ptr<CBotVar> Create(CBotTypResult type);
 
     /**
      * \brief Create a new variable of the same type and name as another one
@@ -112,27 +330,8 @@ public:
     //@}
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    //! \name Variable name and type
+    //! \name Variable type
     //@{
-
-    /**
-     * \brief Returns the name of the variable
-     * \return The name of the variable, empty string if unknown
-     */
-    const std::string& GetName();
-
-    /**
-     * \brief SetName Changes the name of the variable
-     * \param name New name
-     */
-    void SetName(const std::string& name);
-
-    /**
-     * \brief Returns the CBotToken this variable is associated with
-     *
-     * This token is either passed in CBotVar::Create() or created from name string
-     */
-    CBotToken* GetToken();
 
     /**
      * \brief Mode for GetType() and GetTypResult()
@@ -227,76 +426,6 @@ public:
     //@}
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    //! \name Class member properties
-    //@{
-
-    /**
-     * \brief Marks the variable as "static"
-     *
-     * Useful only for class members
-     *
-     * \param bStatic static or not
-     */
-    void SetStatic(bool bStatic);
-
-    /**
-     * \brief Checks if the variable is static
-     *
-     * Useful only for class members
-     *
-     * \return true for static variables
-     */
-    bool IsStatic();
-
-    /**
-     * \enum ProtectionLevel
-     * \brief Class member protection level (public/protected/private)
-     */
-    enum class ProtectionLevel
-    {
-        Public = 0,    //!< public variable
-        ReadOnly = 1,  //!< read only (can't be set from CBot, only from the engine)
-        Protected = 2, //!< protected
-        Private = 3    //!< private
-    };
-
-    /**
-     * \brief Sets variable protection level
-     *
-     * Useful only for class members
-     *
-     * \param mPrivate New protection level
-     */
-    void SetPrivate(ProtectionLevel mPrivate);
-
-    /**
-     * \brief Checks if the variable is accessible at the given protection level
-     *
-     * This means that the variable protection level is greater or equal to given level
-     *
-     * \param level Protection level to check access at
-     */
-    bool IsPrivate(ProtectionLevel level = ProtectionLevel::Protected);
-
-    /**
-     * \brief Get variable protection level
-     * \return Variable protection level
-     */
-    ProtectionLevel GetPrivate();
-
-    /**
-     * \brief Check if a variable belongs to a class with a given name
-     *
-     * Works correctly with inheritance.
-     *
-     * \param name Class name to check
-     * \return true if this variable name matches any member of given class or any of the parent classes
-     */
-    bool IsElemOfClass(const std::string& name);
-
-    //@}
-
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     /**
      * \brief Called after constructor has been called
@@ -308,40 +437,12 @@ public:
     virtual void ConstructorSet();
 
     /**
-     * \brief If this is a static class variable, return the static var from the class
-     * \return Static variable from CBotClass instance if this variable is static, or this otherwise
-     */
-    CBotVar* GetStaticVar();
-
-    /**
      * \brief Call the class update function
      *
      * \param pUser User pointer to pass to the update function
      * \see CBotClass::SetUpdateFunc()
      */
     virtual void Update(void* pUser);
-
-    /**
-     * \brief Set unique identifier of this variable
-     * Note: For classes, this is unique within the class only - see CBotClass:AddItem
-     * \param n New identifier
-     */
-    void SetUniqNum(long n);
-
-    /**
-     * \brief Return unique identifier of this variable
-     * Note: For classes, this is unique within the class only - see CBotClass:AddItem
-     * \return unique identifier
-     * \see SetUniqNum()
-     */
-    long GetUniqNum();
-
-    /**
-     * \brief Generate next unique identifier
-     *
-     * Used by both variables (CBotVar) and functions (CBotFunction)
-     */
-    static long NextUniqNum();
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     //! \name Class / array member access
@@ -350,9 +451,9 @@ public:
     /**
      * \brief Returns class member by name
      * \param name Name of member to get
-     * \return CBotVar representing the class member
+     * \return CBotVariable representing the class member
      */
-    virtual CBotVar* GetItem(const std::string& name);
+    virtual CBotVariable* GetItem(const std::string& name);
 
     /**
      * \brief Returns class member by unique ID
@@ -360,7 +461,7 @@ public:
      * \return CBotVar representing the class member
      * \see GetUniqNum()
      */
-    virtual CBotVar* GetItemRef(int nIdent);
+    virtual CBotVariable* GetItemRef(int nIdent);
 
     /**
      * \brief Returns element of the array by index
@@ -371,13 +472,13 @@ public:
      * \param grow true to grow the array automatically if the index is out of range
      * \return CBotVar representing the array element, or nullptr on error (for example going out of range)
      */
-    virtual CBotVar* GetItem(int index, bool grow = false);
+    virtual CBotVariable* GetItem(int index, bool grow = false);
 
     /**
-     * \brief Return all elements of this variable as a linked list. Works for both classes and arrays.
-     * \return CBotVar representing the first object in the linked list. Use CBotVar::GetNext() to access next ones.
+     * \brief Return all elements of this variable as a list. Works for both classes and arrays.
+     * \return All elements of this variable
      */
-    virtual CBotVar* GetItemList();
+    virtual std::vector<std::unique_ptr<CBotVariable>>& GetItemList();
 
     //@}
 
@@ -412,7 +513,7 @@ public:
      * \param pSrc Variable to copy from
      * \param bName true if you want to also copy the name
      */
-    virtual void Copy(CBotVar* pSrc, bool bName = true);
+    virtual void Copy(CBotVar* pSrc);
 
     /**
      * \brief Set value as an integer
@@ -566,16 +667,10 @@ public:
 
     //@}
 
+
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     //! \name Save / restore state
     //@{
-
-    /**
-     * \brief Save common variable header (name, type, etc.)
-     * \param pf file pointer
-     * \return false on write error
-     */
-    virtual bool Save0State(FILE* pf);
 
     /**
      * \brief Save variable data
@@ -585,50 +680,29 @@ public:
      * \param pf file pointer
      * \return false on write error
      */
-    virtual bool Save1State(FILE* pf);
+    bool Save0State(FILE* pf);
+    virtual bool Save1State(FILE* pf) = 0;
 
     /**
-     * \brief Restore variable
-     * \param pf file pointer
-     * \param[out] pVar Pointer to recieve the variable
-     * \return false on read error
+     * \brief Load variable data
+     *
+     * TODO change to unique_ptr
      */
-    static bool RestoreState(FILE* pf, CBotVar* &pVar);
+    static bool RestoreState(FILE *pf, CBotVar*& outValue);
 
     //@}
 
 protected:
-    //! The corresponding token, defines the variable name
-    CBotToken m_token;
     //! Type of value.
     CBotTypResult m_type;
     //! Initialization status
     InitType m_binit;
-    //! Corresponding this element (TODO: ?)
-    CBotVarClass* m_pMyThis;
     //! User pointer if specified
     /**
      * \see SetUserPtr()
      * \see GetUserPtr()
      */
     void* m_pUserPtr;
-    //! true if the variable is static (for classes)
-    bool m_bStatic;
-    //! Element protection level - public, protected or private (for classes)
-    ProtectionLevel m_mPrivate;
-    //! Expression describing initial value
-    CBotInstr* m_InitExpr;
-    //! Expression describing array limit
-    CBotInstr* m_LimExpr;
-    //! Identifier
-    /**
-     * \see SetUniqNum()
-     * \see GetUniqNum()
-     */
-    long m_ident;
-
-    //! TODO: ?
-    static long m_identcpt;
 
     friend class CBotStack;
     friend class CBotCStack;

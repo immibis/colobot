@@ -47,7 +47,8 @@ bool CBotIndexExpr::ExecuteVar(CBotVar* &pVar, CBotCStack* &pile)
     if (pVar->GetType(CBotVar::GetTypeMode::CLASS_AS_POINTER) != CBotTypArrayPointer)
         assert(0);
 
-    pVar = (static_cast<CBotVarArray*>(pVar))->GetItem(0, false);    // at compile time makes the element [0]
+    CBotVariable *pVar2 = (static_cast<CBotVarArray*>(pVar))->GetItem(0, false);    // at compile time makes the element [0]
+    pVar = (pVar2 ? pVar2->m_value.get() : nullptr);
     if (pVar == nullptr)
     {
         pile->SetError(CBotErrOutArray, m_token.GetEnd());
@@ -84,7 +85,8 @@ bool CBotIndexExpr::ExecuteVar(CBotVar* &pVar, CBotStack* &pile, CBotToken* prev
 
     int n = p->GetValInt();     // position in the table
 
-    pVar = (static_cast<CBotVarArray*>(pVar))->GetItem(n, bExtend);
+    CBotVariable *pVar2 = (static_cast<CBotVarArray*>(pVar))->GetItem(n, bExtend);
+    pVar = (pVar2 ? pVar2->m_value.get() : nullptr);
     if (pVar == nullptr)
     {
         pile->SetError(CBotErrOutArray, prevToken);

@@ -21,6 +21,7 @@
 #include "script/script.h"
 
 #include "CBot/CBot.h"
+#include "CBot/CBotVar/CBotVar.h"
 
 #include "common/restext.h"
 #include "common/stringutils.h"
@@ -48,6 +49,7 @@
 
 const int CBOT_IPF = 100;       // CBOT: default number of instructions / frame
 
+using CBot::CBotVariable;
 
 // Object's constructor.
 
@@ -479,19 +481,19 @@ bool CScript::GetCursor(int &cursor1, int &cursor2)
 
 // Put of the variables in a list.
 
-static void PutList(const std::string& baseName, bool bArray, CBot::CBotVar *var, Ui::CList *list, int &rankList, std::set<CBot::CBotVar*>& previous)
+static void PutList(const std::string& baseName, bool bArray, const std::vector<std::unique_ptr<CBotVariable>>& vars, Ui::CList *list, int &rankList, std::set<CBot::CBotVariable*>& previous)
 {
-    if ( var == nullptr && !baseName.empty() )
+    if ( vars.size() == 0 && !baseName.empty() )
     {
         list->SetItemName(rankList++, StrUtils::Format("%s = null;", baseName.c_str()).c_str());
         return;
     }
 
     int index = 0;
-    while (var != nullptr)
+    for(const std::unique_ptr<CBotVariable>& var : vars)
     {
-        var->Update(nullptr);
-        CBot::CBotVar* pStatic = var->GetStaticVar();  // finds the static element
+        var->m_value->Update(nullptr);
+        CBot::CBotVariable* pStatic = var->GetStaticVar();  // finds the static element
 
         std::string varName;
         if (baseName.empty())
@@ -516,27 +518,27 @@ static void PutList(const std::string& baseName, bool bArray, CBot::CBotVar *var
         }
         else
         {
-            int type = pStatic->GetType();
+            int type = pStatic->m_value->GetType();
 
             if (type <= CBot::CBotTypBoolean)
             {
-                list->SetItemName(rankList++, StrUtils::Format("%s = %s;", varName.c_str(), pStatic->GetValString().c_str()));
+                list->SetItemName(rankList++, StrUtils::Format("%s = %s;", varName.c_str(), pStatic->m_value->GetValString().c_str()));
             }
             else if (type == CBot::CBotTypString)
             {
-                list->SetItemName(rankList++, StrUtils::Format("%s = \"%s\";", varName.c_str(), pStatic->GetValString().c_str()));
+                list->SetItemName(rankList++, StrUtils::Format("%s = \"%s\";", varName.c_str(), pStatic->m_value->GetValString().c_str()));
             }
             else if (type == CBot::CBotTypArrayPointer)
             {
                 previous.insert(pStatic);
-                PutList(varName, true, pStatic->GetItemList(), list, rankList, previous);
+                PutList(varName, true, pStatic->m_value->GetItemList(), list, rankList, previous);
                 previous.erase(pStatic);
             }
             else if (type == CBot::CBotTypClass ||
                      type == CBot::CBotTypPointer)
             {
                 previous.insert(pStatic);
-                PutList(varName, false, pStatic->GetItemList(), list, rankList, previous);
+                PutList(varName, false, pStatic->m_value->GetItemList(), list, rankList, previous);
                 previous.erase(pStatic);
             }
             else
@@ -547,7 +549,6 @@ static void PutList(const std::string& baseName, bool bArray, CBot::CBotVar *var
         }
 
         index ++;
-        var = var->GetNext();
     }
 }
 
@@ -555,7 +556,6 @@ static void PutList(const std::string& baseName, bool bArray, CBot::CBotVar *var
 
 void CScript::UpdateList(Ui::CList* list)
 {
-    CBot::CBotVar     *var;
     std::string progName, funcName;
     int         total, select, level, cursor1, cursor2, rank;
 
@@ -570,10 +570,11 @@ void CScript::UpdateList(Ui::CList* list)
 
     level = 0;
     rank  = 0;
-    std::set<CBot::CBotVar*> previous;
+    std::set<CBot::CBotVariable*> previous;
     while ( true )
     {
-        var = m_botProg->GetStackVars(funcName, level--);
+        bool levelExists;
+        const std::vector<std::unique_ptr<CBotVariable>>& var = m_botProg->GetStackVars(funcName, level--, levelExists);
         if ( funcName != progName )  break;
 
         PutList("", false, var, list, rank, previous);

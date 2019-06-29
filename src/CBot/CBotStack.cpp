@@ -96,7 +96,7 @@ void CBotStack::Delete()
     }
 
     m_var.reset();
-    delete m_listVar;
+    m_listVar.clear();
 
     CBotStack*    p = m_prev;
     bool        bOver = m_bOver;
@@ -315,24 +315,22 @@ bool CBotStack::GetRetVar(bool bRet)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-CBotVar* CBotStack::FindVar(CBotToken*& pToken, bool bUpdate)
+CBotVariable* CBotStack::FindVar(CBotToken*& pToken, bool bUpdate)
 {
     CBotStack*    p = this;
     std::string    name = pToken->GetString();
 
     while (p != nullptr)
     {
-        CBotVar*    pp = p->m_listVar;
-        while ( pp != nullptr)
+        for (std::unique_ptr<CBotVariable> &pp : p->m_listVar)
         {
             if (pp->GetName() == name)
             {
                 if ( bUpdate )
-                    pp->Update(m_pUser);
+                    pp->m_value->Update(m_pUser);
 
-                return pp;
+                return pp.get();
             }
-            pp = pp->m_next;
         }
         p = p->m_prev;
     }
@@ -340,19 +338,17 @@ CBotVar* CBotStack::FindVar(CBotToken*& pToken, bool bUpdate)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-CBotVar* CBotStack::FindVar(const std::string& name)
+CBotVariable* CBotStack::FindVar(const std::string& name)
 {
     CBotStack*    p = this;
     while (p != nullptr)
     {
-        CBotVar*    pp = p->m_listVar;
-        while ( pp != nullptr)
+        for (std::unique_ptr<CBotVariable> &pp : p->m_listVar)
         {
             if (pp->GetName() == name)
             {
-                return pp;
+                return pp.get();
             }
-            pp = pp->m_next;
         }
         p = p->m_prev;
     }
@@ -360,22 +356,20 @@ CBotVar* CBotStack::FindVar(const std::string& name)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-CBotVar* CBotStack::FindVar(long ident, bool bUpdate)
+CBotVariable* CBotStack::FindVar(long ident, bool bUpdate)
 {
     CBotStack*    p = this;
     while (p != nullptr)
     {
-        CBotVar*    pp = p->m_listVar;
-        while ( pp != nullptr)
+        for (std::unique_ptr<CBotVariable> &pp : p->m_listVar)
         {
             if (pp->GetUniqNum() == ident)
             {
                 if ( bUpdate )
-                    pp->Update(m_pUser);
+                    pp->m_value->Update(m_pUser);
 
-                return pp;
+                return pp.get();
             }
-            pp = pp->m_next;
         }
         p = p->m_prev;
     }
@@ -383,21 +377,21 @@ CBotVar* CBotStack::FindVar(long ident, bool bUpdate)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-CBotVar* CBotStack::FindVar(CBotToken& pToken, bool bUpdate)
+CBotVariable* CBotStack::FindVar(CBotToken& pToken, bool bUpdate)
 {
     CBotToken*    pt = &pToken;
     return FindVar(pt, bUpdate);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-std::unique_ptr<CBotVar> CBotStack::CopyVar(CBotToken& pToken, bool bUpdate)
+std::unique_ptr<CBotVariable> CBotStack::CopyVar(CBotToken& pToken, bool bUpdate)
 {
-    CBotVar*    pVar = FindVar(pToken, bUpdate);
+    CBotVariable*    pVar = FindVar(pToken, bUpdate);
 
     if ( pVar == nullptr) return nullptr;
 
-    std::unique_ptr<CBotVar> pCopy = CBotVar::Create(pVar);
-    pCopy->Copy(pVar);
+    std::unique_ptr<CBotVariable> pCopy = CBotVariable::Create(pVar);
+    pCopy->m_value->Copy(pVar->m_value.get());
     return pCopy;
 }
 
@@ -497,7 +491,7 @@ void CBotStack::SetVar( std::unique_ptr<CBotVar> var )
 ////////////////////////////////////////////////////////////////////////////////
 void CBotStack::SetCopyVar( CBotVar* var )
 {
-    m_var = CBotVar::Create("", var->GetTypResult(CBotVar::GetTypeMode::CLASS_AS_INTRINSIC));
+    m_var = CBotVar::Create(var->GetTypResult(CBotVar::GetTypeMode::CLASS_AS_INTRINSIC));
     m_var->Copy( var );
 }
 
@@ -515,23 +509,25 @@ long CBotStack::GetVal()
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-void CBotStack::AddVar(CBotVar* pVar)
+void CBotStack::AddVar(CBotVariable* pVar)
 {
     CBotStack*    p = this;
 
     // returns to the father element
     while (p != nullptr && p->m_block == BlockVisibilityType::INSTRUCTION) p = p->m_prev;
 
-    if ( p == nullptr ) return;
+    if ( p == nullptr )
+    {
+        assert(0);
+        delete pVar; // This code used to leak pVar here. This case shouldn't be reached anyway.
+        return;
+    }
 
-    CBotVar**    pp = &p->m_listVar;
-    while ( *pp != nullptr ) pp = &(*pp)->m_next;
-
-    *pp = pVar;                    // added after
+    p->m_listVar.emplace_back(pVar);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-void CBotStack::AddVar(std::unique_ptr<CBotVar> pVar)
+void CBotStack::AddVar(std::unique_ptr<CBotVariable> pVar)
 {
     AddVar(pVar.release());
 }
@@ -636,8 +632,10 @@ void CBotStack::GetRunPos(std::string& functionName, int& start, int& end)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-CBotVar* CBotStack::GetStackVars(std::string& functionName, int level)
+const std::vector<std::unique_ptr<CBotVariable>>& CBotStack::GetStackVars(std::string& functionName, int level, bool &levelExists)
 {
+    static std::vector<std::unique_ptr<CBotVariable>> empty_vars;
+
     CBotProgram*    prog = m_prog;                        // current program
     functionName = "";
 
@@ -665,7 +663,11 @@ CBotVar* CBotStack::GetStackVars(std::string& functionName, int level)
     }
     // Now p is on the block "level"
 
-    if ( p == nullptr ) return nullptr;
+    if ( p == nullptr )
+    {
+        levelExists = false;
+        return empty_vars;
+    }
 
     // search the name of the current function
     CBotStack* pp = p;
@@ -675,11 +677,16 @@ CBotVar* CBotStack::GetStackVars(std::string& functionName, int level)
         pp = pp->m_prev;
     }
 
-    if ( pp == nullptr || pp->m_instr == nullptr ) return nullptr;
+    if ( pp == nullptr || pp->m_instr == nullptr )
+    {
+        levelExists = false;
+        return empty_vars;
+    }
 
     CBotToken* t = pp->m_instr->GetToken();
     functionName = t->GetString();
 
+    levelExists = true;
     return p->m_listVar;
 }
 
@@ -701,7 +708,7 @@ bool CBotStack::SaveState(FILE* pf)
     if (!WriteWord(pf, m_step)) return false;
 
 
-    if (!SaveVars(pf, m_var.get())) return false;      // current result
+    assert(0); // TODO: save m_var
     if (!SaveVars(pf, m_listVar)) return false;        // local variables
 
     if (m_next != nullptr)
@@ -715,74 +722,31 @@ bool CBotStack::SaveState(FILE* pf)
     return true;
 }
 
-bool SaveVars(FILE* pf, CBotVar* pVar)
+bool SaveVars(FILE* pf, std::vector<std::unique_ptr<CBotVariable>> &vars)
 {
-    while (pVar != nullptr)
+    WriteWord(pf, vars.size());
+    for(std::unique_ptr<CBotVariable> &pVar : vars)
     {
-        if (!pVar->Save0State(pf)) return false; // common header
-        if (!pVar->Save1State(pf)) return false; // saves the data
-
-        pVar = pVar->GetNext();
+        if (!pVar->SaveState(pf)) return false;
     }
-    return WriteWord(pf, 0); // terminator
+    return true;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 bool CBotStack::RestoreState(FILE* pf, CBotStack* &pStack)
 {
-    unsigned short w;
-
-    if (pStack != this) pStack = nullptr;
-    if (!ReadWord(pf, w)) return false;
-    if ( w == 0 ) return true; // 0 - terminator
-
-    if (pStack == nullptr) pStack = AddStack();
-
-    if ( w == 2 ) // 2 - m_next2
-    {
-        if (!pStack->RestoreState(pf, pStack->m_next2)) return false;
-    }
-
-    if (!ReadWord(pf, w)) return false;
-    pStack->m_block = static_cast<BlockVisibilityType>(w);
-
-    if (!ReadWord(pf, w)) return false;
-    pStack->SetState(static_cast<short>(w));
-
-    if (!ReadWord(pf, w)) return false; // backwards compatibility (m_bDontDelete)
-
-    if (!ReadWord(pf, w)) return false;
-    pStack->m_step = w;
-
-    CBotVar *restored_m_var = nullptr;
-    // \todo TODO: let RestoreState produce a unique_ptr&lt;CBotVar&gt;
-    if (!CBotVar::RestoreState(pf, restored_m_var)) return false;   // temp variable
-    m_var = std::unique_ptr<CBotVar>(restored_m_var);
-    if (!CBotVar::RestoreState(pf, pStack->m_listVar)) return false;// local variables
-
-    return pStack->RestoreState(pf, pStack->m_next);
+    assert(0); // TODO
+    return false;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 bool CBotVar::Save0State(FILE* pf)
 {
-    if (!WriteWord(pf, 100+static_cast<int>(m_mPrivate)))return false;        // private variable?
-    if (!WriteWord(pf, m_bStatic))return false;                // static variable?
-    if (!WriteWord(pf, m_type.GetType()))return false;        // saves the type (always non-zero)
-
-    if (m_type.Eq(CBotTypPointer) && GetPointer() != nullptr)
-    {
-        if (GetPointer()->m_bConstructor)                    // constructor was called?
-        {
-            if (!WriteWord(pf, (2000 + static_cast<unsigned short>(m_binit)) )) return false;
-            return WriteString(pf, m_token.GetString());    // and variable name
-        }
-    }
-
-    if (!WriteWord(pf, static_cast<unsigned short>(m_binit))) return false;          // variable defined?
-    return WriteString(pf, m_token.GetString());            // and variable name
+    assert(0); // TODO
+    return false;
 }
 
+// TODO: rewrite this RestoreState and SaveState for CBotVar and ensure consistency
 ////////////////////////////////////////////////////////////////////////////////
 bool CBotVar::RestoreState(FILE* pf, CBotVar* &pVar)
 {
@@ -837,17 +801,17 @@ bool CBotVar::RestoreState(FILE* pf, CBotVar* &pVar)
         {
         case CBotTypInt:
         case CBotTypBoolean:
-            pNew = CBotVar::Create(token, w).release();              // creates a variable
+            pNew = CBotVar::Create(w).release();              // creates a variable
             if (!ReadWord(pf, w)) return false;
             pNew->SetValInt(static_cast<short>(w), defnum);
             break;
         case CBotTypFloat:
-            pNew = CBotVar::Create(token, w).release();              // creates a variable
+            pNew = CBotVar::Create(w).release();              // creates a variable
             if (!ReadFloat(pf, ww)) return false;
             pNew->SetValFloat(ww);
             break;
         case CBotTypString:
-            pNew = CBotVar::Create(token, w).release();              // creates a variable
+            pNew = CBotVar::Create(w).release();              // creates a variable
             if (!ReadString(pf, s)) return false;
             pNew->SetValString(s);
             break;
@@ -867,12 +831,21 @@ bool CBotVar::RestoreState(FILE* pf, CBotVar* &pVar)
                     CBotVar* p = nullptr;
                     if ( id ) p = CBotVarClass::Find(id) ;
 
-                    pNew = new CBotVarClass(token, r);                // directly creates an instance
+                    pNew = new CBotVarClass(r);                // directly creates an instance
                                                                     // attention cptuse = 0
-                    if ( !RestoreState(pf, (static_cast<CBotVarClass*>(pNew))->m_pVar)) return false;
+
+                    long int count = 0;
+                    if (!ReadLong(pf, count)) return false;
+                    static_cast<CBotVarClass*>(pNew)->m_pVar.resize(count);
+                    for (long int k = 0; k < count; k++) {
+                        CBotVariable *pChildVar = nullptr;
+                        if ( !CBotVariable::RestoreState(pf, pChildVar)) return false;
+                        (static_cast<CBotVarClass*>(pNew))->m_pVar[k].reset(pChildVar);
+                    }
+
                     pNew->SetIdent(id);
 
-                    if (isClass && p == nullptr) // set id for each item in this instance
+                    /*if (isClass && p == nullptr) // set id for each item in this instance
                     {
                         CBotVar* pVars = pNew->GetItemList();
                         CBotVar* pv = pNew->GetClass()->GetVar();
@@ -882,7 +855,7 @@ bool CBotVar::RestoreState(FILE* pf, CBotVar* &pVar)
                             pv = pv->GetNext();
                             pVars = pVars->GetNext();
                         }
-                    }
+                    }*/
 
                     if ( p != nullptr )
                     {
@@ -898,7 +871,7 @@ bool CBotVar::RestoreState(FILE* pf, CBotVar* &pVar)
             if (!ReadString(pf, s)) return false;   // name of the class
             {
                 CBotTypResult ptrType(w, s);
-                pNew = CBotVar::Create(token, ptrType).release();// creates a variable
+                pNew = CBotVar::Create(ptrType).release();// creates a variable
 //                CBotVarClass* p = nullptr;
                 long id;
                 ReadLong(pf, id);
@@ -922,7 +895,7 @@ bool CBotVar::RestoreState(FILE* pf, CBotVar* &pVar)
                 CBotTypResult    r;
                 if (!ReadType(pf, r))  return false;
 
-                pNew = CBotVar::Create(token, r).release();              // creates a variable
+                pNew = CBotVar::Create(r).release();              // creates a variable
 
                 // returns a copy of the original instance
                 CBotVar* pInstance = nullptr;
@@ -938,8 +911,10 @@ bool CBotVar::RestoreState(FILE* pf, CBotVar* &pVar)
         if ( pVar == nullptr  ) pVar = pNew;
 
         pNew->m_binit = initType;        //        pNew->SetInit(wi);
-        pNew->SetStatic(st);
-        pNew->SetPrivate(static_cast<ProtectionLevel>(prv-100));
+        // TODO: fix SaveState and RestoreState for CBotVar
+        //pNew->SetStatic(st);
+        //pNew->SetPrivate(static_cast<ProtectionLevel>(prv-100));
+        (void)st; (void)prv; (void) isClass;  // TODO remove commented code
         pPrev = pNew;
     }
     return true;

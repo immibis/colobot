@@ -160,6 +160,16 @@ public:
     bool        Eq(int type) const;
 
     /**
+     * \brief Check if this type is a class with a given name, or a subclass of it.
+     *
+     * \deprecated Checking names is unreliable
+     *
+     * \param name Class name to check
+     * \return true if this type matches the given class or any of its subclasses
+     */
+    bool IsSpecifiedClassOrSubclass(const std::string& name);
+
+    /**
      * \brief Copy
      */
     CBotTypResult& operator=(const CBotTypResult& src);

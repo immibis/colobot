@@ -178,13 +178,14 @@ bool CBotListArray::Execute(CBotStack* &pj, CBotVar* pVar)
     {
         if (pile1->GetState() > n) continue;
 
-        pVar2 = pVar->GetItem(n, true);
+        CBotVariable *pVar2b = pVar->GetItem(n, true);
 
-        if (pVar2 == nullptr)
+        if (pVar2b == nullptr)
         {
             pj->SetError(CBotErrOutArray, p->GetToken());
             return false;
         }
+        pVar2 = pVar2b->m_value.get();
         CBotTypResult type = pVar2->GetTypResult();
 
         if (!p->Execute(pile1, pVar2)) return false;        // evaluate expression

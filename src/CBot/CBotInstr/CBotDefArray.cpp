@@ -94,12 +94,14 @@ CBotInstr* CBotDefArray::Compile(CBotToken* &p, CBotCStack* pStack, CBotTypResul
             goto error;
         }
 
-        CBotVar *var = CBotVar::Create(*vartoken, type).release();      // create an instance
+        CBotVar *val = CBotVar::Create(type).release();                 // create an instance
         inst->m_typevar = type;
 
+        // XXX val still used after unique_ptr handoff
+        std::unique_ptr<CBotVariable> var(new CBotVariable(*vartoken, std::unique_ptr<CBotVar>(val)));
         var->SetUniqNum(
-            (static_cast<CBotLeftExprVar*>(inst->m_var))->m_nIdent = CBotVar::NextUniqNum());
-        pStack->AddVar(var);                                            // place it on the stack
+            (static_cast<CBotLeftExprVar*>(inst->m_var))->m_nIdent = CBotVariable::NextUniqNum());
+        pStack->AddVar(std::move(var));                                 // place it on the stack
 
         if (IsOfType(p, ID_ASS))                                        // with an assignment
         {
@@ -124,10 +126,10 @@ CBotInstr* CBotDefArray::Compile(CBotToken* &p, CBotCStack* pStack, CBotTypResul
 
             if (pStk->IsOk()) while (true)       // mark initialized
             {
-                var = var->GetItem(0, true);
-                if (var == nullptr) break;
-                if (var->GetType() == CBotTypArrayPointer) continue;
-                if (var->GetType() <= CBotTypString) var->SetInit(CBotVar::InitType::DEF);
+                val = val->GetItem(0, true)->m_value.get();
+                if (val == nullptr) break;
+                if (val->GetType() == CBotTypArrayPointer) continue;
+                if (val->GetType() <= CBotTypString) val->SetInit(CBotVar::InitType::DEF);
                 break;
             }
         }
@@ -188,8 +190,8 @@ bool CBotDefArray::Execute(CBotStack* &pj)
         m_typevar.SetArray(max);                                    // store the limitations
 
         // create simply a nullptr pointer
-        std::unique_ptr<CBotVar> var = CBotVar::Create(*(m_var->GetToken()), m_typevar);
-        var->SetPointer(nullptr);
+        std::unique_ptr<CBotVariable> var(new CBotVariable(*(m_var->GetToken()), CBotVar::Create(m_typevar)));
+        var->m_value->SetPointer(nullptr);
         var->SetUniqNum((static_cast<CBotLeftExprVar*>(m_var))->m_nIdent);
         pj->AddVar(var.release());
 
@@ -205,9 +207,9 @@ bool CBotDefArray::Execute(CBotStack* &pj)
     {
         if (m_listass != nullptr)                                      // there is the assignment for this table
         {
-            CBotVar* pVar = pj->FindVar((static_cast<CBotLeftExprVar*>(m_var))->m_nIdent, false);
+            CBotVariable* pVar = pj->FindVar((static_cast<CBotLeftExprVar*>(m_var))->m_nIdent, false);
 
-            if (!m_listass->Execute(pile1, pVar)) return false;
+            if (!m_listass->Execute(pile1, pVar->m_value.get())) return false;
         }
         pile1->IncState();
     }
@@ -225,7 +227,7 @@ void CBotDefArray::RestoreState(CBotStack* &pj, bool bMain)
 {
     CBotStack*    pile1 = pj;
 
-    CBotVar*    var = pj->FindVar(m_var->GetToken()->GetString());
+    CBotVariable*    var = pj->FindVar(m_var->GetToken()->GetString());
     if (var != nullptr) var->SetUniqNum((static_cast<CBotLeftExprVar*>(m_var))->m_nIdent);
 
     if (bMain)

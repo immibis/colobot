@@ -30,7 +30,7 @@ namespace CBot
 class CBotVarBoolean : public CBotVarNumberBase<bool, CBotTypBoolean>
 {
 public:
-    CBotVarBoolean(const CBotToken &name) : CBotVarNumberBase(name) {}
+    CBotVarBoolean() : CBotVarNumberBase() {}
 
     void And(CBotVar* left, CBotVar* right) override;
     void Or(CBotVar* left, CBotVar* right) override;

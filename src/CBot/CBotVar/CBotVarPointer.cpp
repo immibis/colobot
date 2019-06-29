@@ -32,7 +32,7 @@ namespace CBot
 {
 
 ////////////////////////////////////////////////////////////////////////////////
-CBotVarPointer::CBotVarPointer(const CBotToken& name, CBotTypResult& type) : CBotVar(name)
+CBotVarPointer::CBotVarPointer(CBotTypResult& type)
 {
     if ( !type.Eq(CBotTypPointer) &&
          !type.Eq(CBotTypNullPointer) &&
@@ -40,7 +40,6 @@ CBotVarPointer::CBotVarPointer(const CBotToken& name, CBotTypResult& type) : CBo
          !type.Eq(CBotTypIntrinsic) ) assert(0);
 
     m_next        = nullptr;
-    m_pMyThis    = nullptr;
     m_pUserPtr    = nullptr;
 
     m_type        = type;
@@ -66,7 +65,7 @@ void CBotVarPointer::Update(void* pUser)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-CBotVar* CBotVarPointer::GetItem(const std::string& name)
+CBotVariable* CBotVarPointer::GetItem(const std::string& name)
 {
     if ( m_pVarClass == nullptr)                // no existing instance?
         return m_pClass->GetItem(name);        // makes the pointer in the class itself
@@ -75,7 +74,7 @@ CBotVar* CBotVarPointer::GetItem(const std::string& name)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-CBotVar* CBotVarPointer::GetItemRef(int nIdent)
+CBotVariable* CBotVarPointer::GetItemRef(int nIdent)
 {
     if ( m_pVarClass == nullptr)                // no existing instance?
         return m_pClass->GetItemRef(nIdent);// makes the pointer to the class itself
@@ -84,9 +83,9 @@ CBotVar* CBotVarPointer::GetItemRef(int nIdent)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-CBotVar* CBotVarPointer::GetItemList()
+std::vector<std::unique_ptr<CBotVariable>>& CBotVarPointer::GetItemList()
 {
-    if ( m_pVarClass == nullptr) return nullptr;
+    assert(m_pVarClass != nullptr);
     return m_pVarClass->GetItemList();
 }
 
@@ -184,12 +183,20 @@ bool CBotVarPointer::Save1State(FILE* pf)
 
     if (!WriteLong(pf, GetIdent())) return false;        // the unique reference
 
-    // also saves the proceedings copies
-    return SaveVars(pf, GetPointer());
+    // TODO: GetPointer could be null?
+    if (GetPointer() == nullptr)
+    {
+        return WriteWord(pf, 0);
+    }
+    else
+    {
+        if (!WriteWord(pf, 1)) return false;
+        return GetPointer()->Save1State(pf);
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-void CBotVarPointer::Copy(CBotVar* pSrc, bool bName)
+void CBotVarPointer::Copy(CBotVar* pSrc)
 {
     if ( pSrc->GetType() != CBotTypPointer &&
          pSrc->GetType() != CBotTypNullPointer)
@@ -197,7 +204,6 @@ void CBotVarPointer::Copy(CBotVar* pSrc, bool bName)
 
     CBotVarPointer*    p = static_cast<CBotVarPointer*>(pSrc);
 
-    if ( bName) m_token    = p->m_token;
     m_type        = p->m_type;
 //    m_pVarClass = p->m_pVarClass;
     m_pVarClass = p->GetPointer();
@@ -209,11 +215,7 @@ void CBotVarPointer::Copy(CBotVar* pSrc, bool bName)
     m_binit        = p->m_binit;
 //-    m_bStatic    = p->m_bStatic;
     m_next        = nullptr;
-    m_pMyThis    = nullptr;//p->m_pMyThis;
     m_pUserPtr    = p->m_pUserPtr;
-
-    // keeps indentificator the same (by default)
-    if (m_ident == 0 ) m_ident     = p->m_ident;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
