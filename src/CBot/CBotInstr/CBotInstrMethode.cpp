@@ -38,6 +38,7 @@ CBotInstrMethode::CBotInstrMethode()
     m_parameters = nullptr;
     m_exprRetVar = nullptr;
     m_MethodeIdent = 0;
+    m_bNonVirtualCall = false;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -48,7 +49,7 @@ CBotInstrMethode::~CBotInstrMethode()
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-CBotInstr* CBotInstrMethode::Compile(CBotToken* &p, CBotCStack* pStack, CBotVar* var, long varUniqNum, bool bMethodChain)
+CBotInstr* CBotInstrMethode::Compile(CBotToken* &p, CBotCStack* pStack, CBotVar* var, bool bMethodChain, bool bIsSuperCall)
 {
     CBotInstrMethode* inst = new CBotInstrMethode();
     inst->SetToken(p);  // corresponding token
@@ -66,9 +67,9 @@ CBotInstr* CBotInstrMethode::Compile(CBotToken* &p, CBotCStack* pStack, CBotVar*
 
         if (pStack->IsOk())
         {
-            inst->m_thisIdent = varUniqNum; // This is needed to see if it's a 'super' call or not. TODO redesign
             CBotClass* pClass = var->GetClass();    // pointer to the class
             inst->m_className = pClass->GetName();  // name of the class
+            inst->m_bNonVirtualCall = bIsSuperCall;
             CBotTypResult r = pClass->CompileMethode(pp, var, ppVars, pStack, inst->m_MethodeIdent);
             pStack->DeleteChildLevels();    // release parameters on the stack
             inst->m_typRes = r;
@@ -92,7 +93,7 @@ CBotInstr* CBotInstrMethode::Compile(CBotToken* &p, CBotCStack* pStack, CBotVar*
             else pStack->SetVar(nullptr);
 
             pp = p;
-            if (nullptr != (inst->m_exprRetVar = CBotExprRetVar::Compile(p, pStack, 0, bMethodChain)))
+            if (nullptr != (inst->m_exprRetVar = CBotExprRetVar::Compile(p, pStack, bMethodChain, false)))
             {
                 inst->m_exprRetVar->SetToken(pp);
                 pStack->DeleteChildLevels();
@@ -144,7 +145,6 @@ bool CBotInstrMethode::ExecuteVar(CBotVar* &pVar, CBotStack* &pj, CBotToken* pre
         // action must act on the value before test = Other!
 
         //pThis->SetName("this"); // XXX: Commented out in value/variable refactor. Check correctness.
-        //pThis->SetUniqNum(-2); // XXX: Commented out in value/variable refactor. Check correctness.
         pile1->SetVar(std::move(pThis));
         pile1->IncState();
     }
@@ -172,7 +172,7 @@ bool CBotInstrMethode::ExecuteVar(CBotVar* &pVar, CBotStack* &pj, CBotToken* pre
     CBotVar*    pThis  = pile1->GetVar();
     CBotClass*  pClass;
 
-    if (m_thisIdent == -3) // super.method()
+    if (m_bNonVirtualCall) // super.method()
         pClass = CBotClass::Find(m_className);
     else
         pClass = pThis->GetClass();
@@ -218,8 +218,6 @@ void CBotInstrMethode::RestoreStateVar(CBotStack* &pile, bool bMain)
 
     assert(pThis != nullptr); // see fix for issues #256 & #436
 
-    //pThis->SetUniqNum(-2); // XXX: Commented out in value/variable refactor. Check correctness.
-
     int        i = 0;
 
     CBotInstr*    p = m_parameters;
@@ -245,7 +243,7 @@ void CBotInstrMethode::RestoreStateVar(CBotStack* &pile, bool bMain)
 
     CBotClass*    pClass;
 
-    if (m_thisIdent == -3) // super.method()
+    if (m_bNonVirtualCall) // super.method()
         pClass = CBotClass::Find(m_className);
     else
         pClass = pThis->GetClass();
@@ -300,7 +298,7 @@ bool CBotInstrMethode::Execute(CBotStack* &pj)
     CBotVar*    pThis  = pile1->GetVar();
     CBotClass*  pClass;
 
-    if (m_thisIdent == -3) // super.method()
+    if (m_bNonVirtualCall) // super.method()
         pClass = CBotClass::Find(m_className);
     else
         pClass = pThis->GetClass();

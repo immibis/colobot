@@ -82,24 +82,10 @@ public:
     void Copy(CBotVariable *copyFrom);
 
     /**
-     * \brief Set unique identifier of this variable
-     * Note: For classes, this is unique within the class only - see CBotClass:AddItem
-     * \param n New identifier
-     */
-    void SetUniqNum(long n);
-
-    /**
-     * \brief Return unique identifier of this variable
-     * Note: For classes, this is unique within the class only - see CBotClass:AddItem
-     * \return unique identifier
-     * \see SetUniqNum()
-     */
-    long GetUniqNum();
-
-    /**
      * \brief Generate next unique identifier
      *
      * Used by both variables (CBotVar) and functions (CBotFunction)
+     * TODO REMOVE ME
      */
     static long NextUniqNum();
 
@@ -199,6 +185,28 @@ public:
      */
     ProtectionLevel GetPrivate();
 
+    /**
+     * \brief Get the class where this variable is defined
+     * @return Class in which this variable is defined, if it's a field; nullptr if not.
+     */
+    CBotClass *GetContainingClass() {return m_pContainingClass;}
+
+    /**
+     * \brief Set the class where this variable is defined. Only call this for fields.
+     * @param val Class in which this variable is defined.
+     * @param position Position of field within class.
+     */
+    void SetContainingClass(CBotClass *val, int position);
+
+    /**
+     * \brief Get the position of this field within the class.
+     *
+     * This variable must be a field. If not, this method asserts.
+     *
+     * @return Field position
+     */
+    int GetFieldPosition();
+
     //@}
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -232,14 +240,6 @@ public:
 
 private:
     CBotToken m_name;
-    int m_UniqNum;
-
-    //! Identifier
-    /**
-     * \see SetUniqNum()
-     * \see GetUniqNum()
-     */
-    long m_ident;
 
     //! true if the variable is static (for classes)
     bool m_bStatic;
@@ -251,6 +251,12 @@ private:
 
     //! Class instance which this variable is a member of
     CBotVarClass* m_pMyThis;
+
+    //! Class in which this variable is defined
+    CBotClass *m_pContainingClass;
+
+    //! Position of field within class
+    int m_nFieldPosition;
 
     friend class CBotVar;
     friend class CBotVarClass;
@@ -310,6 +316,13 @@ public:
      * \see SetUniqNum() for another identifier, used for all variable types
      */
     virtual void SetIdent(long UniqId);
+
+    /**
+     * \brief Cast to an object. This dereferences CVarPointers.
+     *
+     * \return 'this', as an object (CBotVarClass*) if it is one, else nullptr.
+     */
+    virtual CBotVarClass *AsObject();
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     //! \name User pointer
@@ -454,14 +467,6 @@ public:
      * \return CBotVariable representing the class member
      */
     virtual CBotVariable* GetItem(const std::string& name);
-
-    /**
-     * \brief Returns class member by unique ID
-     * \param nIdent Unique ID of the class member to return
-     * \return CBotVar representing the class member
-     * \see GetUniqNum()
-     */
-    virtual CBotVariable* GetItemRef(int nIdent);
 
     /**
      * \brief Returns element of the array by index

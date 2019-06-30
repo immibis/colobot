@@ -44,8 +44,9 @@ public:
     void SetClass(CBotClass* pClass) override;
     CBotClass* GetClass() override;
 
+    CBotVarClass *AsObject() override;
+
     CBotVariable* GetItem(const std::string& name) override;
-    CBotVariable* GetItemRef(int nIdent) override;
     std::vector<std::unique_ptr<CBotVariable>>& GetItemList() override;
     std::string GetValString() override;
 

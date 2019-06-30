@@ -187,17 +187,6 @@ public:
     CBotVariable* FindVar(const std::string& name);
 
     /**
-     * \brief Fetch a variable on the stack according to its unique identifier
-     *
-     * This is faster than comparing names
-     *
-     * \param ident Unique identifier of a variable
-     * \param bUpdate true to automatically call update function for classes, see CBotClass::SetUpdateFunc()
-     * \return Found variable, nullptr if not found
-     */
-    CBotVariable* FindVar(long ident, bool bUpdate);
-
-    /**
      * \brief Find variable by its token and returns a copy of it
      *
      * \param pToken Token upon which search is performed

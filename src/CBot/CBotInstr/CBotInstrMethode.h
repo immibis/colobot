@@ -38,11 +38,11 @@ public:
      * \param p
      * \param pStack
      * \param pVar
-     * \param varUniqNum UniqNum of variable - we only care if it's "this" (-2) or "super" (-3) or not (anything else, use 0 if not applicable). TODO remove me
      * \param bMethodChain If true, allows chaining methods only
+     * \param bIsSuperCall If true, don't do a virtual call
      * \return
      */
-    static CBotInstr* Compile(CBotToken* &p, CBotCStack* pStack, CBotVar* pVar, long varUniqNum, bool bMethodChain = false);
+    static CBotInstr* Compile(CBotToken* &p, CBotCStack* pStack, CBotVar* pVar, bool bMethodChain, bool bIsSuperCall);
 
     /*!
      * \brief Execute
@@ -85,8 +85,8 @@ private:
     long m_MethodeIdent;
     //! Name of the class.
     std::string m_className;
-    //! Variable ID
-    long m_thisIdent;
+    //! True if we shouldn't do a virtual call (e.g. true for "super" calls)
+    bool m_bNonVirtualCall;
 
     //! Instruction to return a member of the returned object.
     CBotInstr* m_exprRetVar;

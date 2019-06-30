@@ -35,7 +35,6 @@ namespace CBot
 //////////////////////////////////////////////////////////////////////////////////////
 CBotLeftExpr::CBotLeftExpr()
 {
-    m_nIdent = 0;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -61,8 +60,7 @@ CBotLeftExpr* CBotLeftExpr::Compile(CBotToken* &p, CBotCStack* pStack)
 
         if (nullptr != (var = pStk->FindVar(p)))   // seek if known variable
         {
-            inst->m_nIdent = var->GetUniqNum();
-            if (inst->m_nIdent > 0 && inst->m_nIdent < 9000)
+            if (var->GetContainingClass() != nullptr)
             {
                 if (CBotFieldExpr::CheckProtectionError(pStk, nullptr, "", var, true))
                 {
@@ -75,15 +73,13 @@ CBotLeftExpr* CBotLeftExpr::Compile(CBotToken* &p, CBotCStack* pStack)
                 // invisible 'this.' highlights member token on error
                 pthis.SetPos(p->GetStart(), p->GetEnd());
                 inst->SetToken(&pthis);
-                inst->m_nIdent = -2;    // indent for this
 
-                CBotFieldExpr* i = new CBotFieldExpr();     // new element
+                CBotFieldExpr* i = new CBotFieldExpr(var->GetFieldPosition());     // new element
                 i->SetToken(p);     // keeps the name of the token
                 inst->AddNext3(i);  // add after
 
                 var = pStk->FindVar(pthis);
                 var = var->m_value->GetItem(p->GetString());
-                i->SetUniqNum(var->GetUniqNum());
             }
             p = p->GetNext();   // next token
 
@@ -120,10 +116,6 @@ CBotLeftExpr* CBotLeftExpr::Compile(CBotToken* &p, CBotCStack* pStack)
                     {
                         CBotToken* pp = p;
 
-                        CBotFieldExpr* i = new CBotFieldExpr();            // new element
-                        i->SetToken(pp);                                // keeps the name of the token
-                        inst->AddNext3(i);                                // adds after
-
                         if (p->GetType() == TokenTypVar)                // must be a name
                         {
                             CBotVariable*   preVar = var;
@@ -136,7 +128,10 @@ CBotLeftExpr* CBotLeftExpr::Compile(CBotToken* &p, CBotCStack* pStack)
                                     goto err;
                                 }
 
-                                i->SetUniqNum(var->GetUniqNum());
+                                CBotFieldExpr* i = new CBotFieldExpr(var->GetFieldPosition());            // new element
+                                i->SetToken(pp);                                // keeps the name of the token
+                                inst->AddNext3(i);                                // adds after
+
                                 p = p->GetNext();                        // skips the name
                                 continue;
                             }
@@ -221,7 +216,7 @@ bool CBotLeftExpr::ExecuteVar(CBotVar* &pVar, CBotStack* &pile, CBotToken* prevT
 {
     pile = pile->AddStack(this);
 
-    CBotVariable *pVar2 = pile->FindVar(m_nIdent, false);
+    CBotVariable *pVar2 = pile->FindVar(m_token, false);
     pVar = (pVar2 ? pVar2->m_value.get() : nullptr);
     if (pVar == nullptr)
     {

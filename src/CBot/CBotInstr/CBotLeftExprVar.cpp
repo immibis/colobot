@@ -58,7 +58,6 @@ bool CBotLeftExprVar::Execute(CBotStack* &pj)
 {
     // Create the variable
     CBotVariable* var1 = new CBotVariable(m_token.GetString(), CBotVar::Create(m_typevar));
-    var1->SetUniqNum(m_nIdent);
     pj->AddVar(var1);
 
     CBotVar* var2 = pj->GetVar(); // Initial value on the stack
@@ -82,8 +81,6 @@ void CBotLeftExprVar::RestoreState(CBotStack* &pj, bool bMain)
 
     var1 = pj->FindVar(m_token.GetString());
     if (var1 == nullptr) assert(false);
-
-    var1->SetUniqNum(m_nIdent); // Restore the identifier
 }
 
 std::string CBotLeftExprVar::GetDebugData()

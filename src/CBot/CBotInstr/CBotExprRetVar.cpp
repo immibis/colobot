@@ -41,7 +41,7 @@ CBotExprRetVar::~CBotExprRetVar()
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-CBotInstr* CBotExprRetVar::Compile(CBotToken*& p, CBotCStack* pStack, long topOfStackUniqNum, bool bMethodsOnly)
+CBotInstr* CBotExprRetVar::Compile(CBotToken*& p, CBotCStack* pStack, bool bMethodsOnly, bool bPreviousIsSuper)
 {
     if (p->GetType() == ID_DOT)
     {
@@ -69,7 +69,6 @@ CBotInstr* CBotExprRetVar::Compile(CBotToken*& p, CBotCStack* pStack, long topOf
 
                     var = val->GetItem(0,true);
                     val = var->m_value.get();
-                    topOfStackUniqNum = 0;
 
                     if (i->m_expr == nullptr || pStk->GetType() != CBotTypInt)
                     {
@@ -94,7 +93,7 @@ CBotInstr* CBotExprRetVar::Compile(CBotToken*& p, CBotCStack* pStack, long topOf
                     {
                         if (p->GetNext()->GetType() == ID_OPENPAR)
                         {
-                            CBotInstr* i = CBotInstrMethode::Compile(p, pStk, val, 0, bMethodsOnly);
+                            CBotInstr* i = CBotInstrMethode::Compile(p, pStk, val, bMethodsOnly, false);
                             if (!pStk->IsOk()) goto err;
                             inst->AddNext3(i);
                             return pStack->Return(inst, pStk);
@@ -106,16 +105,16 @@ CBotInstr* CBotExprRetVar::Compile(CBotToken*& p, CBotCStack* pStack, long topOf
                         }
                         else
                         {
-                            CBotFieldExpr* i = new CBotFieldExpr();
-                            i->SetToken(pp);
-                            inst->AddNext3(i);
                             CBotVariable *preVar = var;
                             CBotVar*   preVal = val;
                             var = val->GetItem(p->GetString());
                             val = var ? var->m_value.get() : nullptr;
+
                             if (val != nullptr)
                             {
-                                i->SetUniqNum(var->GetUniqNum());
+                                CBotFieldExpr* i = new CBotFieldExpr(var->GetFieldPosition());
+                                i->SetToken(pp);
+                                inst->AddNext3(i);
                                 if (CBotFieldExpr::CheckProtectionError(pStk, preVal, (preVar ? preVar->GetName() : ""), var))
                                 {
                                     pStk->SetError(CBotErrPrivate, pp);
@@ -126,7 +125,6 @@ CBotInstr* CBotExprRetVar::Compile(CBotToken*& p, CBotCStack* pStack, long topOf
 
                         if (val != nullptr)
                         {
-                            topOfStackUniqNum = 0;
                             p = p->GetNext();
                             continue;
                         }

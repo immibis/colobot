@@ -112,7 +112,7 @@ CBotInstr* CBotNew::Compile(CBotToken* &p, CBotCStack* pStack)
 
         pp = p;
         // chained method ?
-        if (nullptr != (inst->m_exprRetVar = CBotExprRetVar::Compile(p, pStk, 0, true)))
+        if (nullptr != (inst->m_exprRetVar = CBotExprRetVar::Compile(p, pStk, true, false)))
         {
             inst->m_exprRetVar->SetToken(pp);
             pStk->DeleteChildLevels();
@@ -159,7 +159,6 @@ bool CBotNew::Execute(CBotStack* &pj)
 
 
         std::unique_ptr<CBotVariable> pThis_(new CBotVariable("this", CBotVar::Create(CBotTypResult(CBotTypClass, pClass))));
-        pThis_->SetUniqNum(-2) ;
         pile1->SetVar(std::move(pThis_->m_value));   // place on stack1
         pile->IncState();
     }

@@ -30,14 +30,13 @@ namespace CBot
 class CBotFieldExpr : public CBotInstr
 {
 public:
-    CBotFieldExpr();
-    ~CBotFieldExpr();
-
     /*!
-     * \brief SetUniqNum
-     * \param num
+     * Construct a CBotFieldExpr
+     * @param nFieldPosition Position of field to access within object
      */
-    void SetUniqNum(int num);
+    CBotFieldExpr(int nFieldPosition);
+
+    ~CBotFieldExpr();
 
     /*!
      * \brief ExecuteVar Find a field from the instance at compile.
@@ -86,7 +85,12 @@ protected:
 
 private:
     friend class CBotExpression;
-    int m_nIdent;
+
+    /*!
+     * ID of the field within class.
+     * This is needed as multiple fields could have the same name (especially with private fields and inheritance).
+     */
+    int m_nFieldPosition;
 };
 
 } // namespace CBot

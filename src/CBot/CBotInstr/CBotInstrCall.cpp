@@ -91,7 +91,7 @@ CBotInstr* CBotInstrCall::Compile(CBotToken* &p, CBotCStack* pStack)
         }
         else pStack->SetVar(nullptr);          // routine returns void
 
-        if (nullptr != (inst->m_exprRetVar = CBotExprRetVar::Compile(p, pStack, 0)))
+        if (nullptr != (inst->m_exprRetVar = CBotExprRetVar::Compile(p, pStack, 0, false)))
         {
             inst->m_exprRetVar->SetToken(&inst->m_token);
             pStack->DeleteChildLevels();

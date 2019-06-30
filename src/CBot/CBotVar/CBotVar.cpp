@@ -55,10 +55,11 @@ CBotVariable::CBotVariable(const CBotToken &name, std::unique_ptr<CBotVar> value
     m_next = nullptr;
     m_InitExpr = nullptr;
     m_LimExpr = nullptr;
-    m_ident = 0;
     m_bStatic = false;
     m_mPrivate = ProtectionLevel::Public;
     m_pMyThis = nullptr;
+    m_pContainingClass = nullptr;
+    m_nFieldPosition = -1;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -68,10 +69,11 @@ CBotVariable::CBotVariable(const std::string &name, std::unique_ptr<CBotVar> val
     m_next = nullptr;
     m_InitExpr = nullptr;
     m_LimExpr = nullptr;
-    m_ident = 0;
     m_bStatic = false;
     m_mPrivate = ProtectionLevel::Public;
     m_pMyThis = nullptr;
+    m_pContainingClass = nullptr;
+    m_nFieldPosition = -1;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -83,7 +85,28 @@ CBotVariable::~CBotVariable()
 ////////////////////////////////////////////////////////////////////////////////
 std::unique_ptr<CBotVariable> CBotVariable::Create(CBotVariable *pVar)
 {
-    return std::unique_ptr<CBotVariable>(new CBotVariable(pVar->m_name, CBotVar::Create(pVar->m_value.get())));
+    std::unique_ptr<CBotVariable> newVar(new CBotVariable(pVar->m_name, CBotVar::Create(pVar->m_value.get())));
+    newVar->m_pContainingClass = pVar->m_pContainingClass;
+    newVar->m_nFieldPosition = pVar->m_nFieldPosition;
+    return newVar;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+void CBotVariable::SetContainingClass(CBotClass *clazz, int position)
+{
+    assert(m_pContainingClass == nullptr); // not already set
+    assert(clazz != nullptr);
+    assert(position >= 0); // remove this if negative positions ever become valid
+
+    m_pContainingClass = clazz;
+    m_nFieldPosition = position;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+int CBotVariable::GetFieldPosition()
+{
+    assert(m_pContainingClass != nullptr); // only call this on fields
+    return m_nFieldPosition;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -123,14 +146,6 @@ void CBotVar::SetIdent(long n)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-void CBotVariable::SetUniqNum(long n)
-{
-    m_ident = n;
-
-    if ( n == 0 ) assert(0);
-}
-
-////////////////////////////////////////////////////////////////////////////////
 long CBotVariable::NextUniqNum()
 {
     if (++m_identcpt < 10000) m_identcpt = 10000;
@@ -138,15 +153,15 @@ long CBotVariable::NextUniqNum()
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-long CBotVariable::GetUniqNum()
-{
-    return m_ident;
-}
-
-////////////////////////////////////////////////////////////////////////////////
 void* CBotVar::GetUserPtr()
 {
     return m_pUserPtr;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+CBotVarClass *CBotVar::AsObject()
+{
+    return nullptr; // Overridden in CBotVarClass
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -325,13 +340,6 @@ CBotToken* CBotVariable::GetToken()
 
 ////////////////////////////////////////////////////////////////////////////////
 CBotVariable* CBotVar::GetItem(const std::string& name)
-{
-    assert(0);
-    return nullptr;
-}
-
-////////////////////////////////////////////////////////////////////////////////
-CBotVariable* CBotVar::GetItemRef(int nIdent)
 {
     assert(0);
     return nullptr;
@@ -631,10 +639,6 @@ void CBotVar::Copy(CBotVar* pSrc)
 //-    m_bStatic    = pSrc->m_bStatic;
     m_next = nullptr;
     m_pUserPtr = pSrc->m_pUserPtr;
-
-    // keeps indentificator the same (by default)
-    // TODO remove commented code
-    //if (m_ident == 0) m_ident = pSrc->m_ident;
 }
 
 ////////////////////////////////////////////////////////////////////////////////

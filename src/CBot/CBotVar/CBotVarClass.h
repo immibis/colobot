@@ -49,7 +49,6 @@ public:
     CBotClass* GetClass() override;
 
     CBotVariable* GetItem(const std::string& name) override;
-    CBotVariable* GetItemRef(int nIdent) override;
     CBotVariable* GetItem(int n, bool bExtend) override;
     std::vector<std::unique_ptr<CBotVariable>>& GetItemList() override;
     std::string GetValString() override;
@@ -57,6 +56,18 @@ public:
     bool Save1State(FILE* pf) override;
 
     void Update(void* pUser) override;
+
+    CBotVarClass *AsObject() override;
+
+    /*!
+     * \brief Returns one of the field slots in the object.
+     *
+     * Asserts if the position is out-of-range for this object.
+     *
+     * \param position Slot number
+     * \return The specified variable slot
+     */
+    CBotVariable *GetObjectField(int position);
 
     //! \name Reference counter
     //@{
@@ -109,6 +120,9 @@ private:
     long m_ItemIdent;
     //! Set after constructor is called, allows destructor to be called
     bool m_bConstructor;
+
+    // called recursively to set up base class variables
+    void InitFieldsForClass(CBotClass* pClass);
 
     friend class CBotVar;
     friend class CBotVarPointer;

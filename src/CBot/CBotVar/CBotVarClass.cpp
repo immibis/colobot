@@ -86,6 +86,20 @@ CBotVarClass::~CBotVarClass( )
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+CBotVarClass *CBotVarClass::AsObject()
+{
+    return this;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+CBotVariable *CBotVarClass::GetObjectField(int position)
+{
+    assert(position >= 0);
+    assert(static_cast<size_t>(position) < m_pVar.size());
+    return m_pVar[position].get();
+}
+
+////////////////////////////////////////////////////////////////////////////////
 void CBotVarClass::ConstructorSet()
 {
     m_bConstructor = true;
@@ -131,7 +145,7 @@ void CBotVarClass::SetIdent(long n)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-void CBotVarClass::SetClass(CBotClass* pClass)//, int &nIdent)
+void CBotVarClass::SetClass(CBotClass* pClass)
 {
     m_type.m_class = pClass;
 
@@ -143,6 +157,15 @@ void CBotVarClass::SetClass(CBotClass* pClass)//, int &nIdent)
     m_pVar.clear();
 
     if (pClass == nullptr) return;
+
+    InitFieldsForClass(pClass);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+void CBotVarClass::InitFieldsForClass(CBotClass *pClass)
+{
+    if (pClass->GetParent() != nullptr)
+        InitFieldsForClass(pClass->GetParent());
 
     for (std::unique_ptr<CBotVariable> &pv : pClass->GetVar())
     {
@@ -188,8 +211,6 @@ void CBotVarClass::SetClass(CBotClass* pClass)//, int &nIdent)
 #endif
         }
 
-//        pn->SetUniqNum(CBotVar::NextUniqNum());        // enumerate elements
-        pn->SetUniqNum(pv->GetUniqNum());    //++nIdent
         pn->m_pMyThis = this;
 
         m_pVar.emplace_back(std::move(pn));
@@ -217,24 +238,14 @@ void CBotVarClass::Update(void* pUser)
 ////////////////////////////////////////////////////////////////////////////////
 CBotVariable* CBotVarClass::GetItem(const std::string& name)
 {
-    for (std::unique_ptr<CBotVariable> &p : m_pVar)
+    // Test names in reverse order, so that derived class fields are found first.
+    for (auto iter = m_pVar.rbegin(); iter != m_pVar.rend(); iter++)
     {
-        if ( p->GetName() == name ) return p.get();
+        if ( (*iter)->GetName() == name ) return (*iter).get();
     }
 
+    // TODO: remove m_pParent
     if ( m_pParent != nullptr ) return m_pParent->GetItem(name);
-    return nullptr;
-}
-
-////////////////////////////////////////////////////////////////////////////////
-CBotVariable* CBotVarClass::GetItemRef(int nIdent)
-{
-    for (std::unique_ptr<CBotVariable> &p : m_pVar)
-    {
-        if ( p->GetUniqNum() == nIdent ) return p.get();
-    }
-
-    if ( m_pParent != nullptr ) return m_pParent->GetItemRef(nIdent);
     return nullptr;
 }
 

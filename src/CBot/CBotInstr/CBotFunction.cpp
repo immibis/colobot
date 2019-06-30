@@ -201,8 +201,6 @@ CBotFunction* CBotFunction::Compile(CBotToken* &p, CBotCStack* pStack, CBotFunct
                     // return "this" known
                     CBotVariable* pThis = new CBotVariable("this", CBotVar::Create(CBotTypResult( CBotTypClass, func->m_MasterClass )));
                     pThis->m_value->SetInit(CBotVar::InitType::IS_POINTER);
-//                  pThis->SetUniqNum(func->m_nThisIdent = -2); //CBotVar::NextUniqNum() will not
-                    pThis->SetUniqNum(-2);
                     pStk->AddVar(pThis);
 
                     // initialize variables acording to This
@@ -215,7 +213,6 @@ CBotFunction* CBotFunction::Compile(CBotToken* &p, CBotCStack* pStack, CBotFunct
 //                      pcopy->SetInit(2);
                         pcopy->m_value->Copy(pv->m_value.get());
                         pcopy->SetPrivate(pv->GetPrivate());
-//                      pcopy->SetUniqNum(pv->GetUniqNum()); //num++);
                         pStk->AddVar(std::move(pcopy));
                     }
                 }
@@ -406,8 +403,6 @@ bool CBotFunction::Execute(CBotVar** ppVars, CBotStack* &pj, CBotVar* pInstance)
         assert(pThis != nullptr);
         pThis->m_value->SetInit(CBotVar::InitType::IS_POINTER);
 
-//      pThis->SetUniqNum(m_nThisIdent);
-        pThis->SetUniqNum(-2);
         pile->AddVar(std::move(pThis));
 
         pile->IncState();
@@ -463,7 +458,6 @@ void CBotFunction::RestoreState(CBotVar** ppVars, CBotStack* &pj, CBotVar* pInst
         CBotVariable* pThis = pile->FindVar("this");
         pThis->m_value->SetInit(CBotVar::InitType::IS_POINTER);
         pThis->m_value->SetPointer(pInstance);
-        pThis->SetUniqNum(-2);
     }
 
     m_block->RestoreState(pile2, true);
@@ -716,7 +710,6 @@ int CBotFunction::DoCall(CBotProgram* program, const std::list<CBotFunction*>& l
                 assert(pThis != nullptr);
                 pThis->m_value->SetInit(CBotVar::InitType::IS_POINTER);
 
-                pThis->SetUniqNum(-2);
                 pStk1->AddVar(std::move(pThis));
             }
             pStk3b->SetState(1); // set 'this' was created
@@ -796,7 +789,6 @@ void CBotFunction::RestoreCall(const std::list<CBotFunction*>& localFunctionList
                 CBotVariable* pThis = pStk1->FindVar("this");
                 pThis->m_value->SetInit(CBotVar::InitType::IS_POINTER);
                 pThis->m_value->SetPointer(pInstance);
-                pThis->SetUniqNum(-2);
             }
         }
 
@@ -852,7 +844,6 @@ int CBotFunction::DoCall(const std::list<CBotFunction*>& localFunctionList, long
                 // sets the variable "this" on the stack
                 std::unique_ptr<CBotVariable> pthis(new CBotVariable("this", CBotVar::Create(CBotTypNullPointer)));
                 pthis->m_value->Copy(pThis);
-                pthis->SetUniqNum(-2);      // special value
                 pStk->AddVar(std::move(pthis));
 
                 // Note pthis vs pThis
@@ -862,7 +853,6 @@ int CBotFunction::DoCall(const std::list<CBotFunction*>& localFunctionList, long
                     // sets the variable "super" on the stack
                     std::unique_ptr<CBotVariable> psuper(new CBotVariable("super", CBotVar::Create(CBotTypNullPointer)));
                     psuper->m_value->Copy(pThis); // in fact identical to "this"
-                    psuper->SetUniqNum(-3);     // special value
                     pStk->AddVar(std::move(psuper));
                 }
             }
@@ -935,15 +925,6 @@ bool CBotFunction::RestoreCall(const std::list<CBotFunction*>& localFunctionList
         CBotStack*  pStk = pStack->RestoreStack(pt);
         if ( pStk == nullptr ) return true;
         pStk->SetProgram(pt->m_pProg);                  // it may have changed module
-
-        CBotVariable*    pthis = pStk->FindVar("this");
-        pthis->SetUniqNum(-2);
-
-        if (pClass->GetParent() != nullptr)
-        {
-            CBotVariable* psuper = pStk->FindVar("super");
-            if (psuper != nullptr) psuper->SetUniqNum(-3);
-        }
 
         CBotStack*  pStk3 = pStk->RestoreStack(nullptr);   // to set parameters passed
         if ( pStk3 == nullptr ) return true;

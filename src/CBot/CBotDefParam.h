@@ -101,7 +101,6 @@ private:
     std::string m_typename;
     //! Type of paramteter.
     CBotTypResult m_type;
-    long m_nIdent;
 
     //! Default value expression for the parameter.
     CBotInstr* m_expr;

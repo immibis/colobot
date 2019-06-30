@@ -35,7 +35,6 @@ namespace CBot
 ////////////////////////////////////////////////////////////////////////////////
 CBotDefParam::CBotDefParam()
 {
-    m_nIdent = 0;
     m_expr = nullptr;
 }
 
@@ -107,9 +106,7 @@ CBotDefParam* CBotDefParam::Compile(CBotToken* &p, CBotCStack* pStack)
                     std::unique_ptr<CBotVar> val = CBotVar::Create(type);          // creates the variable
 //                  if ( pClass ) var->SetClass(pClass);
                     val->SetInit(CBotVar::InitType::IS_POINTER);                                    // mark initialized
-                    param->m_nIdent = CBotVariable::NextUniqNum();
                     std::unique_ptr<CBotVariable> var(new CBotVariable(pp->GetString(), std::move(val)));
-                    var->SetUniqNum(param->m_nIdent);
                     pStack->AddVar(var.release());                      // place on the stack
 
                     if (IsOfType(p, ID_COMMA)) continue;
@@ -208,7 +205,6 @@ bool CBotDefParam::Execute(CBotVar** ppVars, CBotStack* &pj)
         }
 
         std::unique_ptr<CBotVariable> newvar(new CBotVariable(p->m_token.GetString(), std::move(newval)));
-        newvar->SetUniqNum(p->m_nIdent);
         pj->AddVar(newvar.release());     // add a variable
         p = p->m_next;
         if (!useDefault) i++;
@@ -244,8 +240,6 @@ void CBotDefParam::RestoreState(CBotStack* &pj, bool bMain)
             }
         }
         // creates a local variable on the stack
-        CBotVariable*    var = pj->FindVar(p->m_token.GetString());
-        if (var != nullptr) var->SetUniqNum(p->m_nIdent);
         p = p->m_next;
     }
 }

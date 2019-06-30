@@ -32,9 +32,9 @@ namespace CBot
 {
 
 ////////////////////////////////////////////////////////////////////////////////
-CBotFieldExpr::CBotFieldExpr()
+CBotFieldExpr::CBotFieldExpr(int nFieldPosition)
 {
-    m_nIdent    = 0;
+    m_nFieldPosition = nFieldPosition;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -43,18 +43,22 @@ CBotFieldExpr::~CBotFieldExpr()
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-void CBotFieldExpr::SetUniqNum(int num)
-{
-    m_nIdent = num;
-}
-
-////////////////////////////////////////////////////////////////////////////////
 bool CBotFieldExpr::ExecuteVar(CBotVar* &pVar, CBotCStack* &pile)
 {
     if (pVar->GetType(CBotVar::GetTypeMode::CLASS_AS_POINTER) != CBotTypPointer)
         assert(0);
 
-    CBotVariable *pNextVar = pVar->GetItemRef(m_nIdent);
+    CBotVarClass *asObject = pVar->AsObject();
+    if (asObject == nullptr)
+    {
+        // TODO: what's the right error code if the thing to the left isn't an object?
+        // should be an internal error since the type checker should've caught it
+        assert(false);
+        pile->SetError(CBotErrUndefItem, &m_token);
+        return false;
+    }
+
+    CBotVariable *pNextVar = asObject->GetObjectField(m_nFieldPosition);
     pVar = pNextVar ? pNextVar->m_value.get() : nullptr;
     if (pVar == nullptr)
     {
@@ -92,7 +96,17 @@ bool CBotFieldExpr::ExecuteVar(CBotVar* &pVar, CBotStack* &pile, CBotToken* prev
 
     if (bStep && pile->IfStep()) return false;
 
-    CBotVariable *pVar2 = pVar->GetItemRef(m_nIdent);
+    CBotVarClass *asObject = pVar->AsObject();
+    if (asObject == nullptr)
+    {
+        // TODO: what's the right error code if the thing to the left isn't an object?
+        // should be an internal error since the type checker should've caught it
+        assert(false);
+        pile->SetError(CBotErrUndefItem, &m_token);
+        return false;
+    }
+
+    CBotVariable *pVar2 = asObject->GetObjectField(m_nFieldPosition);
     pVar = (pVar2 ? pVar2->m_value.get() : nullptr);
     if (pVar == nullptr)
     {
@@ -132,7 +146,7 @@ void CBotFieldExpr::RestoreStateVar(CBotStack* &pj, bool bMain)
 std::string CBotFieldExpr::GetDebugData()
 {
     std::stringstream ss;
-    ss << "VarID = " << m_nIdent;
+    ss << "FieldPosition = " << m_nFieldPosition;
     return ss.str();
 }
 
@@ -146,6 +160,8 @@ bool CBotFieldExpr::CheckProtectionError(CBotCStack* pStack, CBotVar* pPrev, con
 
     if (varPriv == CBotVariable::ProtectionLevel::Public) return false;
 
+    // TODO: can we refactor this?
+
     // implicit 'this.'var,  this.var,  or super.var
     if (pPrev == nullptr || prevName == "this" || prevName == "super") // member of the current class
     {
@@ -153,16 +169,15 @@ bool CBotFieldExpr::CheckProtectionError(CBotCStack* pStack, CBotVar* pPrev, con
         {
             CBotToken  token("this");
             CBotVar*   pThis = pStack->FindVar(token)->m_value.get();
+
+            // Theoretically can't happen; to be in this code path we need to be dereferencing a field on "this" or "super"
+            // (or implicitly "this") which means there must be a "this" variable.
+            // TODO: Can the user declare their own variable called "super"? Will that break this assumption?
+            // TODO: There should be a better way to get the current class, than looking for variables called "this"
+            assert(pThis != nullptr);
+
             CBotClass* pClass = pThis->GetClass();         // the current class
-
-            // TODO: this is the only place UniqNum is used. Remove UniqNum
-            if (pClass->GetVar().size() == 0)
-                return true;
-            CBotVariable* pVarList = pClass->GetVar().front().get();
-
-            int ident = pVar->GetUniqNum();
-            // check if var is inherited from a parent class
-            if (pVarList == nullptr || ident < pVarList->GetUniqNum())
+            if (pVar->GetContainingClass() != pClass)
                 return true;
         }
     }

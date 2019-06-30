@@ -111,9 +111,6 @@ CBotInstr* CBotDefClass::Compile(CBotToken* &p, CBotCStack* pStack, CBotClass* p
         {
             CBotVariable*    var = new CBotVariable(vartoken->GetString(), CBotVar::Create(type)); // creates the instance
     //      var->SetClass(pClass);
-            var->SetUniqNum(
-                (static_cast<CBotLeftExprVar*>(inst->m_var))->m_nIdent = CBotVariable::NextUniqNum());
-                                                                // its attribute a unique number
             pStack->AddVar(var);                                // placed on the stack
 
             // look if there are parameters
@@ -155,7 +152,7 @@ CBotInstr* CBotDefClass::Compile(CBotToken* &p, CBotCStack* pStack, CBotClass* p
 
                 pStk->SetCopyVar(var->m_value.get());
                 // chained method ?
-                if (nullptr != (inst->m_exprRetVar = CBotExprRetVar::Compile(p, pStk, -2, true)))
+                if (nullptr != (inst->m_exprRetVar = CBotExprRetVar::Compile(p, pStk, true, false)))
                 {
                     inst->m_exprRetVar->SetToken(vartoken);
                     pStk->DeleteChildLevels();
@@ -276,12 +273,11 @@ bool CBotDefClass::Execute(CBotStack* &pj)
             pThis = new CBotVariable(name, CBotVar::Create(CBotTypResult( CBotTypPointer, pClass )));
         }
 
-        pThis->SetUniqNum((static_cast<CBotLeftExprVar*>(m_var))->m_nIdent); // its attribute as unique number
         pile->AddVar(pThis);                                    // place on the stack
         pile->IncState();
     }
 
-    if ( pThis == nullptr ) pThis = pile->FindVar((static_cast<CBotLeftExprVar*>(m_var))->m_nIdent, false);
+    if ( pThis == nullptr ) pThis = pile->FindVar(m_var->m_token, false);
 
     if ( pile->GetState()<3)
     {
@@ -413,7 +409,6 @@ void CBotDefClass::RestoreState(CBotStack* &pj, bool bMain)
     {
         std::string  name = m_var->m_token.GetString();
         pThis = pile->FindVar(name);
-        pThis->SetUniqNum((static_cast<CBotLeftExprVar*>(m_var))->m_nIdent); // its attribute a unique number
     }
 
     if (m_exprRetVar != nullptr) // Class c().method();

@@ -94,7 +94,6 @@ protected:
     virtual std::string GetDebugData() override;
 
 private:
-    long m_nIdent;
     friend class CBotPostIncExpr;
     friend class CBotPreIncExpr;
 

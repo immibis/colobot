@@ -59,6 +59,12 @@ CBotVarPointer::~CBotVarPointer()
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+CBotVarClass *CBotVarPointer::AsObject()
+{
+    return (m_pVarClass == nullptr ? nullptr : m_pVarClass->AsObject());
+}
+
+////////////////////////////////////////////////////////////////////////////////
 void CBotVarPointer::Update(void* pUser)
 {
     if (m_pVarClass != nullptr) m_pVarClass->Update(pUser);
@@ -71,15 +77,6 @@ CBotVariable* CBotVarPointer::GetItem(const std::string& name)
         return m_pClass->GetItem(name);        // makes the pointer in the class itself
 
     return m_pVarClass->GetItem(name);
-}
-
-////////////////////////////////////////////////////////////////////////////////
-CBotVariable* CBotVarPointer::GetItemRef(int nIdent)
-{
-    if ( m_pVarClass == nullptr)                // no existing instance?
-        return m_pClass->GetItemRef(nIdent);// makes the pointer to the class itself
-
-    return m_pVarClass->GetItemRef(nIdent);
 }
 
 ////////////////////////////////////////////////////////////////////////////////

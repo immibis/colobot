@@ -356,27 +356,6 @@ CBotVariable* CBotStack::FindVar(const std::string& name)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-CBotVariable* CBotStack::FindVar(long ident, bool bUpdate)
-{
-    CBotStack*    p = this;
-    while (p != nullptr)
-    {
-        for (std::unique_ptr<CBotVariable> &pp : p->m_listVar)
-        {
-            if (pp->GetUniqNum() == ident)
-            {
-                if ( bUpdate )
-                    pp->m_value->Update(m_pUser);
-
-                return pp.get();
-            }
-        }
-        p = p->m_prev;
-    }
-    return nullptr;
-}
-
-////////////////////////////////////////////////////////////////////////////////
 CBotVariable* CBotStack::FindVar(CBotToken& pToken, bool bUpdate)
 {
     CBotToken*    pt = &pToken;

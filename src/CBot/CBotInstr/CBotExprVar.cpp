@@ -26,6 +26,7 @@
 
 #include "CBot/CBotStack.h"
 #include "CBot/CBotCStack.h"
+#include "CBot/CBotClass.h"
 
 #include "CBot/CBotVar/CBotVarArray.h"
 
@@ -35,7 +36,6 @@ namespace CBot
 ////////////////////////////////////////////////////////////////////////////////
 CBotExprVar::CBotExprVar()
 {
-    m_nIdent = 0;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -62,10 +62,7 @@ CBotInstr* CBotExprVar::Compile(CBotToken*& p, CBotCStack* pStack, bool bCheckRe
 
         if (nullptr != (var = pStk->FindVar(p)))   // seek if known variable
         {
-            int        ident = var->GetUniqNum();
-            (static_cast<CBotExprVar*>(inst))->m_nIdent = ident;     // identifies variable by its number
-
-            if (ident > 0 && ident < 9000)
+            if (var->GetContainingClass() != nullptr) // implicit "this" access
             {
                 if (CBotFieldExpr::CheckProtectionError(pStk, nullptr, "", var, bCheckReadOnly))
                 {
@@ -79,11 +76,9 @@ CBotInstr* CBotExprVar::Compile(CBotToken*& p, CBotCStack* pStack, bool bCheckRe
                 // invisible 'this.' highlights member token on error
                 token.SetPos(p->GetStart(), p->GetEnd());
                 inst->SetToken(&token);
-                (static_cast<CBotExprVar*>(inst))->m_nIdent = -2;    // identificator for this
 
-                CBotFieldExpr* i = new CBotFieldExpr();     // new element
+                CBotFieldExpr* i = new CBotFieldExpr(var->GetFieldPosition());     // new element
                 i->SetToken(p);     // keeps the name of the token
-                i->SetUniqNum(ident);
                 inst->AddNext3(i);  // added after
             }
 
@@ -126,21 +121,21 @@ CBotInstr* CBotExprVar::Compile(CBotToken*& p, CBotCStack* pStack, bool bCheckRe
                             {
                                 if (bCheckReadOnly) goto err; // don't allow increment a method call "++"
 
-                                CBotInstr* i = CBotInstrMethode::Compile(p, pStk, var->m_value.get(), var->GetUniqNum());
+                                CBotInstr* i = CBotInstrMethode::Compile(p, pStk, var->m_value.get(), false,
+                                        var->GetContainingClass() == nullptr && var->GetName() == "super");
                                 if (!pStk->IsOk()) goto err;
                                 inst->AddNext3(i);  // added after
                                 return pStack->Return(inst, pStk);
                             }
                             else
                             {
-                                CBotFieldExpr* i = new CBotFieldExpr();     // new element
-                                i->SetToken(pp);                            // keeps the name of the token
-                                inst->AddNext3(i);                          // add after
                                 CBotVariable*   preVar = var;
                                 var = var->m_value->GetItem(p->GetString());         // get item correspondent
                                 if (var != nullptr)
                                 {
-                                    i->SetUniqNum(var->GetUniqNum());
+                                    CBotFieldExpr* i = new CBotFieldExpr(var->GetFieldPosition());     // new element
+                                    i->SetToken(pp);                            // keeps the name of the token
+                                    inst->AddNext3(i);                          // add after
                                     if (CBotFieldExpr::CheckProtectionError(pStk, preVar->m_value.get(), preVar->GetName(), var, bCheckReadOnly))
                                     {
                                         pStk->SetError(CBotErrPrivate, pp);
@@ -201,7 +196,6 @@ CBotInstr* CBotExprVar::CompileMethode(CBotToken* &p, CBotCStack* pStack)
         // invisible 'this.' highlights member token on error
         pthis.SetPos(pp->GetStart(), pp->GetEnd());
         inst->SetToken(&pthis);
-        (static_cast<CBotExprVar*>(inst))->m_nIdent = -2;    // ident for this
 
         CBotToken* pp = p;
 
@@ -209,7 +203,8 @@ CBotInstr* CBotExprVar::CompileMethode(CBotToken* &p, CBotCStack* pStack)
         {
             if (pp->GetNext()->GetType() == ID_OPENPAR)        // a method call?
             {
-                CBotInstr* i = CBotInstrMethode::Compile(pp, pStk, var->m_value.get(), var->GetUniqNum());
+                CBotInstr* i = CBotInstrMethode::Compile(pp, pStk, var->m_value.get(), false,
+                        var->GetContainingClass() == nullptr && var->GetName() == "super");
                 if (pStk->IsOk())
                 {
                     inst->AddNext3(i);                            // add after
@@ -284,9 +279,9 @@ bool CBotExprVar::ExecuteVar(CBotVar* &pVar, CBotStack* &pj, CBotToken* prevToke
     CBotStack*    pile = pj;
     pj = pj->AddStack(this);
 
-    if (bStep && m_nIdent>0 && pj->IfStep()) return false;
+    if (bStep && pj->IfStep()) return false;
 
-    CBotVariable *pRealVar = pj->FindVar(m_nIdent, true);     // tries with the variable update if necessary
+    CBotVariable *pRealVar = pj->FindVar(m_token, true);     // tries with the variable update if necessary
     pVar = (pRealVar ? pRealVar->m_value.get() : nullptr);
     if (pVar == nullptr)
     {

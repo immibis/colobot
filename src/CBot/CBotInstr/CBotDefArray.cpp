@@ -99,8 +99,6 @@ CBotInstr* CBotDefArray::Compile(CBotToken* &p, CBotCStack* pStack, CBotTypResul
 
         // XXX val still used after unique_ptr handoff
         std::unique_ptr<CBotVariable> var(new CBotVariable(*vartoken, std::unique_ptr<CBotVar>(val)));
-        var->SetUniqNum(
-            (static_cast<CBotLeftExprVar*>(inst->m_var))->m_nIdent = CBotVariable::NextUniqNum());
         pStack->AddVar(std::move(var));                                 // place it on the stack
 
         if (IsOfType(p, ID_ASS))                                        // with an assignment
@@ -192,7 +190,6 @@ bool CBotDefArray::Execute(CBotStack* &pj)
         // create simply a nullptr pointer
         std::unique_ptr<CBotVariable> var(new CBotVariable(*(m_var->GetToken()), CBotVar::Create(m_typevar)));
         var->m_value->SetPointer(nullptr);
-        var->SetUniqNum((static_cast<CBotLeftExprVar*>(m_var))->m_nIdent);
         pj->AddVar(var.release());
 
 #if        STACKMEM
@@ -207,7 +204,7 @@ bool CBotDefArray::Execute(CBotStack* &pj)
     {
         if (m_listass != nullptr)                                      // there is the assignment for this table
         {
-            CBotVariable* pVar = pj->FindVar((static_cast<CBotLeftExprVar*>(m_var))->m_nIdent, false);
+            CBotVariable* pVar = pj->FindVar(*(m_var->GetToken()), false);
 
             if (!m_listass->Execute(pile1, pVar->m_value.get())) return false;
         }
@@ -226,9 +223,6 @@ bool CBotDefArray::Execute(CBotStack* &pj)
 void CBotDefArray::RestoreState(CBotStack* &pj, bool bMain)
 {
     CBotStack*    pile1 = pj;
-
-    CBotVariable*    var = pj->FindVar(m_var->GetToken()->GetString());
-    if (var != nullptr) var->SetUniqNum((static_cast<CBotLeftExprVar*>(m_var))->m_nIdent);
 
     if (bMain)
     {

@@ -57,8 +57,6 @@ protected:
 public:
     //! Type of variable declared.
     CBotTypResult m_typevar = -1;
-    //! Unique identifier of that variable
-    long m_nIdent = 0;
 };
 
 } // namespace CBot

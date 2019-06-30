@@ -93,9 +93,6 @@ public:
 protected:
     virtual const std::string GetDebugName() override { return "CBotLeftExpr"; }
     virtual std::string GetDebugData() override;
-
-private:
-    long m_nIdent;
 };
 
 } // namespace CBot

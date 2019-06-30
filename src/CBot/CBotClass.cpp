@@ -160,7 +160,6 @@ bool CBotClass::AddItem(std::string name,
     CBotClass*  pClass = type.GetClass();
 
     std::unique_ptr<CBotVariable> pVar(new CBotVariable( name, CBotVar::Create(type) ));
-/// pVar->SetUniqNum(CBotVar::NextUniqNum());
     pVar->SetPrivate( mPrivate );
 
     if ( pClass != nullptr )
@@ -180,7 +179,8 @@ bool CBotClass::AddItem(std::string name,
 ////////////////////////////////////////////////////////////////////////////////
 bool CBotClass::AddItem(CBotVariable* pVar)
 {
-    pVar->SetUniqNum(++m_nbVar);
+    ++m_nbVar;
+    pVar->SetContainingClass(this, m_nbVar-1);
 
     // TODO: should take a unique_ptr as argument
     m_pVar.emplace_back(std::unique_ptr<CBotVariable>(pVar));
@@ -234,14 +234,18 @@ CBotVariable* CBotClass::GetItem(const std::string& name)
 ////////////////////////////////////////////////////////////////////////////////
 CBotVariable* CBotClass::GetItemRef(int nIdent)
 {
-    for (std::unique_ptr<CBotVariable> &var : m_pVar)
-    {
-        if (var->GetUniqNum() == nIdent)
-            return var.get();
-    }
+    if (nIdent < 0)
+        return nullptr;
 
-    if (m_parent != nullptr ) return m_parent->GetItemRef(nIdent);
-    return nullptr;
+    int parentNbVar = (m_parent == nullptr ? 0 : m_parent->m_nbVar);
+
+    if (nIdent < parentNbVar)
+        return m_parent->GetItemRef(nIdent);
+
+    if (nIdent - parentNbVar >= static_cast<int>(m_pVar.size()))
+        return nullptr;
+
+    return m_pVar[nIdent - parentNbVar].get();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -606,7 +610,6 @@ bool CBotClass::CompileDefItem(CBotToken* &p, CBotCStack* pStack, bool bSecond)
                     // make "this" known
                     CBotToken TokenThis(std::string("this"), std::string());
                     CBotVariable* pThis = new CBotVariable(TokenThis, CBotVar::Create(CBotTypResult( CBotTypClass, this ) ));
-                    pThis->SetUniqNum(-2);
                     pile->AddVar(pThis);
 
                     if (m_parent)
@@ -614,7 +617,6 @@ bool CBotClass::CompileDefItem(CBotToken* &p, CBotCStack* pStack, bool bSecond)
                         // makes "super" known
                         CBotToken TokenSuper(std::string("super"), std::string());
                         std::unique_ptr<CBotVariable> pThis(new CBotVariable(TokenSuper, CBotVar::Create(CBotTypResult(CBotTypClass, m_parent)) ));
-                        pThis->SetUniqNum(-3);
                         pile->AddVar(std::move(pThis));
                     }
 
@@ -630,7 +632,6 @@ bool CBotClass::CompileDefItem(CBotToken* &p, CBotCStack* pStack, bool bSecond)
                             if (!bConstructor || pv->IsStatic())
                                 initType = CBotVar::InitType::DEF;
                             pcopy->m_value->SetInit(initType);
-                            pcopy->SetUniqNum(pv->GetUniqNum());
                             pcopy->SetPrivate(pv->GetPrivate());
                             pile->AddVar(std::move(pcopy));
                         }
