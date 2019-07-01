@@ -120,7 +120,7 @@ CBotInstr* CBotParExpr::Compile(CBotToken* &p, CBotCStack* pStack)
         {
             if (nullptr != (inst = CBotExprVar::Compile(p, pStk, true)))
             {
-                if (pStk->GetVarType().GetType() < CBotTypBoolean) // a number ?
+                if (pStk->GetVarType().GetType() < CBotTypBoolean && pStk->GetVarType().GetType() != CBotTypVoid) // a number ?
                 {
                     CBotPreIncExpr* i = new CBotPreIncExpr();
                     i->SetToken(pp);

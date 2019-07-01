@@ -57,7 +57,7 @@ CBotInstr* CBotSwitch::Compile(CBotToken* &p, CBotCStack* pStack)
     {
         if ( nullptr != (inst->m_value = CBotExpression::Compile(p, pStk )) )
         {
-            if ( pStk->GetVarType().GetType() < CBotTypLong )
+            if ( pStk->GetVarType().GetType() < CBotTypLong && pStk->GetVarType().GetType() != CBotTypVoid )
             {
                 if ( IsOfType(p, ID_CLOSEPAR ) )
                 {

@@ -52,7 +52,7 @@ CBotInstr* CBotThrow::Compile(CBotToken* &p, CBotCStack* pStack)
 
     inst->m_value = CBotExpression::Compile(p, pStack );
 
-    if (pStack->GetVarType().GetType() < CBotTypLong && pStack->IsOk())
+    if (pStack->GetVarType().GetType() < CBotTypLong && pStack->IsOk() && pStack->GetVarType().GetType() != CBotTypVoid)
     {
         return inst;                            // return an object to the application
     }

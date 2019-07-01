@@ -126,12 +126,14 @@ CBotInstr* CBotExpression::Compile(CBotToken* &p, CBotCStack* pStack)
         case ID_ASSADD:
             if (type2.Eq(CBotTypBoolean) ||
                 type2.GetType() > CBotTypString ) type2.SetType(-1);    // numbers and strings
+            // XXX -1 is not a valid type
             break;
         case ID_ASSSUB:
         case ID_ASSMUL:
         case ID_ASSDIV:
         case ID_ASSMODULO:
             if (type2.GetType() >= CBotTypBoolean) type2.SetType(-1);    // numbers only
+            // XXX -1 is not a valid type
             break;
         }
 

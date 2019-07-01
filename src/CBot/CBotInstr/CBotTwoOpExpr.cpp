@@ -214,7 +214,7 @@ CBotInstr* CBotTwoOpExpr::Compile(CBotToken* &p, CBotCStack* pStack, int* pOpera
 
             type2 = pStk->GetVarType();                       // what kind of results?
 
-            if ( type1.Eq(99) || type2.Eq(99) )                 // operand is void
+            if ( type1.Eq(CBotTypVoid) || type2.Eq(CBotTypVoid) ) // operand is void
             {
                 pStk->SetError(CBotErrBadType2, &inst->m_token);
                 delete inst;
@@ -233,7 +233,7 @@ CBotInstr* CBotTwoOpExpr::Compile(CBotToken* &p, CBotCStack* pStack, int* pOpera
                 TypeRes = CBotTypString;
                 type1 = type2;  // any type convertible chain
             }
-            else if (!TypeOk(TypeRes, typeMask)) type1.SetType(99);// error of type
+            else if (!TypeOk(TypeRes, typeMask)) type1.SetType(CBotTypVoid);// error of type
 
             switch (typeOp)
             {

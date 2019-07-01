@@ -64,7 +64,7 @@ CBotInstr* CompileParams(CBotToken* &p, CBotCStack* pStack, std::vector<CBotTypR
 
             if (param != nullptr)
             {
-                if (pile->GetVarType().Eq(99))
+                if (pile->GetVarType().Eq(CBotTypVoid))
                 {
                     pStack->DeleteChildLevels();
                     pStack->SetError(CBotErrVoid, p->GetStart());
@@ -145,9 +145,11 @@ bool TypesCompatibles(const CBotTypResult& type1, const CBotTypResult& type2)
     if (t1 == CBotTypIntrinsic) t1 = CBotTypClass;
     if (t2 == CBotTypIntrinsic) t2 = CBotTypClass;
 
-    int max = (t1 > t2) ? t1 : t2;
+    // This function used to get 99 for 'void', now it gets CBotTypVoid
+    if (t1 == CBotTypVoid || t2 == CBotTypVoid)
+        return false; // result is void?
 
-    if (max == 99) return false;                    // result is void?
+    int max = (t1 > t2) ? t1 : t2;
 
     if (max >= CBotTypBoolean)
     {

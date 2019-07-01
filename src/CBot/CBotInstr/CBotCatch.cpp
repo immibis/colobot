@@ -58,7 +58,8 @@ CBotCatch* CBotCatch::Compile(CBotToken* &p, CBotCStack* pStack)
     {
         inst->m_cond = CBotExpression::Compile(p, pStack);
         if (( pStack->GetVarType().GetType() < CBotTypLong ||
-              pStack->GetVarType().Eq(CBotTypBoolean) )&& pStack->IsOk() )
+              pStack->GetVarType().Eq(CBotTypBoolean) )&& pStack->IsOk()
+            && pStack->GetVarType().GetType() != CBotTypVoid)
         {
             if (IsOfType(p, ID_CLOSEPAR))
             {
