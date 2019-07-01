@@ -151,7 +151,7 @@ std::string CBotFieldExpr::GetDebugData()
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-bool CBotFieldExpr::CheckProtectionError(CBotCStack* pStack, CBotVar* pPrev, const std::string &prevName, CBotVariable* pVar, bool bCheckReadOnly)
+bool CBotFieldExpr::CheckProtectionError(CBotCStack* pStack, CBotTypResult prevType, const std::string &prevName, CBotVariable* pVar, bool bCheckReadOnly)
 {
     CBotVariable::ProtectionLevel varPriv = pVar->GetPrivate();
 
@@ -162,8 +162,8 @@ bool CBotFieldExpr::CheckProtectionError(CBotCStack* pStack, CBotVar* pPrev, con
 
     // TODO: can we refactor this?
 
-    // implicit 'this.'var,  this.var,  or super.var
-    if (pPrev == nullptr || prevName == "this" || prevName == "super") // member of the current class
+    // implicit 'this.' var (prevType is void meaning no value),  this.var,  or super.var
+    if (prevType.GetType() == CBotTypVoid || prevName == "this" || prevName == "super") // member of the current class
     {
         if (varPriv == CBotVariable::ProtectionLevel::Private)  // var is private ?
         {
@@ -193,11 +193,12 @@ bool CBotFieldExpr::CheckProtectionError(CBotCStack* pStack, CBotVar* pPrev, con
 
             CBotClass* pClass = pThis->m_value->GetClass();               // the current class
 
-            if (!pClass->IsChildOf(pPrev->GetClass()))     // var is member of some other class ?
+            // TODO: Is this rule for 'protected' accurate? See how it works in Java for example.
+            if (!pClass->IsChildOf(prevType.GetClass()))     // var is member of some other class ?
                 return true;
 
             if (varPriv == CBotVariable::ProtectionLevel::Private &&  // private member of a parent class
-                pClass != pPrev->GetClass()) return true;
+                pClass != prevType.GetClass()) return true;
         }
     }
 

@@ -37,12 +37,12 @@ public:
      * \brief Compile
      * \param p
      * \param pStack
-     * \param pVar
+     * \param varType Type of object method is being called on
      * \param bMethodChain If true, allows chaining methods only
      * \param bIsSuperCall If true, don't do a virtual call
      * \return
      */
-    static CBotInstr* Compile(CBotToken* &p, CBotCStack* pStack, CBotVar* pVar, bool bMethodChain, bool bIsSuperCall);
+    static CBotInstr* Compile(CBotToken* &p, CBotCStack* pStack, CBotTypResult varType, bool bMethodChain, bool bIsSuperCall);
 
     /*!
      * \brief Execute

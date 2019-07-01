@@ -19,6 +19,8 @@
 
 #pragma once
 
+#include <vector>
+
 namespace CBot
 {
 
@@ -32,10 +34,10 @@ class CBotTypResult;
  * \brief CompileParams Compile a list of parameters.
  * \param p
  * \param pStack
- * \param ppVars
+ * \param ppVars [out] types of parameters
  * \return
  */
-CBotInstr* CompileParams(CBotToken* &p, CBotCStack* pStack, CBotVar** ppVars);
+CBotInstr* CompileParams(CBotToken* &p, CBotCStack* pStack, std::vector<CBotTypResult> &ppVars);
 
 /*!
  * \brief TypeCompatible Check if two results are consistent to make an

@@ -45,9 +45,9 @@ class CBotToken;
  * The TokenStack method, which must be called on the innermost level, creates and returns a new inner level.
  * The Return or ReturnFunc method can be used to destroy the innermost level and go back to the level outside it.
  *
- * Each stack level has a m_var which is used for various purposes.
+ * Each stack level has a m_vartype which is used for various purposes - generally indicating the type of value returned
+ * by a previous expression.
  * It's not clear why we stash these into the stack instead of returning them.
- * The CBotCStack has ownership of the object m_var points to.
  *
  * Each stack level has an error start position, end position and error type.
  * It's not clear why we stash these into the stack instead of returning them or throwing an exception.
@@ -118,47 +118,6 @@ public:
      * \return Error type
      */
     CBotError GetError(int& start, int& end);
-
-    /*!
-     * \brief Set m_var's type.
-     *
-     * This is identical to GetVar()->\link CBotVar::SetType(CBotTypResult&) SetType(type)\endlink, unless m_var is null in which case it does nothing.
-     *
-     * \param type New type
-     */
-    void SetType(CBotTypResult& type);
-
-    /*!
-     * \brief Gets type of m_var.
-     *
-     * This is identical to GetVar()->\link CBotVar::GetTypResult(CBotVar::GetTypeMode) GetTypResult(mode)\endlink unless m_var is null.
-     * If m_var is null, this returns nullptr.
-     *
-     * \param mode
-     * \return m_var's type
-     */
-    CBotTypResult GetTypResult(CBotVar::GetTypeMode mode = CBotVar::GetTypeMode::NORMAL);
-
-    /*!
-     * \brief Gets type of m_var.
-     *
-     * This is identical to GetVar()->\link CBotVar::GetType(CBotVar::GetTypeMode) GetType(mode)\endlink unless m_var is null.
-     * If m_var is null, this returns nullptr.
-     *
-     * \param mode
-     * \return m_var's type
-     */
-    int GetType(CBotVar::GetTypeMode mode = CBotVar::GetTypeMode::NORMAL);
-
-    /*!
-     * \brief Gets type of m_var.
-     *
-     * This is identical to GetVar()->\link CBotVar::GetClass() GetClass()\endlink if m_var is not null and has a class type.
-     * Otherwise, this returns nullptr.
-     *
-     * \return m_var's class
-     */
-    CBotClass* GetClass();
 
     /*!
      * \brief Adds a local variable.
@@ -256,30 +215,20 @@ public:
     CBotFunction* ReturnFunc(CBotFunction* p, CBotCStack* pChild);
 
     /*!
-     * \brief Sets m_var.
+     * \brief Sets m_vartype.
      *
-     * Sets m_var to var. Deletes any previous m_var.
-     *
-     * \param var
-     */
-    void SetVar( std::unique_ptr<CBotVar> var );
-
-    /*!
-     * \brief Sets m_var.
-     *
-     * Sets m_var to a copy of var. Deletes any previous m_var. Does not takes ownership of var.
-     * var must not be null, or else m_var is left in an invalid state!
+     * Sets m_vartype to type.
      *
      * \param var
      */
-    void SetCopyVar( CBotVar* var );
+    void SetVarType( CBotTypResult type );
 
     /*!
-     * \brief Gets m_var.
+     * \brief Gets m_vartype.
      *
-     * \return Value of m_var, previously set by one of the SetVar or Return functions.
+     * \return Value of m_vartype, previously set by one of the SetVar or Return functions.
      */
-    CBotVar* GetVar();
+    const CBotTypResult& GetVarType();
 
     /*!
      * \brief Set error start location.
@@ -345,11 +294,11 @@ public:
     /*!
      * \brief CompileCall
      * \param p
-     * \param ppVars
+     * \param ppVars Argument types
      * \param nIdent
      * \return
      */
-    CBotTypResult CompileCall(CBotToken* &p, CBotVar** ppVars, long& nIdent);
+    CBotTypResult CompileCall(CBotToken* &p, const std::vector<CBotTypResult> &ppVars, long& nIdent);
 
     /*!
      * \brief CheckCall Test if a procedure name is already defined somewhere.
@@ -407,7 +356,7 @@ private:
     int m_start;
 
     //! Result of the operations.
-    std::unique_ptr<CBotVar> m_var;
+    CBotTypResult m_vartype;
     //! Is part of a block (variables are local to this block).
     bool m_bBlock;
     CBotVariable* m_listVar;

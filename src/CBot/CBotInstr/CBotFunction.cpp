@@ -464,7 +464,7 @@ void CBotFunction::RestoreState(CBotVar** ppVars, CBotStack* &pj, CBotVar* pInst
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-CBotTypResult CBotFunction::CompileCall(const std::list<CBotFunction*>& localFunctionList, const std::string &name, CBotVar** ppVars, long &nIdent)
+CBotTypResult CBotFunction::CompileCall(const std::list<CBotFunction*>& localFunctionList, const std::string &name, const std::vector<CBotTypResult> &ppVars, long &nIdent)
 {
     CBotTypResult type;
     if (!FindLocalOrPublic(localFunctionList, nIdent, name, ppVars, type))
@@ -477,7 +477,7 @@ CBotTypResult CBotFunction::CompileCall(const std::list<CBotFunction*>& localFun
 
 ////////////////////////////////////////////////////////////////////////////////
 CBotFunction* CBotFunction::FindLocalOrPublic(const std::list<CBotFunction*>& localFunctionList, long &nIdent, const std::string &name,
-                                              CBotVar** ppVars, CBotTypResult &TypeOrError, bool bPublic)
+                                              const std::vector<CBotTypResult> &ppVars, CBotTypResult &TypeOrError, bool bPublic)
 {
     TypeOrError.SetType(CBotErrUndefCall);      // no routine of the name
 
@@ -511,20 +511,24 @@ CBotFunction* CBotFunction::FindLocalOrPublic(const std::list<CBotFunction*>& lo
     {
         if ( pt->m_token.GetString() == name )
         {
-            int i = 0;
+            size_t i = 0;
             int alpha = 0;                          // signature of parameters
             // parameters are compatible?
             CBotDefParam* pv = pt->m_param;         // expected list of parameters
-            CBotVar* pw = ppVars[i++];              // provided list parameter
-            while ( pv != nullptr && (pw != nullptr || pv->HasDefault()) )
+            CBotTypResult pw;                       // provided list parameter
+            while ( pv != nullptr && (i < ppVars.size() || pv->HasDefault()) )
             {
-                if (pw == nullptr)     // end of arguments
+                if (i >= ppVars.size())     // end of arguments
                 {
+                    i++;
                     pv = pv->GetNext();
                     continue;          // skip params with default values
                 }
+                pw = ppVars[i++];
                 CBotTypResult paramType = pv->GetTypResult();
-                CBotTypResult argType = pw->GetTypResult(CBotVar::GetTypeMode::CLASS_AS_INTRINSIC);
+                CBotTypResult argType = pw;
+                if(argType.GetType() == CBotTypClass)
+                    argType.SetType(CBotTypIntrinsic);
 
                 if (!TypesCompatibles(paramType, argType))
                 {
@@ -544,13 +548,12 @@ CBotFunction* CBotFunction::FindLocalOrPublic(const std::list<CBotFunction*>& lo
                 }
                 else
                 {
-                    int d = pv->GetType() - pw->GetType(CBotVar::GetTypeMode::CLASS_AS_INTRINSIC);
+                    int d = pv->GetType() - argType.GetType();
                     alpha += d>0 ? d : -10*d;       // quality loss, 10 times more expensive!
                 }
                 pv = pv->GetNext();
-                pw = ppVars[i++];
             }
-            if ( pw != nullptr )
+            if ( i < ppVars.size() )
             {
                 if ( !funcMap.empty() ) continue;
                 if ( TypeOrError.Eq(CBotErrLowParam) ) TypeOrError.SetType(CBotErrNbParam);
@@ -574,20 +577,24 @@ CBotFunction* CBotFunction::FindLocalOrPublic(const std::list<CBotFunction*>& lo
         {
             if ( pt->m_token.GetString() == name )
             {
-                int i = 0;
+                size_t i = 0;
                 int alpha = 0;                          // signature of parameters
                 // parameters sont-ils compatibles ?
                 CBotDefParam* pv = pt->m_param;         // list of expected parameters
-                CBotVar* pw = ppVars[i++];              // list of provided parameters
-                while ( pv != nullptr && (pw != nullptr || pv->HasDefault()) )
+                CBotTypResult pw;                       // list of provided parameters
+                while ( pv != nullptr && (i < ppVars.size() || pv->HasDefault()) )
                 {
-                    if (pw == nullptr)     // end of arguments
+                    if (i >= ppVars.size())     // end of arguments
                     {
+                        i++;
                         pv = pv->GetNext();
                         continue;          // skip params with default values
                     }
+                    pw = ppVars[i++];
                     CBotTypResult paramType = pv->GetTypResult();
-                    CBotTypResult argType = pw->GetTypResult(CBotVar::GetTypeMode::CLASS_AS_INTRINSIC);
+                    CBotTypResult argType = pw;
+                    if(argType.GetType() == CBotTypClass)
+                        argType.SetType(CBotTypIntrinsic);
 
                     if (!TypesCompatibles(paramType, argType))
                     {
@@ -607,13 +614,12 @@ CBotFunction* CBotFunction::FindLocalOrPublic(const std::list<CBotFunction*>& lo
                     }
                     else
                     {
-                        int d = pv->GetType() - pw->GetType(CBotVar::GetTypeMode::CLASS_AS_INTRINSIC);
+                        int d = pv->GetType() - argType.GetType();
                         alpha += d>0 ? d : -10*d;       // quality loss, 10 times more expensive!
                     }
                     pv = pv->GetNext();
-                    pw = ppVars[i++];
                 }
-                if ( pw != nullptr )
+                if ( i < ppVars.size() )
                 {
                     if ( !funcMap.empty() ) continue; // previous useable function
                     if ( TypeOrError.Eq(CBotErrLowParam) ) TypeOrError.SetType(CBotErrNbParam);
@@ -660,6 +666,26 @@ CBotFunction* CBotFunction::FindLocalOrPublic(const std::list<CBotFunction*>& lo
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+static std::vector<CBotTypResult> argTypesToVector(CBotVar** ppVars)
+{
+    int count = 0;
+    while (ppVars[count] != nullptr)
+        count++;
+
+    std::vector<CBotTypResult> result;
+    result.reserve(count);
+
+    count = 0;
+    while (ppVars[count] != nullptr)
+    {
+        result.emplace_back(ppVars[count]->GetTypResult());
+        count++;
+    }
+
+    return result;
+}
+
+////////////////////////////////////////////////////////////////////////////////
 int CBotFunction::DoCall(CBotProgram* program, const std::list<CBotFunction*>& localFunctionList, long &nIdent, const std::string &name,
                          CBotVar** ppVars, CBotStack* pStack, CBotToken* pToken)
 {
@@ -667,7 +693,7 @@ int CBotFunction::DoCall(CBotProgram* program, const std::list<CBotFunction*>& l
     CBotFunction*   pt = nullptr;
     CBotProgram*    baseProg = pStack->GetProgram(true);
 
-    pt = FindLocalOrPublic(localFunctionList, nIdent, name, ppVars, type);
+    pt = FindLocalOrPublic(localFunctionList, nIdent, name, argTypesToVector(ppVars), type);
 
     if ( pt != nullptr )
     {
@@ -757,7 +783,7 @@ void CBotFunction::RestoreCall(const std::list<CBotFunction*>& localFunctionList
     CBotStack*      pStk3;
     CBotProgram*    baseProg = pStack->GetProgram(true);
 
-    pt = FindLocalOrPublic(localFunctionList, nIdent, name, ppVars, type);
+    pt = FindLocalOrPublic(localFunctionList, nIdent, name, argTypesToVector(ppVars), type);
 
     if ( pt != nullptr )
     {
@@ -820,7 +846,7 @@ int CBotFunction::DoCall(const std::list<CBotFunction*>& localFunctionList, long
     CBotTypResult   type;
     CBotProgram*    pProgCurrent = pStack->GetProgram();
 
-    CBotFunction*   pt = FindLocalOrPublic(localFunctionList, nIdent, name, ppVars, type, false);
+    CBotFunction*   pt = FindLocalOrPublic(localFunctionList, nIdent, name, argTypesToVector(ppVars), type, false);
 
     if ( pt != nullptr )
     {
@@ -918,7 +944,7 @@ bool CBotFunction::RestoreCall(const std::list<CBotFunction*>& localFunctionList
                                CBotVar** ppVars, CBotStack* pStack, CBotClass* pClass)
 {
     CBotTypResult   type;
-    CBotFunction*   pt = FindLocalOrPublic(localFunctionList, nIdent, name, ppVars, type);
+    CBotFunction*   pt = FindLocalOrPublic(localFunctionList, nIdent, name, argTypesToVector(ppVars), type);
 
     if ( pt != nullptr )
     {

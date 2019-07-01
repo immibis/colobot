@@ -62,7 +62,7 @@ CBotLeftExpr* CBotLeftExpr::Compile(CBotToken* &p, CBotCStack* pStack)
         {
             if (var->GetContainingClass() != nullptr)
             {
-                if (CBotFieldExpr::CheckProtectionError(pStk, nullptr, "", var, true))
+                if (CBotFieldExpr::CheckProtectionError(pStk, CBotTypVoid, "", var, true))
                 {
                     pStk->SetError(CBotErrPrivate, p);
                     goto err;
@@ -122,7 +122,7 @@ CBotLeftExpr* CBotLeftExpr::Compile(CBotToken* &p, CBotCStack* pStack)
                             var = var->m_value->GetItem(p->GetString());            // get item correspondent
                             if (var != nullptr)
                             {
-                                if (CBotFieldExpr::CheckProtectionError(pStk, preVar->m_value.get(), preVar->GetName(), var, true))
+                                if (CBotFieldExpr::CheckProtectionError(pStk, preVar->m_value->GetTypResult(), preVar->GetName(), var, true))
                                 {
                                     pStk->SetError(CBotErrPrivate, pp);
                                     goto err;

@@ -40,15 +40,14 @@ bool CBotExternalCallList::AddFunction(const std::string& name, std::unique_ptr<
     return true;
 }
 
-CBotTypResult CBotExternalCallList::CompileCall(CBotToken*& p, CBotVar* thisVar, CBotVar** ppVar, CBotCStack* pStack)
+CBotTypResult CBotExternalCallList::CompileCall(CBotToken*& p, CBotTypResult thisType, const std::vector<CBotTypResult> &ppVar, CBotCStack* pStack)
 {
     if (m_list.count(p->GetString()) == 0)
         return -1;
 
     CBotExternalCall* pt = m_list[p->GetString()].get();
 
-    std::unique_ptr<CBotVar> args = std::unique_ptr<CBotVar>(MakeListVars(ppVar));
-    CBotTypResult r = pt->Compile(thisVar, args.get(), m_user);
+    CBotTypResult r = pt->Compile(thisType, ppVar, m_user);
 
     // if a class is returned, it is actually a pointer
     if (r.GetType() == CBotTypClass) r.SetType(CBotTypPointer);
@@ -136,7 +135,7 @@ CBotExternalCallDefault::~CBotExternalCallDefault()
 {
 }
 
-CBotTypResult CBotExternalCallDefault::Compile(CBotVar* thisVar, CBotVar* args, void* user)
+CBotTypResult CBotExternalCallDefault::Compile(CBotTypResult thisType, const std::vector<CBotTypResult> &args, void* user)
 {
     return m_rComp(args, user);
 }
@@ -180,9 +179,9 @@ CBotExternalCallClass::~CBotExternalCallClass()
 {
 }
 
-CBotTypResult CBotExternalCallClass::Compile(CBotVar* thisVar, CBotVar* args, void* user)
+CBotTypResult CBotExternalCallClass::Compile(CBotTypResult thisType, const std::vector<CBotTypResult> &args, void* user)
 {
-    return m_rComp(thisVar, args);
+    return m_rComp(thisType, args);
 }
 
 bool CBotExternalCallClass::Run(CBotVar* thisVar, CBotStack* pStack)

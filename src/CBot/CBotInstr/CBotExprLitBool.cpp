@@ -50,8 +50,7 @@ CBotInstr* CBotExprLitBool::Compile(CBotToken* &p, CBotCStack* pStack)
         inst->SetToken(p);  // stores the operation false or true
         p = p->GetNext();
 
-        std::unique_ptr<CBotVar> var = CBotVar::Create(CBotTypBoolean);
-        pStk->SetVar(std::move(var));
+        pStk->SetVarType(CBotTypResult(CBotTypBoolean));
     }
 
     return pStack->Return(inst, pStk);

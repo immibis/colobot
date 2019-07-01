@@ -57,15 +57,15 @@ CBotInstr* CBotExprUnaire::Compile(CBotToken* &p, CBotCStack* pStack, bool bLite
 
     if (inst->m_expr != nullptr)
     {
-        if (op == ID_ADD && pStk->GetType() < CBotTypBoolean)        // only with the number
+        if (op == ID_ADD && pStk->GetVarType().GetType() < CBotTypBoolean)        // only with the number
             return pStack->Return(inst, pStk);
-        if (op == ID_SUB && pStk->GetType() < CBotTypBoolean)        // only with the numer
+        if (op == ID_SUB && pStk->GetVarType().GetType() < CBotTypBoolean)        // only with the numer
             return pStack->Return(inst, pStk);
-        if (op == ID_NOT && pStk->GetType() < CBotTypFloat)        // only with an integer
+        if (op == ID_NOT && pStk->GetVarType().GetType() < CBotTypFloat)        // only with an integer
             return pStack->Return(inst, pStk);
-        if (op == ID_LOG_NOT && pStk->GetTypResult().Eq(CBotTypBoolean))// only with boolean
+        if (op == ID_LOG_NOT && pStk->GetVarType().Eq(CBotTypBoolean))// only with boolean
             return pStack->Return(inst, pStk);
-        if (op == ID_TXT_NOT && pStk->GetTypResult().Eq(CBotTypBoolean))// only with boolean
+        if (op == ID_TXT_NOT && pStk->GetVarType().Eq(CBotTypBoolean))// only with boolean
             return pStack->Return(inst, pStk);
 
         pStk->SetError(CBotErrBadType1, &inst->m_token);

@@ -36,7 +36,7 @@ CBotInstr* CBotBoolExpr::Compile(CBotToken* &p, CBotCStack* pStack)
 
     if (nullptr != inst)
     {
-        if (pStack->GetTypResult().Eq(CBotTypBoolean))
+        if (pStack->GetVarType().Eq(CBotTypBoolean))
         {
             return inst;
         }

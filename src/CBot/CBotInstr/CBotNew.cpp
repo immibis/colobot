@@ -75,24 +75,23 @@ CBotInstr* CBotNew::Compile(CBotToken* &p, CBotCStack* pStack)
 
     // creates the object on the stack
     // with a pointer to the object
-    std::unique_ptr<CBotVar> pVar = CBotVar::Create(CBotTypResult(CBotTypClass, pClass));
+    CBotTypResult pVar(CBotTypPointer, pClass);
 
     // do the call of the creator
     CBotCStack* pStk = pStack->TokenStack();
     {
         // check if there are parameters
-        CBotVar*    ppVars[1000];
+        std::vector<CBotTypResult> ppVars;
         inst->m_parameters = CompileParams(p, pStk, ppVars);
         if (!pStk->IsOk()) goto error;
 
         // constructor exist?
-        CBotTypResult r = pClass->CompileMethode(&inst->m_vartoken, pVar.get(), ppVars, pStk, inst->m_nMethodeIdent);
+        CBotTypResult r = pClass->CompileMethode(&inst->m_vartoken, pVar, ppVars, pStk, inst->m_nMethodeIdent);
         pStk->DeleteChildLevels();  // release extra stack
         int typ = r.GetType();
 
         // if there is no constructor, and no parameters either, it's ok
         if (typ == CBotErrUndefCall && inst->m_parameters == nullptr) typ = 0;
-        pVar->SetInit(CBotVar::InitType::DEF);    // mark the instance as init
 
         if (typ>20)
         {
@@ -108,7 +107,7 @@ CBotInstr* CBotNew::Compile(CBotToken* &p, CBotCStack* pStack)
         }
 
         // makes pointer to the object on the stack
-        pStk->SetVar(std::move(pVar));
+        pStk->SetVarType(pVar);
 
         pp = p;
         // chained method ?

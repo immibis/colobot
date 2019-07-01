@@ -97,28 +97,27 @@ bool rfconstruct (CBotVar* pThis, CBotVar* pVar, CBotVar* pResult, int& Exceptio
 }
 
 // compilation
-CBotTypResult cfconstruct (CBotVar* pThis, CBotVar* &pVar)
+CBotTypResult cfconstruct (CBotTypResult pThis, const std::vector<CBotTypResult> &pVar)
 {
     // accepts no parameters
-    if ( pVar == nullptr ) return CBotTypResult( 0 );
+    if ( pVar.size() == 0 ) return CBotTypResult( 0 );
 
     // must be a character string
-    if ( pVar->GetType() != CBotTypString )
+    if ( pVar[0].GetType() != CBotTypString )
         return CBotTypResult( CBotErrBadString );
 
     // there may be a second parameter
-    pVar = pVar->GetNext();
-    if ( pVar != nullptr )
+    if ( pVar.size() > 1 )
     {
         // which must be a string
-        if ( pVar->GetType() != CBotTypString )
+        if ( pVar[1].GetType() != CBotTypString )
             return CBotTypResult( CBotErrBadString );
         // no third parameter
-        if ( pVar->GetNext() != nullptr ) return CBotTypResult( CBotErrOverParam );
+        if ( pVar.size() > 2 ) return CBotTypResult( CBotErrOverParam );
     }
 
     // the result is void (constructor)
-    return CBotTypResult( 0 );
+    return CBotTypVoid;
 }
 
 
@@ -153,25 +152,24 @@ bool rfopen (CBotVar* pThis, CBotVar* pVar, CBotVar* pResult, int& Exception, vo
 }
 
 // compilation
-CBotTypResult cfopen (CBotVar* pThis, CBotVar* &pVar)
+CBotTypResult cfopen (CBotTypResult pThis, const std::vector<CBotTypResult> &pVar)
 {
     // there must be a parameter
-    if ( pVar == nullptr ) return CBotTypResult( CBotErrLowParam );
+    if ( pVar.size() == 0 ) return CBotTypResult( CBotErrLowParam );
 
     // which must be a string
-    if ( pVar->GetType() != CBotTypString )
+    if ( pVar[0].GetType() != CBotTypString )
         return CBotTypResult( CBotErrBadString );
 
     // there may be a second parameter
-    pVar = pVar->GetNext();
-    if ( pVar != nullptr )
+    if ( pVar.size() > 1 )
     {
         // which must be a string
-        if ( pVar->GetType() != CBotTypString )
+        if ( pVar[1].GetType() != CBotTypString )
             return CBotTypResult( CBotErrBadString );
 
         // no third parameter
-        if ( pVar->GetNext() != nullptr ) return CBotTypResult( CBotErrOverParam );
+        if ( pVar.size() > 2 ) return CBotTypResult( CBotErrOverParam );
     }
 
     // the result is bool
@@ -208,13 +206,13 @@ bool rfclose (CBotVar* pThis, CBotVar* pVar, CBotVar* pResult, int& Exception, v
 }
 
 // compilation
-CBotTypResult cfclose (CBotVar* pThis, CBotVar* &pVar)
+CBotTypResult cfclose (CBotTypResult pThis, const std::vector<CBotTypResult> &pVar)
 {
     // it shouldn't be any parameters
-    if ( pVar != nullptr ) return CBotTypResult( CBotErrOverParam );
+    if ( pVar.size() > 0 ) return CBotTypResult( CBotErrOverParam );
 
     // function returns a result "void"
-    return CBotTypResult( 0 );
+    return CBotTypVoid;
 }
 
 // process FILE :: writeln
@@ -253,19 +251,19 @@ bool rfwrite (CBotVar* pThis, CBotVar* pVar, CBotVar* pResult, int& Exception, v
 }
 
 // compilation
-CBotTypResult cfwrite (CBotVar* pThis, CBotVar* &pVar)
+CBotTypResult cfwrite (CBotTypResult pThis, const std::vector<CBotTypResult> &pVar)
 {
     // there must be a parameter
-    if ( pVar == nullptr ) return CBotTypResult( CBotErrLowParam );
+    if ( pVar.size() == 0 ) return CBotTypResult( CBotErrLowParam );
 
     // which must be a character string
-    if ( pVar->GetType() != CBotTypString ) return CBotTypResult( CBotErrBadString );
+    if ( pVar[0].GetType() != CBotTypString ) return CBotTypResult( CBotErrBadString );
 
     // no other parameter
-    if ( pVar->GetNext() != nullptr ) return CBotTypResult( CBotErrOverParam );
+    if ( pVar.size() > 1 ) return CBotTypResult( CBotErrOverParam );
 
     // the function returns a void result
-    return CBotTypResult( 0 );
+    return CBotTypVoid;
 }
 
 // process FILE :: readln
@@ -301,13 +299,13 @@ bool rfread(CBotVar* pThis, CBotVar* pVar, CBotVar* pResult, int& Exception, voi
 }
 
 // compilation
-CBotTypResult cfread (CBotVar* pThis, CBotVar* &pVar)
+CBotTypResult cfread (CBotTypResult pThis, const std::vector<CBotTypResult> &pVar)
 {
     // it should not be any parameter
-    if ( pVar != nullptr ) return CBotTypResult( CBotErrOverParam );
+    if ( pVar.size() > 0 ) return CBotTypResult( CBotErrOverParam );
 
     // function returns a result "string"
-    return CBotTypResult( CBotTypString );
+    return CBotTypString;
 }
 // process FILE :: readln
 
@@ -338,13 +336,13 @@ bool rfeof (CBotVar* pThis, CBotVar* pVar, CBotVar* pResult, int& Exception, voi
 }
 
 // compilation
-CBotTypResult cfeof (CBotVar* pThis, CBotVar* &pVar)
+CBotTypResult cfeof (CBotTypResult pThis, const std::vector<CBotTypResult> &pVar)
 {
     // it shouldn't be any parameter
-    if ( pVar != nullptr ) return CBotTypResult( CBotErrOverParam );
+    if ( pVar.size() > 0 ) return CBotTypResult( CBotErrOverParam );
 
     // the function returns a boolean result
-    return CBotTypResult( CBotTypBoolean );
+    return CBotTypBoolean;
 }
 
 // Instruction "deletefile(filename)".

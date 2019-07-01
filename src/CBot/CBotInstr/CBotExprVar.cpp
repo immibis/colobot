@@ -64,7 +64,7 @@ CBotInstr* CBotExprVar::Compile(CBotToken*& p, CBotCStack* pStack, bool bCheckRe
         {
             if (var->GetContainingClass() != nullptr) // implicit "this" access
             {
-                if (CBotFieldExpr::CheckProtectionError(pStk, nullptr, "", var, bCheckReadOnly))
+                if (CBotFieldExpr::CheckProtectionError(pStk, CBotTypVoid, "", var, bCheckReadOnly))
                 {
                     pStk->SetError(CBotErrPrivate, p);
                     goto err;
@@ -121,7 +121,7 @@ CBotInstr* CBotExprVar::Compile(CBotToken*& p, CBotCStack* pStack, bool bCheckRe
                             {
                                 if (bCheckReadOnly) goto err; // don't allow increment a method call "++"
 
-                                CBotInstr* i = CBotInstrMethode::Compile(p, pStk, var->m_value.get(), false,
+                                CBotInstr* i = CBotInstrMethode::Compile(p, pStk, var->m_value->GetTypResult(), false,
                                         var->GetContainingClass() == nullptr && var->GetName() == "super");
                                 if (!pStk->IsOk()) goto err;
                                 inst->AddNext3(i);  // added after
@@ -136,7 +136,7 @@ CBotInstr* CBotExprVar::Compile(CBotToken*& p, CBotCStack* pStack, bool bCheckRe
                                     CBotFieldExpr* i = new CBotFieldExpr(var->GetFieldPosition());     // new element
                                     i->SetToken(pp);                            // keeps the name of the token
                                     inst->AddNext3(i);                          // add after
-                                    if (CBotFieldExpr::CheckProtectionError(pStk, preVar->m_value.get(), preVar->GetName(), var, bCheckReadOnly))
+                                    if (CBotFieldExpr::CheckProtectionError(pStk, preVar->m_value->GetTypResult(), preVar->GetName(), var, bCheckReadOnly))
                                     {
                                         pStk->SetError(CBotErrPrivate, pp);
                                         goto err;
@@ -161,7 +161,7 @@ CBotInstr* CBotExprVar::Compile(CBotToken*& p, CBotCStack* pStack, bool bCheckRe
                 break;
             }
 
-            pStk->SetCopyVar(var->m_value.get());  // place the copy of the variable on the stack (for type)
+            pStk->SetVarType(var->m_value->GetTypResult());
             if (pStk->IsOk()) return pStack->Return(inst, pStk);
         }
         pStk->SetError(CBotErrUndefVar, p);
@@ -203,7 +203,7 @@ CBotInstr* CBotExprVar::CompileMethode(CBotToken* &p, CBotCStack* pStack)
         {
             if (pp->GetNext()->GetType() == ID_OPENPAR)        // a method call?
             {
-                CBotInstr* i = CBotInstrMethode::Compile(pp, pStk, var->m_value.get(), false,
+                CBotInstr* i = CBotInstrMethode::Compile(pp, pStk, var->m_value->GetTypResult(), false,
                         var->GetContainingClass() == nullptr && var->GetName() == "super");
                 if (pStk->IsOk())
                 {

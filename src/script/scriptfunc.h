@@ -25,6 +25,7 @@
 #pragma once
 
 #include "CBot/CBot.h"
+#include "CBot/CBotTypResult.h"
 
 #include "common/error.h"
 
@@ -52,37 +53,37 @@ public:
     static bool CheckOpenFiles();
 
 private:
-    static CBot::CBotTypResult cEndMission(CBot::CBotVar* &var, void* user);
-    static CBot::CBotTypResult cPlayMusic(CBot::CBotVar* &var, void* user);
-    static CBot::CBotTypResult cGetObject(CBot::CBotVar* &var, void* user);
-    static CBot::CBotTypResult cDelete(CBot::CBotVar* &var, void* user);
-    static CBot::CBotTypResult cSearch(CBot::CBotVar* &var, void* user);
-    static CBot::CBotTypResult cSearchAll(CBot::CBotVar* &var, void* user);
-    static CBot::CBotTypResult cRadar(CBot::CBotVar* &var, void* user);
-    static CBot::CBotTypResult cRadarAll(CBot::CBotVar* &var, void* user);
-    static CBot::CBotTypResult cDetect(CBot::CBotVar* &var, void* user);
-    static CBot::CBotTypResult cDirection(CBot::CBotVar* &var, void* user);
-    static CBot::CBotTypResult cProduce(CBot::CBotVar* &var, void* user);
-    static CBot::CBotTypResult cDistance(CBot::CBotVar* &var, void* user);
-    static CBot::CBotTypResult cSpace(CBot::CBotVar* &var, void* user);
-    static CBot::CBotTypResult cFlatSpace(CBot::CBotVar* &var, void* user);
-    static CBot::CBotTypResult cFlatGround(CBot::CBotVar* &var, void* user);
-    static CBot::CBotTypResult cGoto(CBot::CBotVar* &var, void* user);
-    static CBot::CBotTypResult cGrabDrop(CBot::CBotVar* &var, void* user);
-    static CBot::CBotTypResult cReceive(CBot::CBotVar* &var, void* user);
-    static CBot::CBotTypResult cSend(CBot::CBotVar* &var, void* user);
-    static CBot::CBotTypResult cDeleteInfo(CBot::CBotVar* &var, void* user);
-    static CBot::CBotTypResult cTestInfo(CBot::CBotVar* &var, void* user);
-    static CBot::CBotTypResult cShield(CBot::CBotVar* &var, void* user);
-    static CBot::CBotTypResult cFire(CBot::CBotVar* &var, void* user);
-    static CBot::CBotTypResult cAim(CBot::CBotVar* &var, void* user);
-    static CBot::CBotTypResult cMotor(CBot::CBotVar* &var, void* user);
-    static CBot::CBotTypResult cTopo(CBot::CBotVar* &var, void* user);
-    static CBot::CBotTypResult cMessage(CBot::CBotVar* &var, void* user);
-    static CBot::CBotTypResult cPenDown(CBot::CBotVar* &var, void* user);
+    static CBot::CBotTypResult cEndMission(const std::vector<CBot::CBotTypResult> &var, void* user);
+    static CBot::CBotTypResult cPlayMusic(const std::vector<CBot::CBotTypResult> &var, void* user);
+    static CBot::CBotTypResult cGetObject(const std::vector<CBot::CBotTypResult> &var, void* user);
+    static CBot::CBotTypResult cDelete(const std::vector<CBot::CBotTypResult> &var, void* user);
+    static CBot::CBotTypResult cSearch(const std::vector<CBot::CBotTypResult> &var, void* user);
+    static CBot::CBotTypResult cSearchAll(const std::vector<CBot::CBotTypResult> &var, void* user);
+    static CBot::CBotTypResult cRadar(const std::vector<CBot::CBotTypResult> &var, void* user);
+    static CBot::CBotTypResult cRadarAll(const std::vector<CBot::CBotTypResult> &var, void* user);
+    static CBot::CBotTypResult cDetect(const std::vector<CBot::CBotTypResult> &var, void* user);
+    static CBot::CBotTypResult cDirection(const std::vector<CBot::CBotTypResult> &var, void* user);
+    static CBot::CBotTypResult cProduce(const std::vector<CBot::CBotTypResult> &var, void* user);
+    static CBot::CBotTypResult cDistance(const std::vector<CBot::CBotTypResult> &var, void* user);
+    static CBot::CBotTypResult cSpace(const std::vector<CBot::CBotTypResult> &var, void* user);
+    static CBot::CBotTypResult cFlatSpace(const std::vector<CBot::CBotTypResult> &var, void* user);
+    static CBot::CBotTypResult cFlatGround(const std::vector<CBot::CBotTypResult> &var, void* user);
+    static CBot::CBotTypResult cGoto(const std::vector<CBot::CBotTypResult> &var, void* user);
+    static CBot::CBotTypResult cGrabDrop(const std::vector<CBot::CBotTypResult> &var, void* user);
+    static CBot::CBotTypResult cReceive(const std::vector<CBot::CBotTypResult> &var, void* user);
+    static CBot::CBotTypResult cSend(const std::vector<CBot::CBotTypResult> &var, void* user);
+    static CBot::CBotTypResult cDeleteInfo(const std::vector<CBot::CBotTypResult> &var, void* user);
+    static CBot::CBotTypResult cTestInfo(const std::vector<CBot::CBotTypResult> &var, void* user);
+    static CBot::CBotTypResult cShield(const std::vector<CBot::CBotTypResult> &var, void* user);
+    static CBot::CBotTypResult cFire(const std::vector<CBot::CBotTypResult> &var, void* user);
+    static CBot::CBotTypResult cAim(const std::vector<CBot::CBotTypResult> &var, void* user);
+    static CBot::CBotTypResult cMotor(const std::vector<CBot::CBotTypResult> &var, void* user);
+    static CBot::CBotTypResult cTopo(const std::vector<CBot::CBotTypResult> &var, void* user);
+    static CBot::CBotTypResult cMessage(const std::vector<CBot::CBotTypResult> &var, void* user);
+    static CBot::CBotTypResult cPenDown(const std::vector<CBot::CBotTypResult> &var, void* user);
 
-    static CBot::CBotTypResult cOnePoint(CBot::CBotVar* &var, void* user);
-    static CBot::CBotTypResult cOneObject(CBot::CBotVar* &var, void* user);
+    static CBot::CBotTypResult cOnePoint(const std::vector<CBot::CBotTypResult> &var, void* user);
+    static CBot::CBotTypResult cOneObject(const std::vector<CBot::CBotTypResult> &var, void* user);
 
     static bool rEndMission(CBot::CBotVar* var, CBot::CBotVar* result, int& exception, void* user);
     static bool rPlayMusic(CBot::CBotVar* var, CBot::CBotVar* result, int& exception, void* user);
@@ -145,18 +146,18 @@ private:
     static bool rCameraFocus(CBot::CBotVar* var, CBot::CBotVar* result, int& exception, void* user);
 
 
-    static CBot::CBotTypResult cBusy(CBot::CBotVar* thisclass, CBot::CBotVar* &var);
-    static CBot::CBotTypResult cFactory(CBot::CBotVar* thisclass, CBot::CBotVar* &var);
-    static CBot::CBotTypResult cClassNull(CBot::CBotVar* thisclass, CBot::CBotVar* &var);
-    static CBot::CBotTypResult cClassOneFloat(CBot::CBotVar* thisclass, CBot::CBotVar* &var);
+    static CBot::CBotTypResult cBusy(CBot::CBotTypResult thisType, const std::vector<CBot::CBotTypResult> &var);
+    static CBot::CBotTypResult cFactory(CBot::CBotTypResult thisType, const std::vector<CBot::CBotTypResult> &var);
+    static CBot::CBotTypResult cClassNull(CBot::CBotTypResult thisType, const std::vector<CBot::CBotTypResult> &var);
+    static CBot::CBotTypResult cClassOneFloat(CBot::CBotTypResult thisType, const std::vector<CBot::CBotTypResult> &var);
 
-    static bool rBusy(CBot::CBotVar* thisclass, CBot::CBotVar* var, CBot::CBotVar* result, int& exception, void* user);
-    static bool rFactory(CBot::CBotVar* thisclass, CBot::CBotVar* var, CBot::CBotVar* result, int& exception, void* user);
-    static bool rResearch(CBot::CBotVar* thisclass, CBot::CBotVar* var, CBot::CBotVar* result, int& exception, void* user);
-    static bool rTakeOff(CBot::CBotVar* thisclass, CBot::CBotVar* var, CBot::CBotVar* result, int& exception, void* user);
-    static bool rDestroy(CBot::CBotVar* thisclass, CBot::CBotVar* var, CBot::CBotVar* result, int& exception, void* user);
+    static bool rBusy(CBot::CBotVar *thisclass, CBot::CBotVar* var, CBot::CBotVar* result, int& exception, void* user);
+    static bool rFactory(CBot::CBotVar *thisclass, CBot::CBotVar* var, CBot::CBotVar* result, int& exception, void* user);
+    static bool rResearch(CBot::CBotVar *thisclass, CBot::CBotVar* var, CBot::CBotVar* result, int& exception, void* user);
+    static bool rTakeOff(CBot::CBotVar *thisclass, CBot::CBotVar* var, CBot::CBotVar* result, int& exception, void* user);
+    static bool rDestroy(CBot::CBotVar *thisclass, CBot::CBotVar* var, CBot::CBotVar* result, int& exception, void* user);
 
-    static CBot::CBotTypResult cPointConstructor(CBot::CBotVar* pThis, CBot::CBotVar* &var);
+    static CBot::CBotTypResult cPointConstructor(CBot::CBotTypResult thisType, const std::vector<CBot::CBotTypResult> &var);
     static bool rPointConstructor(CBot::CBotVar* pThis, CBot::CBotVar* var, CBot::CBotVar* pResult, int& Exception, void* user);
 
     static void uObject(CBot::CBotVar* botThis, void* user);

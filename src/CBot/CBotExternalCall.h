@@ -26,6 +26,7 @@
 #include <string>
 #include <map>
 #include <memory>
+#include <vector>
 
 namespace CBot
 {
@@ -59,11 +60,11 @@ public:
     /**
      * \brief Compile the function
      *
-     * \param thisVar "this" variable for class calls, nullptr for normal calls
+     * \param thisType Type of "this" variable for class calls, void for normal calls
      * \param args Arguments (only types!) passed to the function
      * \param user User pointer provided to CBotProgram::Compile()
      */
-    virtual CBotTypResult Compile(CBotVar* thisVar, CBotVar* args, void* user) = 0;
+    virtual CBotTypResult Compile(CBotTypResult thisType, const std::vector<CBotTypResult> &args, void* user) = 0;
 
     /**
      * \brief Execute the function
@@ -82,7 +83,7 @@ class CBotExternalCallDefault : public CBotExternalCall
 {
 public:
     typedef bool (*RuntimeFunc)(CBotVar* args, CBotVar* result, int& exception, void* user);
-    typedef CBotTypResult (*CompileFunc)(CBotVar*& args, void* user);
+    typedef CBotTypResult (*CompileFunc)(const std::vector<CBotTypResult> &args, void* user);
 
     /**
      * \brief Constructor
@@ -97,7 +98,7 @@ public:
      */
     virtual ~CBotExternalCallDefault();
 
-    virtual CBotTypResult Compile(CBotVar* thisVar, CBotVar* args, void* user) override;
+    virtual CBotTypResult Compile(CBotTypResult thisType, const std::vector<CBotTypResult> &args, void* user) override;
     virtual bool Run(CBotVar* thisVar, CBotStack* pStack) override;
 
 private:
@@ -112,7 +113,7 @@ class CBotExternalCallClass : public CBotExternalCall
 {
 public:
     typedef bool (*RuntimeFunc)(CBotVar* pThis, CBotVar* pVar, CBotVar* pResult, int& Exception, void* user);
-    typedef CBotTypResult (*CompileFunc)(CBotVar* pThis, CBotVar*& pVar);
+    typedef CBotTypResult (*CompileFunc)(CBotTypResult thisType, const std::vector<CBotTypResult> &pVar);
 
     /**
      * \brief Constructor
@@ -127,7 +128,7 @@ public:
      */
     virtual ~CBotExternalCallClass();
 
-    virtual CBotTypResult Compile(CBotVar* thisVar, CBotVar* args, void* user) override;
+    virtual CBotTypResult Compile(CBotTypResult thisType, const std::vector<CBotTypResult> &args, void* user) override;
     virtual bool Run(CBotVar* thisVar, CBotStack* pStack) override;
 
 private:
@@ -158,12 +159,12 @@ public:
      * This function sets an error in compilation stack in case of failure
      *
      * \param p Token representing the function name
-     * \param thisVar "this" variable for class calls, nullptr for normal calls
+     * \param thisType Type of "this" variable for class calls, void for normal calls
      * \param ppVars List of arguments (only types!)
      * \param pStack Compilation stack
      * \return CBotTypResult representing the return type of the function (::CBotType), or an error (::CBotError)
      */
-    CBotTypResult CompileCall(CBotToken*& p, CBotVar* thisVar, CBotVar** ppVars, CBotCStack* pStack);
+    CBotTypResult CompileCall(CBotToken*& p, CBotTypResult thisType, const std::vector<CBotTypResult> &ppVars, CBotCStack* pStack);
 
     /**
      * \brief Check if function with given name has been defined

@@ -26,6 +26,7 @@
 #include "CBot/CBotInstr/CBotFieldExpr.h"
 
 #include "CBot/CBotStack.h"
+#include "CBot/CBotClass.h"
 
 namespace CBot
 {
@@ -45,19 +46,17 @@ CBotInstr* CBotExprRetVar::Compile(CBotToken*& p, CBotCStack* pStack, bool bMeth
 {
     if (p->GetType() == ID_DOT)
     {
-        CBotVar*     val = pStack->GetVar();
+        CBotTypResult val = pStack->GetVarType();
 
-        if (val == nullptr) return nullptr;
+        if (val.GetType() == CBotTypVoid) return nullptr;
 
         CBotCStack* pStk = pStack->TokenStack();
         CBotInstr* inst = new CBotExprRetVar();
 
-        CBotVariable *var = nullptr;
-
         while (true)
         {
             pStk->SetStartError(p->GetStart());
-            if (val->GetType() == CBotTypArrayPointer)
+            if (val.GetType() == CBotTypArrayPointer)
             {
                 if (bMethodsOnly) goto err;
 
@@ -67,10 +66,9 @@ CBotInstr* CBotExprRetVar::Compile(CBotToken*& p, CBotCStack* pStack, bool bMeth
                     i->m_expr = CBotExpression::Compile(p, pStk);
                     inst->AddNext3(i);
 
-                    var = val->GetItem(0,true);
-                    val = var->m_value.get();
+                    val = val.GetTypElem();
 
-                    if (i->m_expr == nullptr || pStk->GetType() != CBotTypInt)
+                    if (i->m_expr == nullptr || pStk->GetVarType().GetType() != CBotTypInt)
                     {
                         pStk->SetError(CBotErrBadIndex, p->GetStart());
                         goto err;
@@ -83,7 +81,7 @@ CBotInstr* CBotExprRetVar::Compile(CBotToken*& p, CBotCStack* pStack, bool bMeth
                     continue;
                 }
             }
-            if (val->GetType(CBotVar::GetTypeMode::CLASS_AS_POINTER) == CBotTypPointer)
+            if (val.GetType() == CBotTypClass || val.GetType() == CBotTypPointer)
             {
                 if (IsOfType(p, ID_DOT))
                 {
@@ -105,25 +103,29 @@ CBotInstr* CBotExprRetVar::Compile(CBotToken*& p, CBotCStack* pStack, bool bMeth
                         }
                         else
                         {
-                            CBotVariable *preVar = var;
-                            CBotVar*   preVal = val;
-                            var = val->GetItem(p->GetString());
-                            val = var ? var->m_value.get() : nullptr;
+                            CBotTypResult preVal = val;
+                            CBotVariable *var = val.GetClass()->GetItem(p->GetString());
 
-                            if (val != nullptr)
+                            if (var != nullptr)
                             {
+                                val = var->m_value->GetTypResult();
                                 CBotFieldExpr* i = new CBotFieldExpr(var->GetFieldPosition());
                                 i->SetToken(pp);
                                 inst->AddNext3(i);
-                                if (CBotFieldExpr::CheckProtectionError(pStk, preVal, (preVar ? preVar->GetName() : ""), var))
+                                // TODO: can "super" accesses occur here? Check for them. (3rd parameter)
+                                if (CBotFieldExpr::CheckProtectionError(pStk, preVal, "", var))
                                 {
                                     pStk->SetError(CBotErrPrivate, pp);
                                     goto err;
                                 }
                             }
+                            else
+                            {
+                                val = CBotTypResult(CBotTypVoid); // indicate error
+                            }
                         }
 
-                        if (val != nullptr)
+                        if (val.GetType() != CBotTypVoid)
                         {
                             p = p->GetNext();
                             continue;
@@ -138,7 +140,7 @@ CBotInstr* CBotExprRetVar::Compile(CBotToken*& p, CBotCStack* pStack, bool bMeth
             break;
         }
 
-        pStk->SetCopyVar(val);
+        pStk->SetVarType(val);
         if (pStk->IsOk()) return pStack->Return(inst, pStk);
 
         pStk->SetError(CBotErrUndefVar, p);

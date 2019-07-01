@@ -275,7 +275,7 @@ public:
      */
     static bool AddFunction(const std::string& name,
                             bool rExec(CBotVar* pVar, CBotVar* pResult, int& Exception, void* pUser),
-                            CBotTypResult rCompile(CBotVar*& pVar, void* pUser));
+                            CBotTypResult rCompile(const std::vector<CBotTypResult> &pVar, void* pUser));
 
     /**
      * \copydoc CBotToken::DefineNum()

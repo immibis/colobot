@@ -57,14 +57,13 @@ private:
         int cursor2 = -1;
     };
 
-    static CBotTypResult cFail(CBotVar* &var, void* user)
+    static CBotTypResult cFail(const std::vector<CBotTypResult> &var, void* user)
     {
-        if (var != nullptr)
+        if (var.size() > 0)
         {
-            if (var->GetType() != CBotTypString) return CBotTypResult(CBotErrBadString);
-            var = var->GetNext();
+            if (var[0].GetType() != CBotTypString) return CBotTypResult(CBotErrBadString);
         }
-        if (var != nullptr) return CBotTypResult(CBotErrOverParam);
+        if (var.size() > 1) return CBotTypResult(CBotErrOverParam);
         return CBotTypResult(CBotTypVoid);
     }
 
@@ -79,11 +78,10 @@ private:
         throw CBotTestFail(message);
     }
 
-    static CBotTypResult cAssert(CBotVar* &var, void* user)
+    static CBotTypResult cAssert(const std::vector<CBotTypResult> &var, void* user)
     {
-        if (var == nullptr) return CBotTypResult(CBotErrLowParam);
-        if (var->GetType() != CBotTypBoolean) return CBotTypResult(CBotErrBadString);
-        var = var->GetNext();
+        if (var.size() == 0) return CBotTypResult(CBotErrLowParam);
+        if (var[0].GetType() != CBotTypBoolean) return CBotTypResult(CBotErrBadString);
         return CBotTypResult(CBotTypVoid);
     }
 

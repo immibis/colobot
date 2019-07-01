@@ -99,7 +99,7 @@ CBotInstr* CBotDefVariable::CompileAfterType(CBotToken* &p, CBotCStack* pStack, 
                 return pStack->Return(nullptr, pStk);
             }
 
-            CBotTypResult valueType = pStk->GetTypResult(); // TODO: make TypeCompatible take a const& so this variable isn't needed
+            CBotTypResult valueType = pStk->GetVarType(); // TODO: make TypeCompatible take a const& so this variable isn't needed
             if (!TypeCompatible(valueType, baseType, ID_ASS)) // first parameter is value type, second is variable type
             {
                 pStk->SetError(CBotErrBadType1, p->GetStart());

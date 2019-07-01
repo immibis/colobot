@@ -69,39 +69,36 @@
 
 using namespace CBot;
 
-CBotTypResult CScriptFunctions::cClassNull(CBotVar* thisclass, CBotVar* &var)
+CBotTypResult CScriptFunctions::cClassNull(CBotTypResult thisType, const std::vector<CBotTypResult> &var)
 {
     return cNull(var, nullptr);
 }
 
-CBotTypResult CScriptFunctions::cClassOneFloat(CBotVar* thisclass, CBotVar* &var)
+CBotTypResult CScriptFunctions::cClassOneFloat(CBotTypResult thisType, const std::vector<CBotTypResult> &var)
 {
     return cOneFloat(var, nullptr);
 }
 
 // Compile a parameter of type "point".
 
-static CBotTypResult cPoint(CBotVar* &var, void* user)
+static CBotTypResult cPoint(const std::vector<CBotTypResult> &var, size_t &pos, void* user)
 {
-    if ( var == nullptr )  return CBotTypResult(CBotErrLowParam);
+    if ( var.size() <= pos )  return CBotTypResult(CBotErrLowParam);
 
-    if ( var->GetType() <= CBotTypDouble )
+    if ( var[pos].GetType() <= CBotTypDouble )
     {
-        var = var->GetNext();
-        if ( var == nullptr )  return CBotTypResult(CBotErrLowParam);
-        if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
-        var = var->GetNext();
-        //?     if ( var == 0 )  return CBotTypResult(CBotErrLowParam);
-        //?     if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
-        //?     var = var->GetNext();
-        return CBotTypResult(0);
+        if ( var.size() < pos+2 )  return CBotTypResult(CBotErrLowParam);
+        pos++;
+        if ( var[pos].GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
+        pos++;
+        return CBotTypVoid;
     }
 
-    if ( var->GetType() == CBotTypClass )
+    if ( var[pos].GetType() == CBotTypClass )
     {
-        if ( !var->GetTypResult().IsSpecifiedClassOrSubclass("point") )  return CBotTypResult(CBotErrBadParam);
-        var = var->GetNext();
-        return CBotTypResult(0);
+        if ( !var[pos].IsSpecifiedClassOrSubclass("point") )  return CBotTypResult(CBotErrBadParam);
+        pos++;
+        return CBotTypVoid;
     }
 
     return CBotTypResult(CBotErrBadParam);
@@ -109,15 +106,16 @@ static CBotTypResult cPoint(CBotVar* &var, void* user)
 
 // Compiling a procedure with a single "point".
 
-CBotTypResult CScriptFunctions::cOnePoint(CBotVar* &var, void* user)
+CBotTypResult CScriptFunctions::cOnePoint(const std::vector<CBotTypResult> &var, void* user)
 {
     CBotTypResult   ret;
 
-    ret = cPoint(var, user);
-    if ( ret.GetType() != 0 )  return ret;
+    size_t pos = 0;
+    ret = cPoint(var, pos, user);
+    if ( ret.GetType() != CBotTypVoid )  return ret;
 
-    if ( var != nullptr )  return CBotTypResult(CBotErrOverParam);
-    return CBotTypResult(CBotTypFloat);
+    if ( pos < var.size() )  return CBotTypResult(CBotErrOverParam);
+    return CBotTypFloat;
 }
 
 // Gives a parameter of type "point".
@@ -167,16 +165,13 @@ static bool GetPoint(CBotVar* &var, int& exception, Math::Vector& pos)
 
 // Compilation of the instruction "endmission(result, delay)"
 
-CBotTypResult CScriptFunctions::cEndMission(CBotVar* &var, void* user)
+CBotTypResult CScriptFunctions::cEndMission(const std::vector<CBotTypResult> &var, void* user)
 {
-    if ( var == nullptr )  return CBotTypResult(CBotErrLowParam);
-    if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
-    var = var->GetNext();
-    if ( var == nullptr )  return CBotTypResult(CBotErrLowParam);
-    if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
-    var = var->GetNext();
-    if ( var != nullptr )  return CBotTypResult(CBotErrOverParam);
-    return CBotTypResult(CBotTypFloat);
+    if ( var.size() < 2 )  return CBotTypResult(CBotErrLowParam);
+    if ( var.size() > 2 )  return CBotTypResult(CBotErrOverParam);
+    if ( var[0].GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
+    if ( var[1].GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
+    return CBotTypFloat;
 }
 
 // Instruction "endmission(result, delay)"
@@ -197,16 +192,13 @@ bool CScriptFunctions::rEndMission(CBotVar* var, CBotVar* result, int& exception
 
 // Compilation of the instruction "playmusic(filename, repeat)"
 
-CBotTypResult CScriptFunctions::cPlayMusic(CBotVar* &var, void* user)
+CBotTypResult CScriptFunctions::cPlayMusic(const std::vector<CBotTypResult> &var, void* user)
 {
-    if ( var == nullptr )  return CBotTypResult(CBotErrLowParam);
-    if ( var->GetType() != CBotTypString )  return CBotTypResult(CBotErrBadNum);
-    var = var->GetNext();
-    if ( var == nullptr )  return CBotTypResult(CBotErrLowParam);
-    if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
-    var = var->GetNext();
-    if ( var != nullptr )  return CBotTypResult(CBotErrOverParam);
-    return CBotTypResult(CBotTypFloat);
+    if ( var.size() < 2 )  return CBotTypResult(CBotErrLowParam);
+    if ( var.size() > 2 )  return CBotTypResult(CBotErrOverParam);
+    if ( var[0].GetType() != CBotTypString )  return CBotTypResult(CBotErrBadNum);
+    if ( var[1].GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
+    return CBotTypFloat;
 }
 
 // Instruction "playmusic(filename, repeat)"
@@ -291,12 +283,11 @@ bool CScriptFunctions::rSetResearchDone(CBotVar* var, CBotVar* result, int& exce
 
 // Compilation of the instruction "retobject(rank)".
 
-CBotTypResult CScriptFunctions::cGetObject(CBotVar* &var, void* user)
+CBotTypResult CScriptFunctions::cGetObject(const std::vector<CBotTypResult> &var, void* user)
 {
-    if ( var == nullptr )  return CBotTypResult(CBotErrLowParam);
-    if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
-    var = var->GetNext();
-    if ( var != nullptr )  return CBotTypResult(CBotErrOverParam);
+    if ( var.size() < 1 )  return CBotTypResult(CBotErrLowParam);
+    if ( var.size() > 1 )  return CBotTypResult(CBotErrOverParam);
+    if ( var[0].GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
 
     return CBotTypResult(CBotTypPointer, "object");
 }
@@ -345,10 +336,10 @@ bool CScriptFunctions::rGetObject(CBotVar* var, CBotVar* result, int& exception,
 }
 
 // Compilation of instruction "object.busy()"
-CBotTypResult CScriptFunctions::cBusy(CBotVar* thisclass, CBotVar* &var)
+CBotTypResult CScriptFunctions::cBusy(CBotTypResult thisclass, const std::vector<CBotTypResult> &var)
 {
-    if ( var != nullptr )  return CBotTypResult(CBotErrOverParam);
-    return CBotTypResult(CBotTypBoolean);
+    if ( var.size() > 0 )  return CBotTypResult(CBotErrOverParam);
+    return CBotTypBoolean;
 }
 
 // Instruction "object.busy()"
@@ -417,16 +408,14 @@ bool CScriptFunctions::rDestroy(CBotVar* thisclass, CBotVar* var, CBotVar* resul
 
 // Compilation of instruction "object.factory(cat, program)"
 
-CBotTypResult CScriptFunctions::cFactory(CBotVar* thisclass, CBotVar* &var)
+CBotTypResult CScriptFunctions::cFactory(CBotTypResult thisclass, const std::vector<CBotTypResult> &var)
 {
-    if ( var == nullptr )  return CBotTypResult(CBotErrLowParam);
-    if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
-    var = var->GetNext();
-    if ( var != nullptr )
+    if ( var.size() == 0 )  return CBotTypResult(CBotErrLowParam);
+    if ( var[0].GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
+    if ( var.size() > 1 )
     {
-        if ( var->GetType() != CBotTypString )  return CBotTypResult(CBotErrBadNum);
-        var = var->GetNext();
-        if ( var != nullptr )  return CBotTypResult(CBotErrOverParam);
+        if ( var[1].GetType() != CBotTypString )  return CBotTypResult(CBotErrBadNum);
+        if ( var.size() > 1 )  return CBotTypResult(CBotErrOverParam);
     }
     return CBotTypResult(CBotTypFloat);
 }
@@ -624,20 +613,18 @@ bool CScriptFunctions::rTakeOff(CBotVar* thisclass, CBotVar* var, CBotVar* resul
 
 // Compilation of the instruction "delete(rank[, exploType])".
 
-CBotTypResult CScriptFunctions::cDelete(CBotVar* &var, void* user)
+CBotTypResult CScriptFunctions::cDelete(const std::vector<CBotTypResult> &var, void* user)
 {
-    if ( var == nullptr )  return CBotTypResult(CBotErrLowParam);
+    if ( var.size() == 0 )  return CBotTypResult(CBotErrLowParam);
 
-    if ( var->GetType() != CBotTypInt )  return CBotTypResult(CBotErrBadNum);
-    var = var->GetNext();
+    if ( var[0].GetType() != CBotTypInt )  return CBotTypResult(CBotErrBadNum);
 
-    if ( var != nullptr )
+    if ( var.size() > 1 )
     {
-        if ( var->GetType() != CBotTypInt ) return CBotTypResult(CBotErrBadNum);
-        var = var->GetNext();
+        if ( var[1].GetType() != CBotTypInt ) return CBotTypResult(CBotErrBadNum);
     }
 
-    if ( var != nullptr )  return CBotTypResult(CBotErrOverParam);
+    if ( var.size() > 2 )  return CBotTypResult(CBotErrOverParam);
 
     return CBotTypResult(CBotTypFloat);
 }
@@ -689,46 +676,47 @@ bool CScriptFunctions::rDelete(CBotVar* var, CBotVar* result, int& exception, vo
     return false;
 }
 
-static CBotTypResult compileSearch(CBotVar* &var, void* user, CBotTypResult returnValue)
+static CBotTypResult compileSearch(const std::vector<CBotTypResult> &var, void* user, CBotTypResult returnValue)
 {
-    if ( var == nullptr )  return CBotTypResult(CBotErrLowParam);
-    if ( var->GetType() == CBotTypArrayPointer )
+    size_t pos = 0;
+    if ( pos >= var.size() )  return CBotTypResult(CBotErrLowParam);
+    if ( var[pos].GetType() == CBotTypArrayPointer )
     {
-        CBotTypResult type = var->GetTypResult().GetTypElem();
+        CBotTypResult type = var[pos].GetTypElem();
         if ( type.GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadParam);  // type
     }
-    else if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);  // type
-    var = var->GetNext();
+    else if ( var[pos].GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);  // type
+    pos++;
 
-    if ( var == nullptr )  return returnValue;
+    if ( pos >= var.size() )  return returnValue;
 
-    CBotTypResult ret = cPoint(var, user);                                       // pos
+    CBotTypResult ret = cPoint(var, pos, user);                                  // pos
     if ( ret.GetType() != 0 ) return ret;
 
-    if ( var == nullptr )  return returnValue;
-    if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);  // min
-    var = var->GetNext();
-    if ( var == nullptr )  return returnValue;
-    if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);  // max
-    var = var->GetNext();
-    if ( var == nullptr )  return returnValue;
-    if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);  // sense
-    var = var->GetNext();
-    if ( var == nullptr )  return returnValue;
-    if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);  // filter
-    var = var->GetNext();
-    if ( var == nullptr )  return returnValue;
+    if ( pos >= var.size() )  return returnValue;
+    if ( var[pos].GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);  // min
+    pos++;
+    if ( pos >= var.size() )  return returnValue;
+    if ( var[pos].GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);  // max
+    pos++;
+    if ( pos >= var.size() )  return returnValue;
+    if ( var[pos].GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);  // sense
+    pos++;
+    if ( pos >= var.size() )  return returnValue;
+    if ( var[pos].GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);  // filter
+    pos++;
+    if ( pos >= var.size() )  return returnValue;
     return CBotTypResult(CBotErrOverParam);
 }
 
 // Compilation of "search(type, pos, min, max, sens, filter)".
 
-CBotTypResult CScriptFunctions::cSearch(CBotVar* &var, void* user)
+CBotTypResult CScriptFunctions::cSearch(const std::vector<CBotTypResult> &var, void* user)
 {
     return compileSearch(var, user, CBotTypResult(CBotTypPointer, "object"));
 }
 
-CBotTypResult CScriptFunctions::cSearchAll(CBotVar* &var, void* user)
+CBotTypResult CScriptFunctions::cSearchAll(const std::vector<CBotTypResult> &var, void* user)
 {
     return compileSearch(var, user, CBotTypResult(CBotTypArrayPointer, CBotTypResult(CBotTypPointer, "object")));
 }
@@ -837,47 +825,46 @@ bool CScriptFunctions::rSearchAll(CBotVar* var, CBotVar* result, int& exception,
 }
 
 
-static CBotTypResult compileRadar(CBotVar* &var, void* user, CBotTypResult returnValue)
+static CBotTypResult compileRadar(const std::vector<CBotTypResult> &var, void* user, CBotTypResult returnValue)
 {
-    if ( var == nullptr )  return returnValue;
-    if ( var->GetType() == CBotTypArrayPointer )
+    size_t pos = 0;
+    if ( pos >= var.size() )  return returnValue;
+    if ( var[pos].GetType() == CBotTypArrayPointer )
     {
-        CBotVariable *arrayElement = var->GetItem(0, false);
-        if ( arrayElement == nullptr )  return returnValue;
-        if ( arrayElement->m_value->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);  // type
+        if ( var[0].GetTypElem().GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);  // type
     }
-    else if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);  // type
-    var = var->GetNext();
-    if ( var == nullptr )  return returnValue;
-    if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);  // angle
-    var = var->GetNext();
-    if ( var == nullptr )  return returnValue;
-    if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);  // focus
-    var = var->GetNext();
-    if ( var == nullptr )  return returnValue;
-    if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);  // min
-    var = var->GetNext();
-    if ( var == nullptr )  return returnValue;
-    if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);  // max
-    var = var->GetNext();
-    if ( var == nullptr )  return returnValue;
-    if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);  // sense
-    var = var->GetNext();
-    if ( var == nullptr )  return returnValue;
-    if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);  // filter
-    var = var->GetNext();
-    if ( var == nullptr )  return returnValue;
+    else if ( var[pos].GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);  // type
+    pos++;
+    if ( pos >= var.size() )  return returnValue;
+    if ( var[pos].GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);  // angle
+    pos++;
+    if ( pos >= var.size() )  return returnValue;
+    if ( var[pos].GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);  // focus
+    pos++;
+    if ( pos >= var.size() )  return returnValue;
+    if ( var[pos].GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);  // min
+    pos++;
+    if ( pos >= var.size() )  return returnValue;
+    if ( var[pos].GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);  // max
+    pos++;
+    if ( pos >= var.size() )  return returnValue;
+    if ( var[pos].GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);  // sense
+    pos++;
+    if ( pos >= var.size() )  return returnValue;
+    if ( var[pos].GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);  // filter
+    pos++;
+    if ( pos >= var.size() )  return returnValue;
     return CBotTypResult(CBotErrOverParam);
 }
 
-CBotTypResult CScriptFunctions::cRadarAll(CBotVar* &var, void* user)
+CBotTypResult CScriptFunctions::cRadarAll(const std::vector<CBotTypResult> &var, void* user)
 {
     return compileRadar(var, user, CBotTypResult(CBotTypArrayPointer, CBotTypResult(CBotTypPointer, "object")));
 }
 
 // Compilation of instruction "radar(type, angle, focus, min, max, sens)".
 
-CBotTypResult CScriptFunctions::cRadar(CBotVar* &var, void* user)
+CBotTypResult CScriptFunctions::cRadar(const std::vector<CBotTypResult> &var, void* user)
 {
     return compileRadar(var, user, CBotTypResult(CBotTypPointer, "object"));
 }
@@ -1063,12 +1050,11 @@ bool CScriptFunctions::ShouldTaskStop(Error err, int errMode)
 
 // Compilation of the instruction "detect(type)".
 
-CBotTypResult CScriptFunctions::cDetect(CBotVar* &var, void* user)
+CBotTypResult CScriptFunctions::cDetect(const std::vector<CBotTypResult> &var, void* user)
 {
-    if ( var == nullptr )  return CBotTypResult(CBotErrLowParam);
-    if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
-    var = var->GetNext();
-    if ( var != nullptr )  return CBotTypResult(CBotErrOverParam);
+    if ( var.size() < 1 )  return CBotTypResult(CBotErrLowParam);
+    if ( var.size() > 1 )  return CBotTypResult(CBotErrOverParam);
+    if ( var[0].GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
     return CBotTypResult(CBotTypBoolean);
 }
 
@@ -1143,16 +1129,17 @@ bool CScriptFunctions::rDetect(CBotVar* var, CBotVar* result, int& exception, vo
 
 // Compilation of the instruction "direction(pos)".
 
-CBotTypResult CScriptFunctions::cDirection(CBotVar* &var, void* user)
+CBotTypResult CScriptFunctions::cDirection(const std::vector<CBotTypResult> &var, void* user)
 {
     CBotTypResult   ret;
 
-    if ( var == nullptr )  return CBotTypResult(CBotErrLowParam);
-    ret = cPoint(var, user);
-    if ( ret.GetType() != 0 )  return ret;
-    if ( var != nullptr )  return CBotTypResult(CBotErrOverParam);
+    if ( var.size() == 0 )  return CBotTypResult(CBotErrLowParam);
+    size_t pos = 0;
+    ret = cPoint(var, pos, user);
+    if ( ret.GetType() != CBotTypVoid )  return ret;
+    if ( pos >= var.size() )  return CBotTypResult(CBotErrOverParam);
 
-    return CBotTypResult(CBotTypFloat);
+    return CBotTypFloat;
 }
 
 // Instruction "direction(pos)".
@@ -1272,50 +1259,51 @@ bool CScriptFunctions::rBuild(CBotVar* var, CBotVar* result, int& exception, voi
 // Compilation of the instruction "produce(pos, angle, type[, scriptName[, power]])"
 // or "produce(type[, power])".
 
-CBotTypResult CScriptFunctions::cProduce(CBotVar* &var, void* user)
+CBotTypResult CScriptFunctions::cProduce(const std::vector<CBotTypResult> &var, void* user)
 {
     CBotTypResult   ret;
 
-    if ( var == nullptr )  return CBotTypResult(CBotErrLowParam);
+    if ( var.size() == 0 )  return CBotTypResult(CBotErrLowParam);
 
-    if ( var->GetType() <= CBotTypDouble )
+    size_t pos = 0;
+    if ( var[pos].GetType() <= CBotTypDouble )
     {
-        var = var->GetNext();
-        if ( var != nullptr )
+        pos++;
+        if ( pos < var.size() )
         {
-            if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
-            var = var->GetNext();
+            if ( var[pos].GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
+            pos++;
         }
     }
     else
     {
-        ret = cPoint(var, user);
-        if ( ret.GetType() != 0 )  return ret;
+        ret = cPoint(var, pos, user);
+        if ( ret.GetType() != CBotTypVoid )  return ret;
 
-        if ( var == nullptr )  return CBotTypResult(CBotErrLowParam);
-        if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
-        var = var->GetNext();
+        if ( pos >= var.size() )  return CBotTypResult(CBotErrLowParam);
+        if ( var[pos].GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
+        pos++;
 
-        if ( var == nullptr )  return CBotTypResult(CBotErrLowParam);
-        if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
-        var = var->GetNext();
+        if ( pos >= var.size() )  return CBotTypResult(CBotErrLowParam);
+        if ( var[pos].GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
+        pos++;
 
-        if ( var != nullptr )
+        if ( pos >= var.size() )
         {
-            if ( var->GetType() != CBotTypString )  return CBotTypResult(CBotErrBadString);
-            var = var->GetNext();
+            if ( var[pos].GetType() != CBotTypString )  return CBotTypResult(CBotErrBadString);
+            pos++;
 
-            if ( var != nullptr )
+            if ( pos >= var.size() )
             {
-                if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
-                var = var->GetNext();
+                if ( var[pos].GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
+                pos++;
             }
         }
     }
 
-    if ( var != nullptr )  return CBotTypResult(CBotErrOverParam);
+    if ( pos >= var.size() )  return CBotTypResult(CBotErrOverParam);
 
-    return CBotTypResult(CBotTypFloat);
+    return CBotTypFloat;
 }
 
 // Instruction "produce(pos, angle, type[, scriptName[, power]])"
@@ -1430,21 +1418,22 @@ bool CScriptFunctions::rProduce(CBotVar* var, CBotVar* result, int& exception, v
 
 // Compilation of the instruction "distance(p1, p2)".
 
-CBotTypResult CScriptFunctions::cDistance(CBotVar* &var, void* user)
+CBotTypResult CScriptFunctions::cDistance(const std::vector<CBotTypResult> &var, void* user)
 {
     CBotTypResult   ret;
+    size_t pos = 0;
 
-    if ( var == nullptr )  return CBotTypResult(CBotErrLowParam);
-    ret = cPoint(var, user);
-    if ( ret.GetType() != 0 )  return ret;
+    if ( pos >= var.size() )  return CBotTypResult(CBotErrLowParam);
+    ret = cPoint(var, pos, user);
+    if ( ret.GetType() != CBotTypVoid )  return ret;
 
-    if ( var == nullptr )  return CBotTypResult(CBotErrLowParam);
-    ret = cPoint(var, user);
-    if ( ret.GetType() != 0 )  return ret;
+    if ( pos >= var.size() )  return CBotTypResult(CBotErrLowParam);
+    ret = cPoint(var, pos, user);
+    if ( ret.GetType() != CBotTypVoid )  return ret;
 
-    if ( var != nullptr )  return CBotTypResult(CBotErrOverParam);
+    if ( pos < var.size() )  return CBotTypResult(CBotErrOverParam);
 
-    return CBotTypResult(CBotTypFloat);
+    return CBotTypFloat;
 }
 
 // Instruction "distance(p1, p2)".
@@ -1480,27 +1469,28 @@ bool CScriptFunctions::rDistance2d(CBotVar* var, CBotVar* result, int& exception
 
 // Compilation of the instruction "space(center, rMin, rMax, dist)".
 
-CBotTypResult CScriptFunctions::cSpace(CBotVar* &var, void* user)
+CBotTypResult CScriptFunctions::cSpace(const std::vector<CBotTypResult> &var, void* user)
 {
     CBotTypResult   ret;
 
-    if ( var == nullptr )  return CBotTypResult(CBotTypIntrinsic, "point");
-    ret = cPoint(var, user);
-    if ( ret.GetType() != 0 )  return ret;
+    size_t pos = 0;
+    if ( pos >= var.size() )  return CBotTypResult(CBotTypIntrinsic, "point");
+    ret = cPoint(var, pos, user);
+    if ( ret.GetType() != CBotTypVoid )  return ret;
 
-    if ( var == nullptr )  return CBotTypResult(CBotTypIntrinsic, "point");
-    if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
-    var = var->GetNext();
+    if ( pos >= var.size() )  return CBotTypResult(CBotTypIntrinsic, "point");
+    if ( var[pos].GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
+    pos++;
 
-    if ( var == nullptr )  return CBotTypResult(CBotTypIntrinsic, "point");
-    if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
-    var = var->GetNext();
+    if ( pos >= var.size() )  return CBotTypResult(CBotTypIntrinsic, "point");
+    if ( var[pos].GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
+    pos++;
 
-    if ( var == nullptr )  return CBotTypResult(CBotTypIntrinsic, "point");
-    if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
-    var = var->GetNext();
+    if ( pos >= var.size() )  return CBotTypResult(CBotTypIntrinsic, "point");
+    if ( var[pos].GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
+    pos++;
 
-    if ( var != nullptr )  return CBotTypResult(CBotErrOverParam);
+    if ( pos < var.size() )  return CBotTypResult(CBotErrOverParam);
     return CBotTypResult(CBotTypIntrinsic, "point");
 }
 
@@ -1561,31 +1551,32 @@ bool CScriptFunctions::rSpace(CBotVar* var, CBotVar* result, int& exception, voi
     return true;
 }
 
-CBotTypResult CScriptFunctions::cFlatSpace(CBotVar* &var, void* user)
+CBotTypResult CScriptFunctions::cFlatSpace(const std::vector<CBotTypResult> &var, void* user)
 {
     CBotTypResult   ret;
 
-    if ( var == nullptr )  return CBotTypResult(CBotErrLowParam);
-    ret = cPoint(var, user);
+    size_t pos = 0;
+    if ( pos >= var.size() )  return CBotTypResult(CBotErrLowParam);
+    ret = cPoint(var, pos, user);
     if ( ret.GetType() != 0 )  return ret;
 
-    if ( var == nullptr )  return CBotTypResult(CBotErrLowParam);
-    if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
-    var = var->GetNext();
+    if ( pos >= var.size() )  return CBotTypResult(CBotErrLowParam);
+    if ( var[pos].GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
+    pos++;
 
-    if ( var == nullptr )  return CBotTypResult(CBotTypIntrinsic, "point");
-    if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
-    var = var->GetNext();
+    if ( pos >= var.size() )  return CBotTypResult(CBotTypIntrinsic, "point");
+    if ( var[pos].GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
+    pos++;
 
-    if ( var == nullptr )  return CBotTypResult(CBotTypIntrinsic, "point");
-    if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
-    var = var->GetNext();
+    if ( pos >= var.size() )  return CBotTypResult(CBotTypIntrinsic, "point");
+    if ( var[pos].GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
+    pos++;
 
-    if ( var == nullptr )  return CBotTypResult(CBotTypIntrinsic, "point");
-    if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
-    var = var->GetNext();
+    if ( pos >= var.size() )  return CBotTypResult(CBotTypIntrinsic, "point");
+    if ( var[pos].GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
+    pos++;
 
-    if ( var != nullptr )  return CBotTypResult(CBotErrOverParam);
+    if ( pos < var.size() )  return CBotTypResult(CBotErrOverParam);
     return CBotTypResult(CBotTypIntrinsic, "point");
 }
 
@@ -1644,19 +1635,20 @@ bool CScriptFunctions::rFlatSpace(CBotVar* var, CBotVar* result, int& exception,
 
 // Compilation of the instruction "flatground(center, rMax)".
 
-CBotTypResult CScriptFunctions::cFlatGround(CBotVar* &var, void* user)
+CBotTypResult CScriptFunctions::cFlatGround(const std::vector<CBotTypResult> &var, void* user)
 {
     CBotTypResult   ret;
 
-    if ( var == nullptr )  return CBotTypResult(CBotErrLowParam);
-    ret = cPoint(var, user);
+    size_t pos = 0;
+    if ( pos >= var.size() )  return CBotTypResult(CBotErrLowParam);
+    ret = cPoint(var, pos, user);
     if ( ret.GetType() != 0 )  return ret;
 
-    if ( var == nullptr )  return CBotTypResult(CBotErrLowParam);
-    if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
-    var = var->GetNext();
+    if ( pos >= var.size() )  return CBotTypResult(CBotErrLowParam);
+    if ( var[pos].GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
+    pos++;
 
-    if ( var != nullptr )  return CBotTypResult(CBotErrOverParam);
+    if ( pos < var.size() )  return CBotTypResult(CBotErrOverParam);
 
     return CBotTypResult(CBotTypFloat);
 }
@@ -1770,27 +1762,28 @@ bool CScriptFunctions::rTurn(CBotVar* var, CBotVar* result, int& exception, void
 
 // Compilation of the instruction "goto(pos, altitude, crash, goal)".
 
-CBotTypResult CScriptFunctions::cGoto(CBotVar* &var, void* user)
+CBotTypResult CScriptFunctions::cGoto(const std::vector<CBotTypResult> &var, void* user)
 {
     CBotTypResult   ret;
 
-    if ( var == nullptr )  return CBotTypResult(CBotErrLowParam);
-    ret = cPoint(var, user);
+    size_t pos = 0;
+    if ( pos >= var.size() )  return CBotTypResult(CBotErrLowParam);
+    ret = cPoint(var, pos, user);
     if ( ret.GetType() != 0 )  return ret;
 
-    if ( var == nullptr )  return CBotTypResult(CBotTypFloat);
-    if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
-    var = var->GetNext();
+    if ( pos >= var.size() )  return CBotTypResult(CBotTypFloat);
+    if ( var[pos].GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
+    pos++;
 
-    if ( var == nullptr )  return CBotTypResult(CBotTypFloat);
-    if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
-    var = var->GetNext();
+    if ( pos >= var.size() )  return CBotTypResult(CBotTypFloat);
+    if ( var[pos].GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
+    pos++;
 
-    if ( var == nullptr )  return CBotTypResult(CBotTypFloat);
-    if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
-    var = var->GetNext();
+    if ( pos >= var.size() )  return CBotTypResult(CBotTypFloat);
+    if ( var[pos].GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
+    pos++;
 
-    if ( var == nullptr )  return CBotTypResult(CBotTypFloat);
+    if ( pos < var.size() )  return CBotTypResult(CBotTypFloat);
     return CBotTypResult(CBotErrOverParam);
 }
 
@@ -1850,12 +1843,11 @@ bool CScriptFunctions::rGoto(CBotVar* var, CBotVar* result, int& exception, void
 
 // Compilation "grab/drop(oper)".
 
-CBotTypResult CScriptFunctions::cGrabDrop(CBotVar* &var, void* user)
+CBotTypResult CScriptFunctions::cGrabDrop(const std::vector<CBotTypResult> &var, void* user)
 {
-    if ( var == nullptr )  return CBotTypResult(CBotTypFloat);
-    if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
-    var = var->GetNext();
-    if ( var != nullptr )  return CBotTypResult(CBotErrOverParam);
+    if ( var.size() == 0 )  return CBotTypResult(CBotTypFloat);
+    if ( var[0].GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
+    if ( var.size() > 1 )  return CBotTypResult(CBotErrOverParam);
     return CBotTypResult(CBotTypFloat);
 }
 
@@ -1980,17 +1972,15 @@ bool CScriptFunctions::rSniff(CBotVar* var, CBotVar* result, int& exception, voi
 
 // Compilation of the instruction "receive(nom, power)".
 
-CBotTypResult CScriptFunctions::cReceive(CBotVar* &var, void* user)
+CBotTypResult CScriptFunctions::cReceive(const std::vector<CBotTypResult> &var, void* user)
 {
-    if ( var == nullptr )  return CBotTypResult(CBotErrLowParam);
-    if ( var->GetType() != CBotTypString )  return CBotTypResult(CBotErrBadString);
-    var = var->GetNext();
+    if ( var.size() == 0 )  return CBotTypResult(CBotErrLowParam);
+    if ( var[0].GetType() != CBotTypString )  return CBotTypResult(CBotErrBadString);
 
-    if ( var == nullptr )  return CBotTypResult(CBotTypFloat);
-    if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
-    var = var->GetNext();
+    if ( var.size() == 1 )  return CBotTypResult(CBotTypFloat);
+    if ( var[1].GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
 
-    if ( var != nullptr )  return CBotTypResult(CBotErrOverParam);
+    if ( var.size() > 2 )  return CBotTypResult(CBotErrOverParam);
     return CBotTypResult(CBotTypFloat);
 }
 
@@ -2043,21 +2033,16 @@ bool CScriptFunctions::rReceive(CBotVar* var, CBotVar* result, int& exception, v
 
 // Compilation of the instruction "send(nom, value, power)".
 
-CBotTypResult CScriptFunctions::cSend(CBotVar* &var, void* user)
+CBotTypResult CScriptFunctions::cSend(const std::vector<CBotTypResult> &var, void* user)
 {
-    if ( var == nullptr )  return CBotTypResult(CBotErrLowParam);
-    if ( var->GetType() != CBotTypString )  return CBotTypResult(CBotErrBadString);
-    var = var->GetNext();
+    if ( var.size() < 2 )  return CBotTypResult(CBotErrLowParam);
+    if ( var.size() > 3 )  return CBotTypResult(CBotErrOverParam);
+    if ( var[0].GetType() != CBotTypString )  return CBotTypResult(CBotErrBadString);
+    if ( var[1].GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
 
-    if ( var == nullptr )  return CBotTypResult(CBotErrLowParam);
-    if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
-    var = var->GetNext();
+    if ( var.size() == 2 )  return CBotTypResult(CBotTypFloat);
+    if ( var[2].GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
 
-    if ( var == nullptr )  return CBotTypResult(CBotTypFloat);
-    if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
-    var = var->GetNext();
-
-    if ( var != nullptr )  return CBotTypResult(CBotErrOverParam);
     return CBotTypResult(CBotTypFloat);
 }
 
@@ -2113,17 +2098,15 @@ CExchangePost* CScriptFunctions::FindExchangePost(CObject* object, float power)
 
 // Compilation of the instruction "deleteinfo(name, power)".
 
-CBotTypResult CScriptFunctions::cDeleteInfo(CBotVar* &var, void* user)
+CBotTypResult CScriptFunctions::cDeleteInfo(const std::vector<CBotTypResult> &var, void* user)
 {
-    if ( var == nullptr )  return CBotTypResult(CBotErrLowParam);
-    if ( var->GetType() != CBotTypString )  return CBotTypResult(CBotErrBadString);
-    var = var->GetNext();
+    if ( var.size() == 0 )  return CBotTypResult(CBotErrLowParam);
+    if ( var[0].GetType() != CBotTypString )  return CBotTypResult(CBotErrBadString);
 
-    if ( var == nullptr )  return CBotTypResult(CBotTypBoolean);
-    if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
-    var = var->GetNext();
+    if ( var.size() == 1 )  return CBotTypResult(CBotTypBoolean);
+    if ( var[1].GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
 
-    if ( var != nullptr )  return CBotTypResult(CBotErrOverParam);
+    if ( var.size() > 2 )  return CBotTypResult(CBotErrOverParam);
     return CBotTypResult(CBotTypBoolean);
 }
 
@@ -2159,17 +2142,15 @@ bool CScriptFunctions::rDeleteInfo(CBotVar* var, CBotVar* result, int& exception
 
 // Compilation of the instruction "testinfo(nom, power)".
 
-CBotTypResult CScriptFunctions::cTestInfo(CBotVar* &var, void* user)
+CBotTypResult CScriptFunctions::cTestInfo(const std::vector<CBotTypResult> &var, void* user)
 {
-    if ( var == nullptr )  return CBotTypResult(CBotErrLowParam);
-    if ( var->GetType() != CBotTypString )  return CBotTypResult(CBotErrBadString);
-    var = var->GetNext();
+    if ( var.size() == 0 )  return CBotTypResult(CBotErrLowParam);
+    if ( var[0].GetType() != CBotTypString )  return CBotTypResult(CBotErrBadString);
 
-    if ( var == nullptr )  return CBotTypResult(CBotTypBoolean);
-    if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
-    var = var->GetNext();
+    if ( var.size() == 1 )  return CBotTypResult(CBotTypBoolean);
+    if ( var[1].GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
 
-    if ( var != nullptr )  return CBotTypResult(CBotErrOverParam);
+    if ( var.size() > 2 )  return CBotTypResult(CBotErrOverParam);
     return CBotTypResult(CBotTypBoolean);
 }
 
@@ -2258,17 +2239,12 @@ bool CScriptFunctions::rRecycle(CBotVar* var, CBotVar* result, int& exception, v
 
 // Compilation "shield(oper, radius)".
 
-CBotTypResult CScriptFunctions::cShield(CBotVar* &var, void* user)
+CBotTypResult CScriptFunctions::cShield(const std::vector<CBotTypResult> &var, void* user)
 {
-    if ( var == nullptr )  return CBotTypResult(CBotErrLowParam);
-    if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
-    var = var->GetNext();
-
-    if ( var == nullptr )  return CBotTypResult(CBotErrLowParam);
-    if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
-    var = var->GetNext();
-
-    if ( var != nullptr )  return CBotTypResult(CBotErrOverParam);
+    if ( var.size() < 2 )  return CBotTypResult(CBotErrLowParam);
+    if ( var.size() > 2 )  return CBotTypResult(CBotErrOverParam);
+    if ( var[0].GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
+    if ( var[1].GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
 
     return CBotTypResult(CBotTypFloat);
 }
@@ -2338,7 +2314,7 @@ bool CScriptFunctions::rShield(CBotVar* var, CBotVar* result, int& exception, vo
 
 // Compilation "fire(delay)".
 
-CBotTypResult CScriptFunctions::cFire(CBotVar* &var, void* user)
+CBotTypResult CScriptFunctions::cFire(const std::vector<CBotTypResult> &var, void* user)
 {
     CObject*    pThis = static_cast<CScript*>(user)->m_object;
     ObjectType  type;
@@ -2347,25 +2323,25 @@ CBotTypResult CScriptFunctions::cFire(CBotVar* &var, void* user)
 
     if ( type == OBJECT_ANT )
     {
-        if ( var == nullptr ) return CBotTypResult(CBotErrLowParam);
-        CBotTypResult ret = cPoint(var, user);
-        if ( ret.GetType() != 0 )  return ret;
-        if ( var != nullptr )  return CBotTypResult(CBotErrOverParam);
+        if ( var.size() == 0 ) return CBotTypResult(CBotErrLowParam);
+        size_t pos = 0;
+        CBotTypResult ret = cPoint(var, pos, user);
+        if ( ret.GetType() != CBotTypVoid )  return ret;
+        if ( var.size() > pos )  return CBotTypResult(CBotErrOverParam);
     }
     else if ( type == OBJECT_SPIDER )
     {
-        if ( var != nullptr )  return CBotTypResult(CBotErrOverParam);
+        if ( var.size() > 0 )  return CBotTypResult(CBotErrOverParam);
     }
     else
     {
-        if ( var != nullptr )
+        if ( var.size() > 0 )
         {
-            if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
-            var = var->GetNext();
-            if ( var != nullptr )  return CBotTypResult(CBotErrOverParam);
+            if ( var[0].GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
+            if ( var.size() > 1 )  return CBotTypResult(CBotErrOverParam);
         }
     }
-    return CBotTypResult(CBotTypFloat);
+    return CBotTypFloat;
 }
 
 // Instruction "fire(delay)".
@@ -2420,17 +2396,15 @@ bool CScriptFunctions::rFire(CBotVar* var, CBotVar* result, int& exception, void
 
 // Compilation of the instruction "aim(x, y)".
 
-CBotTypResult CScriptFunctions::cAim(CBotVar* &var, void* user)
+CBotTypResult CScriptFunctions::cAim(const std::vector<CBotTypResult> &var, void* user)
 {
-    if ( var == nullptr )  return CBotTypResult(CBotErrLowParam);
-    if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
-    var = var->GetNext();
+    if ( var.size() == 0 )  return CBotTypResult(CBotErrLowParam);
+    if ( var[0].GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
 
-    if ( var == nullptr )  return CBotTypResult(CBotTypFloat);
-    if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
-    var = var->GetNext();
+    if ( var.size() == 1 )  return CBotTypResult(CBotTypFloat);
+    if ( var[1].GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
 
-    if ( var != nullptr )  return CBotTypResult(CBotErrOverParam);
+    if ( var.size() > 2 )  return CBotTypResult(CBotErrOverParam);
 
     return CBotTypResult(CBotTypFloat);
 }
@@ -2467,17 +2441,12 @@ bool CScriptFunctions::rAim(CBotVar* var, CBotVar* result, int& exception, void*
 
 // Compilation of the instruction "motor(left, right)".
 
-CBotTypResult CScriptFunctions::cMotor(CBotVar* &var, void* user)
+CBotTypResult CScriptFunctions::cMotor(const std::vector<CBotTypResult> &var, void* user)
 {
-    if ( var == nullptr )  return CBotTypResult(CBotErrLowParam);
-    if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
-    var = var->GetNext();
-
-    if ( var == nullptr )  return CBotTypResult(CBotErrLowParam);
-    if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
-    var = var->GetNext();
-
-    if ( var != nullptr )  return CBotTypResult(CBotErrOverParam);
+    if ( var.size() < 2 )  return CBotTypResult(CBotErrLowParam);
+    if ( var.size() > 2 )  return CBotTypResult(CBotErrOverParam);
+    if ( var[0].GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
+    if ( var[1].GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
 
     return CBotTypResult(CBotTypFloat);
 }
@@ -2531,15 +2500,16 @@ bool CScriptFunctions::rJet(CBotVar* var, CBotVar* result, int& exception, void*
 
 // Compilation of the instruction "topo(pos)".
 
-CBotTypResult CScriptFunctions::cTopo(CBotVar* &var, void* user)
+CBotTypResult CScriptFunctions::cTopo(const std::vector<CBotTypResult> &var, void* user)
 {
     CBotTypResult   ret;
 
-    if ( var == nullptr )  return CBotTypResult(CBotErrLowParam);
-    ret = cPoint(var, user);
-    if ( ret.GetType() != 0 )  return ret;
+    if ( var.size() == 0 )  return CBotTypResult(CBotErrLowParam);
+    size_t pos = 0;
+    ret = cPoint(var, pos, user);
+    if ( ret.GetType() != CBotTypVoid )  return ret;
 
-    if ( var == nullptr )  return CBotTypResult(CBotTypFloat);
+    if ( pos >= var.size() )  return CBotTypResult(CBotTypFloat);
     return CBotTypResult(CBotErrOverParam);
 }
 
@@ -2563,18 +2533,16 @@ bool CScriptFunctions::rTopo(CBotVar* var, CBotVar* result, int& exception, void
 
 // Compilation of the instruction "message(string, type)".
 
-CBotTypResult CScriptFunctions::cMessage(CBotVar* &var, void* user)
+CBotTypResult CScriptFunctions::cMessage(const std::vector<CBotTypResult> &var, void* user)
 {
-    if ( var == nullptr )  return CBotTypResult(CBotErrLowParam);
-    if ( var->GetType() != CBotTypString &&
-        var->GetType() >  CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
-    var = var->GetNext();
+    if ( var.size() == 0 )  return CBotTypResult(CBotErrLowParam);
+    if ( var[0].GetType() != CBotTypString &&
+        var[0].GetType() >  CBotTypDouble )  return CBotTypResult(CBotErrBadNum); // TODO unhelpful error message
 
-    if ( var == nullptr )  return CBotTypResult(CBotTypFloat);
-    if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
-    var = var->GetNext();
+    if ( var.size() == 1 )  return CBotTypResult(CBotTypFloat);
+    if ( var[1].GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
 
-    if ( var == nullptr )  return CBotTypResult(CBotTypFloat);
+    if ( var.size() == 2 )  return CBotTypResult(CBotTypFloat);
     return CBotTypResult(CBotErrOverParam);
 }
 
@@ -2674,17 +2642,15 @@ bool CScriptFunctions::rAbsTime(CBotVar* var, CBotVar* result, int& exception, v
 
 // Compilation of the instruction "pendown(color, width)".
 
-CBotTypResult CScriptFunctions::cPenDown(CBotVar* &var, void* user)
+CBotTypResult CScriptFunctions::cPenDown(const std::vector<CBotTypResult> &var, void* user)
 {
-    if ( var == nullptr )  return CBotTypResult(CBotTypFloat);
-    if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
-    var = var->GetNext();
+    if ( var.size() == 0 )  return CBotTypResult(CBotTypFloat);
+    if ( var[0].GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
 
-    if ( var == nullptr )  return CBotTypResult(CBotTypFloat);
-    if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
-    var = var->GetNext();
+    if ( var.size() == 1 )  return CBotTypResult(CBotTypFloat);
+    if ( var[1].GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
 
-    if ( var == nullptr )  return CBotTypResult(CBotTypFloat);
+    if ( var.size() == 2 )  return CBotTypResult(CBotTypFloat);
     return CBotTypResult(CBotErrOverParam);
 }
 
@@ -2891,11 +2857,11 @@ bool CScriptFunctions::rPenWidth(CBotVar* var, CBotVar* result, int& exception, 
 
 // Compilation of the instruction with one object parameter
 
-CBotTypResult CScriptFunctions::cOneObject(CBotVar* &var, void* user)
+CBotTypResult CScriptFunctions::cOneObject(const std::vector<CBotTypResult> &var, void* user)
 {
-    if ( var == nullptr )  return CBotTypResult(CBotErrLowParam);
-    var = var->GetNext();
-    if ( var == nullptr )  return CBotTypResult(CBotTypFloat);
+    if ( var.size() == 0 )  return CBotTypResult(CBotErrLowParam);
+    if ( var.size() == 1 )  return CBotTypResult(CBotTypFloat);
+    // TODO: shouldn't we check parameter type?
 
     return CBotTypResult(CBotErrOverParam);
 }
@@ -2918,30 +2884,27 @@ bool CScriptFunctions::rCameraFocus(CBotVar* var, CBotVar* result, int& exceptio
 
 // Compilation of class "point".
 
-CBotTypResult CScriptFunctions::cPointConstructor(CBotVar* pThis, CBotVar* &var)
+CBotTypResult CScriptFunctions::cPointConstructor(CBotTypResult thisType, const std::vector<CBotTypResult> &var)
 {
-    if ( !pThis->GetTypResult().IsSpecifiedClassOrSubclass("point") )  return CBotTypResult(CBotErrBadNum);
+    if ( !thisType.IsSpecifiedClassOrSubclass("point") )  return CBotTypResult(CBotErrBadNum);
 
-    if ( var == nullptr )  return CBotTypResult(0);  // ok if no parameter
+    if ( var.size() == 0 )  return CBotTypResult(0);  // ok if no parameter
 
     // First parameter (x):
-    if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
-    var = var->GetNext();
+    if ( var[0].GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
 
     // Second parameter (y):
-    if ( var == nullptr )  return CBotTypResult(CBotErrLowParam);
-    if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
-    var = var->GetNext();
+    if ( var.size() == 1 )  return CBotTypResult(CBotErrLowParam);
+    if ( var[1].GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
 
     // Third parameter (z):
-    if ( var == nullptr )  // only 2 parameters?
+    if ( var.size() == 2 )  // only 2 parameters?
     {
         return CBotTypResult(0);  // this function returns void
     }
 
-    if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
-    var = var->GetNext();
-    if ( var != nullptr )  return CBotTypResult(CBotErrOverParam);
+    if ( var[2].GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
+    if ( var.size() > 3 )  return CBotTypResult(CBotErrOverParam);
 
     return CBotTypResult(0);  // this function returns void
 }

@@ -198,7 +198,7 @@ std::string CBotTypResult::ToString()
     return ss.str();
 }
 
-bool CBotTypResult::IsSpecifiedClassOrSubclass(const std::string& name)
+bool CBotTypResult::IsSpecifiedClassOrSubclass(const std::string& name) const
 {
     if ( m_type != CBotTypPointer && m_type != CBotTypClass )
     {

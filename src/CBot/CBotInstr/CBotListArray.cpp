@@ -72,7 +72,7 @@ CBotInstr* CBotListArray::Compile(CBotToken* &p, CBotCStack* pStack, CBotTypResu
                 if (pStk->IsOk())
                 {
                     inst->m_expr = CBotTwoOpExpr::Compile(p, pStk);
-                    if (inst->m_expr == nullptr || !pStk->GetTypResult().Compare(type))  // compatible type ?
+                    if (inst->m_expr == nullptr || !pStk->GetVarType().Compare(type))  // compatible type ?
                     {
                         pStk->SetError(CBotErrBadType1, p->GetStart());
                         goto error;
@@ -90,7 +90,7 @@ CBotInstr* CBotListArray::Compile(CBotToken* &p, CBotCStack* pStack, CBotTypResu
                     if (pStk->IsOk())
                     {
                         i = CBotTwoOpExpr::Compile(p, pStk);
-                        if (i == nullptr || !pStk->GetTypResult().Compare(type))  // compatible type ?
+                        if (i == nullptr || !pStk->GetVarType().Compare(type))  // compatible type ?
                         {
                             pStk->SetError(CBotErrBadType1, p->GetStart());
                             goto error;
@@ -115,7 +115,9 @@ CBotInstr* CBotListArray::Compile(CBotToken* &p, CBotCStack* pStack, CBotTypResu
                 goto error;
             }
 
-            CBotTypResult valType = pStk->GetTypResult(CBotVar::GetTypeMode::CLASS_AS_INTRINSIC);
+            CBotTypResult valType = pStk->GetVarType();
+            if(valType.GetType() == CBotTypClass)
+                valType.SetType(CBotTypIntrinsic);
 
             if (!TypeCompatible(valType, type, ID_ASS) )
             {
@@ -133,7 +135,9 @@ CBotInstr* CBotListArray::Compile(CBotToken* &p, CBotCStack* pStack, CBotTypResu
                     goto error;
                 }
 
-                CBotTypResult valType = pStk->GetTypResult(CBotVar::GetTypeMode::CLASS_AS_INTRINSIC);
+                CBotTypResult valType = pStk->GetVarType();
+                if(valType.GetType() == CBotTypClass)
+                    valType.SetType(CBotTypIntrinsic);
 
                 if (!TypeCompatible(valType, type, ID_ASS) )
                 {

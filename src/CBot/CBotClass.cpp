@@ -286,7 +286,7 @@ CBotClass* CBotClass::Find(const std::string& name)
 ////////////////////////////////////////////////////////////////////////////////
 bool CBotClass::AddFunction(const std::string& name,
                             bool rExec(CBotVar* pThis, CBotVar* pVar, CBotVar* pResult, int& Exception, void* user),
-                            CBotTypResult rCompile(CBotVar* pThis, CBotVar*& pVar))
+                            CBotTypResult rCompile(CBotTypResult thisType, const std::vector<CBotTypResult> &pVar))
 {
     return m_externalMethods->AddFunction(name, std::unique_ptr<CBotExternalCall>(new CBotExternalCallClass(rExec, rCompile)));
 }
@@ -300,8 +300,8 @@ bool CBotClass::SetUpdateFunc(void rUpdate(CBotVar* thisVar, void* user))
 
 ////////////////////////////////////////////////////////////////////////////////
 CBotTypResult CBotClass::CompileMethode(CBotToken* name,
-                                        CBotVar* pThis,
-                                        CBotVar** ppParams,
+                                        CBotTypResult thisType,
+                                        const std::vector<CBotTypResult> &ppParams,
                                         CBotCStack* pStack,
                                         long &nIdent)
 {
@@ -309,14 +309,14 @@ CBotTypResult CBotClass::CompileMethode(CBotToken* name,
 
     // find the methods declared by AddFunction
 
-    CBotTypResult r = m_externalMethods->CompileCall(name, pThis, ppParams, pStack);
+    CBotTypResult r = m_externalMethods->CompileCall(name, thisType, ppParams, pStack);
     if ( r.GetType() >= 0) return r;
 
     // find the methods declared by user
 
     r = CBotFunction::CompileCall(m_pMethod, name->GetString(), ppParams, nIdent);
     if ( r.Eq(CBotErrUndefCall) && m_parent != nullptr )
-        return m_parent->CompileMethode(name, pThis, ppParams, pStack, nIdent);
+        return m_parent->CompileMethode(name, thisType, ppParams, pStack, nIdent);
     return r;
 }
 
@@ -681,7 +681,7 @@ bool CBotClass::CompileDefItem(CBotToken* &p, CBotCStack* pStack, bool bSecond)
                 if ( p->GetType() != ID_CLBRK )
                 {
                     i = CBotExpression::Compile( p, pStack );           // expression for the value
-                    if (i == nullptr || pStack->GetType() != CBotTypInt) // must be a number
+                    if (i == nullptr || pStack->GetVarType().GetType() != CBotTypInt) // must be a number
                     {
                         pStack->SetError(CBotErrBadIndex, p->GetStart());
                     }
@@ -716,7 +716,7 @@ bool CBotClass::CompileDefItem(CBotToken* &p, CBotCStack* pStack, bool bSecond)
                         if (pStack->IsOk())
                         {
                             i = CBotTwoOpExpr::Compile(p, pStack);
-                            if (i == nullptr || !pStack->GetTypResult().Compare(type2))
+                            if (i == nullptr || !pStack->GetVarType().Compare(type2))
                             {
                                 pStack->SetError(CBotErrBadType1, p->GetStart());
                                 return false;
@@ -729,8 +729,8 @@ bool CBotClass::CompileDefItem(CBotToken* &p, CBotCStack* pStack, bool bSecond)
                     // it has an assignmet to calculate
                     i = CBotTwoOpExpr::Compile(p, pStack);
 
-                    if ( !(type.Eq(CBotTypPointer) && pStack->GetTypResult().Eq(CBotTypNullPointer)) &&
-                         !TypesCompatibles( type2, pStack->GetTypResult()) )
+                    if ( !(type.Eq(CBotTypPointer) && pStack->GetVarType().Eq(CBotTypNullPointer)) &&
+                         !TypesCompatibles( type2, pStack->GetVarType()) )
                     {
                         pStack->SetError(CBotErrBadType1, p->GetStart());
                         return false;

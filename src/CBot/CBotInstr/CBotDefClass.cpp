@@ -116,7 +116,7 @@ CBotInstr* CBotDefClass::Compile(CBotToken* &p, CBotCStack* pStack, CBotClass* p
             // look if there are parameters
             inst->m_hasParams = (p->GetType() == ID_OPENPAR);
 
-            CBotVar*    ppVars[1000];
+            std::vector<CBotTypResult> ppVars;
             inst->m_parameters = CompileParams(p, pStk, ppVars);
             if ( !pStk->IsOk() ) goto error;
 
@@ -129,7 +129,7 @@ CBotInstr* CBotDefClass::Compile(CBotToken* &p, CBotCStack* pStack, CBotClass* p
             {
                 // the constructor is there?
     //          std::string  noname;
-                CBotTypResult r = pClass->CompileMethode(&token, var->m_value.get(), ppVars, pStk, inst->m_nMethodeIdent);
+                CBotTypResult r = pClass->CompileMethode(&token, var->m_value->GetTypResult(), ppVars, pStk, inst->m_nMethodeIdent);
                 pStk->DeleteChildLevels();                          // releases the supplement stack
                 int typ = r.GetType();
 
@@ -150,14 +150,14 @@ CBotInstr* CBotDefClass::Compile(CBotToken* &p, CBotCStack* pStack, CBotClass* p
                     goto error;
                 }
 
-                pStk->SetCopyVar(var->m_value.get());
+                pStk->SetVarType(var->m_value->GetTypResult());
                 // chained method ?
                 if (nullptr != (inst->m_exprRetVar = CBotExprRetVar::Compile(p, pStk, true, false)))
                 {
                     inst->m_exprRetVar->SetToken(vartoken);
                     pStk->DeleteChildLevels();
                 }
-                pStk->SetVar(nullptr);
+                pStk->SetVarType(CBotTypResult());
 
                 if ( !pStk->IsOk() ) goto error;
             }
@@ -181,12 +181,17 @@ CBotInstr* CBotDefClass::Compile(CBotToken* &p, CBotCStack* pStack, CBotClass* p
                 {
                     goto error;
                 }
-                CBotClass* result = pStk->GetClass();
-                if ( !pStk->GetTypResult(CBotVar::GetTypeMode::CLASS_AS_POINTER).Eq(CBotTypNullPointer) &&
-                   ( !pStk->GetTypResult(CBotVar::GetTypeMode::CLASS_AS_POINTER).Eq(CBotTypPointer) ||
+                CBotClass* result = pStk->GetVarType().GetClass();
+
+
+
+                if ( !pStk->GetVarType().Eq(CBotTypNullPointer) &&
+                   ( (!pStk->GetVarType().Eq(CBotTypPointer) &&
+                     !pStk->GetVarType().Eq(CBotTypClass)) ||
                      ( result != nullptr && !(pClass->IsChildOf(result) ||
                                               result->IsChildOf(pClass)))))     // type compatible ?
                 {
+                    // TODO: pClass->IsChildOf(result) means we can assign from a superclass? what happens if it's not an instance of the subclass at runtime?
                     pStk->SetError(CBotErrBadType1, p->GetStart());
                     goto error;
                 }

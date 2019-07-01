@@ -107,13 +107,14 @@ public:
      *
      * \param localFunctionList Linked list of local functions to search in, can be null
      * \param name Name of the function
-     * \param ppVars List of function arguments
+     * \param ppVars List of function argument types
      * \param nIdent[in, out] Unique identifier of the function
      * \return Type returned by the function or error code
      * \see FindLocalOrPublic
      */
     static CBotTypResult CompileCall(const std::list<CBotFunction*>& localFunctionList,
-                                     const std::string &name, CBotVar** ppVars, long &nIdent);
+                                     const std::string &name,
+                                     const std::vector<CBotTypResult> &ppVars, long &nIdent);
 
     /*!
      * \brief Finds a local or public function
@@ -126,13 +127,13 @@ public:
      * \param localFunctionList Linked list of local functions to search in, can be null
      * \param nIdent[in, out] Unique identifier of the function
      * \param name Name of the function
-     * \param ppVars List of function arguments
+     * \param ppVars List of function argument types
      * \param TypeOrError Type returned by the function or error code
      * \param bPublic Whether to look in public functions or not
      * \return Pointer to found CBotFunction instance, or nullptr in case of no match or ambiguity (see TypeOrError for error code)
      */
     static CBotFunction* FindLocalOrPublic(const std::list<CBotFunction*>& localFunctionList, long &nIdent, const std::string &name,
-                                           CBotVar** ppVars, CBotTypResult &TypeOrError, bool bPublic = true);
+                                           const std::vector<CBotTypResult> &ppVars, CBotTypResult &TypeOrError, bool bPublic = true);
 
     /*!
      * \brief DoCall Fait un appel à une fonction.

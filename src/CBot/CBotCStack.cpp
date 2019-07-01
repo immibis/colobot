@@ -116,7 +116,7 @@ CBotInstr* CBotCStack::Return(CBotInstr* inst, CBotCStack* pfils)
     assert(pfils == this->m_next);
     assert(pfils->m_next == nullptr); // pfils must be bottom stack level, and this must be the next one above it.
 
-    m_var = std::move(pfils->m_var);             // result transmitted
+    m_vartype = std::move(pfils->m_vartype);             // result transmitted
 
     if (pfils->m_error != CBotNoErr)
     {
@@ -148,39 +148,6 @@ CBotError CBotCStack::GetError(int& start, int& end)
 CBotError CBotCStack::GetError()
 {
     return m_error;
-}
-
-////////////////////////////////////////////////////////////////////////////////
-CBotTypResult CBotCStack::GetTypResult(CBotVar::GetTypeMode mode)
-{
-    if (m_var == nullptr)
-        return CBotTypResult(99);
-    return    m_var->GetTypResult(mode);
-}
-
-////////////////////////////////////////////////////////////////////////////////
-int CBotCStack::GetType(CBotVar::GetTypeMode mode)
-{
-    if (m_var == nullptr)
-        return 99;
-    return    m_var->GetType(mode);
-}
-
-////////////////////////////////////////////////////////////////////////////////
-CBotClass* CBotCStack::GetClass()
-{
-    if ( m_var == nullptr )
-        return nullptr;
-    if ( m_var->GetType(CBotVar::GetTypeMode::CLASS_AS_POINTER) != CBotTypPointer ) return nullptr;
-
-    return m_var->GetClass();
-}
-
-////////////////////////////////////////////////////////////////////////////////
-void CBotCStack::SetType(CBotTypResult& type)
-{
-    if (m_var == nullptr) return;
-    m_var->SetType( type );
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -295,27 +262,15 @@ CBotTypResult CBotCStack::GetRetType()
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-void CBotCStack::SetVar( std::unique_ptr<CBotVar> var )
+void CBotCStack::SetVarType( CBotTypResult type )
 {
-    m_var = std::move(var);
+    m_vartype = std::move(type);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-void CBotCStack::SetCopyVar( CBotVar* var )
+const CBotTypResult& CBotCStack::GetVarType()
 {
-    if ( var == nullptr )
-    {
-        m_var.reset(); // set to null
-        return;
-    }
-    m_var = CBotVar::Create(var->GetTypResult(CBotVar::GetTypeMode::CLASS_AS_INTRINSIC));
-    m_var->Copy( var );
-}
-
-////////////////////////////////////////////////////////////////////////////////
-CBotVar* CBotCStack::GetVar()
-{
-    return m_var.get();
+    return m_vartype;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -398,14 +353,14 @@ bool CBotCStack::CheckVarLocal(CBotToken* &pToken)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-CBotTypResult CBotCStack::CompileCall(CBotToken* &p, CBotVar** ppVars, long& nIdent)
+CBotTypResult CBotCStack::CompileCall(CBotToken* &p, const std::vector<CBotTypResult> &ppVars, long& nIdent)
 {
     nIdent = 0;
     CBotTypResult val(-1);
 
     CBotProgram *prog = GetProgram();
 
-    val = prog->GetExternalCalls()->CompileCall(p, nullptr, ppVars, this);
+    val = prog->GetExternalCalls()->CompileCall(p, CBotTypResult(CBotTypVoid), ppVars, this);
     if (val.GetType() < 0)
     {
         val = CBotFunction::CompileCall(prog->GetFunctions(), p->GetString(), ppVars, nIdent);

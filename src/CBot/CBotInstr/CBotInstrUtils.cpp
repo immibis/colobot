@@ -31,13 +31,14 @@ namespace CBot
 {
 
 ////////////////////////////////////////////////////////////////////////////////
-CBotInstr* CompileParams(CBotToken* &p, CBotCStack* pStack, CBotVar** ppVars)
+CBotInstr* CompileParams(CBotToken* &p, CBotCStack* pStack, std::vector<CBotTypResult> &ppVars)
 {
     bool        first = true;
     CBotInstr*    ret = nullptr;   // to return to the list
 
     CBotCStack*    pile = pStack;
-    int            i = 0;
+
+    ppVars.clear();
 
     if (IsOfType(p, ID_OPENPAR))
     {
@@ -63,16 +64,15 @@ CBotInstr* CompileParams(CBotToken* &p, CBotCStack* pStack, CBotVar** ppVars)
 
             if (param != nullptr)
             {
-                if (pile->GetTypResult().Eq(99))
+                if (pile->GetVarType().Eq(99))
                 {
                     pStack->DeleteChildLevels();
                     pStack->SetError(CBotErrVoid, p->GetStart());
                     return nullptr;
                 }
-                ppVars[i] = pile->GetVar();
+                ppVars.emplace_back(pile->GetVarType());
                 // TODO: was commented out as part of value/variable refactor. What does this do?
                 (void)end; //ppVars[i]->GetToken()->SetPos(start, end);
-                i++;
 
                 if (IsOfType(p, ID_COMMA)) continue;    // skips the comma
                 if (IsOfType(p, ID_CLOSEPAR)) break;
@@ -83,7 +83,6 @@ CBotInstr* CompileParams(CBotToken* &p, CBotCStack* pStack, CBotVar** ppVars)
             return nullptr;
         }
     }
-    ppVars[i] = nullptr;
     return    ret;
 }
 
@@ -93,9 +92,11 @@ bool TypeCompatible(CBotTypResult& type1, CBotTypResult& type2, int op)
     int    t1 = type1.GetType();
     int    t2 = type2.GetType();
 
-    int max = (t1 > t2) ? t1 : t2;
+    // void used to be 99 here due to special handling in CBotCStack; now it's 0
+    if (t1 == CBotTypVoid || t2 == CBotTypVoid)
+        return false; // result is void?
 
-    if (max == 99) return false;    // result is void?
+    int max = (t1 > t2) ? t1 : t2;
 
     // special case for strin concatenation
     if (op == ID_ADD && t1 == CBotTypString) return true;

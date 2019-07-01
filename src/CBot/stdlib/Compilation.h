@@ -20,6 +20,7 @@
 #pragma once
 
 #include "CBot/CBotTypResult.h"
+#include <vector>
 
 namespace CBot
 {
@@ -30,32 +31,32 @@ class CBotVar;
 // type "number" is anything > CBotTypDouble
 
 // float foo()
-CBotTypResult cNull(CBotVar* &var, void* user);
+CBotTypResult cNull(const std::vector<CBotTypResult> &var, void* user);
 // float foo(number)
-CBotTypResult cOneFloat(CBotVar* &var, void* user);
+CBotTypResult cOneFloat(const std::vector<CBotTypResult> &var, void* user);
 // float foo(number, number)
-CBotTypResult cTwoFloat(CBotVar* &var, void* user);
+CBotTypResult cTwoFloat(const std::vector<CBotTypResult> &var, void* user);
 // float foo(string)
-CBotTypResult cString(CBotVar* &var, void* user);
+CBotTypResult cString(const std::vector<CBotTypResult> &var, void* user);
 // string foo(string)
-CBotTypResult cStringString(CBotVar* &var, void* user);
+CBotTypResult cStringString(const std::vector<CBotTypResult> &var, void* user);
 // int foo(int)
-CBotTypResult cOneInt(CBotVar* &var, void* user);
+CBotTypResult cOneInt(const std::vector<CBotTypResult> &var, void* user);
 // bool foo(int)
-CBotTypResult cOneIntReturnBool(CBotVar* &var, void* user);
+CBotTypResult cOneIntReturnBool(const std::vector<CBotTypResult> &var, void* user);
 
 
 // string foo(string)
-CBotTypResult cStrStr(CBotVar*& var, void* user);
+CBotTypResult cStrStr(const std::vector<CBotTypResult> &var, void* user);
 // int foo(string, string)
-CBotTypResult cIntStrStr(CBotVar*& var, void* user);
+CBotTypResult cIntStrStr(const std::vector<CBotTypResult> &var, void* user);
 // float foo(string)
-CBotTypResult cFloatStr(CBotVar*& var, void* user);
+CBotTypResult cFloatStr(const std::vector<CBotTypResult> &var, void* user);
 // string foo(string, number[, number])
-CBotTypResult cStrStrIntInt(CBotVar*& var, void* user);
+CBotTypResult cStrStrIntInt(const std::vector<CBotTypResult> &var, void* user);
 // string foo(string, number)
-CBotTypResult cStrStrInt(CBotVar*& var, void* user);
+CBotTypResult cStrStrInt(const std::vector<CBotTypResult> &var, void* user);
 // int foo(string)
-CBotTypResult cIntStr(CBotVar*& var, void* user);
+CBotTypResult cIntStr(const std::vector<CBotTypResult> &var, void* user);
 
 } // namespace CBot

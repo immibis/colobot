@@ -85,7 +85,7 @@ CBotInstr* CBotExpression::Compile(CBotToken* &p, CBotCStack* pStack)
             return nullptr;
         }
 
-        CBotTypResult    type1 = pStack->GetTypResult();
+        CBotTypResult    type1 = pStack->GetVarType();
 
         // get the variable assigned to mark
         CBotVar*    var = nullptr;

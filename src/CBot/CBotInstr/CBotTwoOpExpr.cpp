@@ -156,7 +156,7 @@ CBotInstr* CBotTwoOpExpr::Compile(CBotToken* &p, CBotCStack* pStack, int* pOpera
     if ( IsInList(typeOp, pOperations, typeMask) )
     {
         CBotTypResult    type1, type2;
-        type1 = pStk->GetTypResult();                           // what kind of the first operand?
+        type1 = pStk->GetVarType();                           // what kind of the first operand?
 
         if (typeOp == ID_LOGIC)       // special case provided for: ? op1: op2;
         {
@@ -177,7 +177,7 @@ CBotInstr* CBotTwoOpExpr::Compile(CBotToken* &p, CBotCStack* pStack, int* pOpera
                 delete inst;
                 return pStack->Return(nullptr, pStk);
             }
-            type1 = pStk->GetTypResult();
+            type1 = pStk->GetVarType();
 
             inst->m_op2 = CBotExpression::Compile(p, pStk);
             if ( inst->m_op2 == nullptr )
@@ -186,7 +186,7 @@ CBotInstr* CBotTwoOpExpr::Compile(CBotToken* &p, CBotCStack* pStack, int* pOpera
                 delete inst;
                 return pStack->Return(nullptr, pStk);
             }
-            type2 = pStk->GetTypResult();
+            type2 = pStk->GetVarType();
             if (!TypeCompatible(type1, type2))
             {
                 pStk->SetError( CBotErrBadType2, pp );
@@ -194,7 +194,7 @@ CBotInstr* CBotTwoOpExpr::Compile(CBotToken* &p, CBotCStack* pStack, int* pOpera
                 return pStack->Return(nullptr, pStk);
             }
 
-            pStk->SetType(type1);       // the greatest of 2 types
+            pStk->SetVarType(type1);       // the greatest of 2 types
 
             return pStack->Return(inst, pStk);
         }
@@ -212,7 +212,7 @@ CBotInstr* CBotTwoOpExpr::Compile(CBotToken* &p, CBotCStack* pStack, int* pOpera
         {
             // there is an second operand acceptable
 
-            type2 = pStk->GetTypResult();                       // what kind of results?
+            type2 = pStk->GetVarType();                       // what kind of results?
 
             if ( type1.Eq(99) || type2.Eq(99) )                 // operand is void
             {
@@ -265,7 +265,7 @@ CBotInstr* CBotTwoOpExpr::Compile(CBotToken* &p, CBotCStack* pStack, int* pOpera
 
                     p = p->GetNext();                                       // advance after
                     i->m_rightop = CBotTwoOpExpr::Compile( p, pStk, pOp );
-                    type2 = pStk->GetTypResult();
+                    type2 = pStk->GetVarType();
 
                     if ( !TypeCompatible (type1, type2, typeOp) )       // the results are compatible
                     {
@@ -280,9 +280,9 @@ CBotInstr* CBotTwoOpExpr::Compile(CBotToken* &p, CBotCStack* pStack, int* pOpera
                 }
 
                 CBotTypResult t(type1);
-                    t.SetType(TypeRes);
+                t.SetType(TypeRes);
                 // is a variable on the stack for the type of result
-                pStk->SetVar(CBotVar::Create(t));
+                pStk->SetVarType(t);
 
                 // and returns the requested object
                 return pStack->Return(inst, pStk);

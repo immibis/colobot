@@ -87,7 +87,9 @@ CBotDefParam* CBotDefParam::Compile(CBotToken* &p, CBotCStack* pStack)
                         CBotCStack* pStk = pStack->TokenStack(nullptr, true);
                         if (nullptr != (param->m_expr = CBotParExpr::CompileLitExpr(p, pStk)))
                         {
-                            CBotTypResult valueType = pStk->GetTypResult(CBotVar::GetTypeMode::CLASS_AS_INTRINSIC);
+                            CBotTypResult valueType = pStk->GetVarType();
+                            if(valueType.GetType() == CBotTypClass)
+                                valueType.SetType(CBotTypIntrinsic);
 
                             if (!TypesCompatibles(type, valueType))
                                 pStack->SetError(CBotErrBadType1, p->GetPrev());

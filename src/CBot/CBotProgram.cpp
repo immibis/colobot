@@ -296,10 +296,11 @@ bool CBotProgram::ClassExists(std::string name)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-static CBotTypResult cSizeOf( CBotVar* &pVar, void* pUser )
+static CBotTypResult cSizeOf( const std::vector<CBotTypResult> &pVar, void* pUser )
 {
-    if ( pVar == nullptr ) return CBotTypResult( CBotErrLowParam );
-    if ( pVar->GetType() != CBotTypArrayPointer )
+    if ( pVar.size() == 0 ) return CBotTypResult( CBotErrLowParam );
+    // TODO: check for too many parameters
+    if ( pVar[0].GetType() != CBotTypArrayPointer )
                         return CBotTypResult( CBotErrBadParam );
     return CBotTypResult( CBotTypInt );
 }
@@ -315,7 +316,7 @@ static bool rSizeOf( CBotVar* pVar, CBotVar* pResult, int& ex, void* pUser )
 ////////////////////////////////////////////////////////////////////////////////
 bool CBotProgram::AddFunction(const std::string& name,
                               bool rExec(CBotVar* pVar, CBotVar* pResult, int& Exception, void* pUser),
-                              CBotTypResult rCompile(CBotVar*& pVar, void* pUser))
+                              CBotTypResult rCompile(const std::vector<CBotTypResult> &pVar, void* pUser))
 {
     return m_externalCalls->AddFunction(name, std::unique_ptr<CBotExternalCall>(new CBotExternalCallDefault(rExec, rCompile)));
 }

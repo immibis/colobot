@@ -140,7 +140,7 @@ public:
      */
     bool AddFunction(const std::string& name,
                      bool rExec(CBotVar* pThis, CBotVar* pVar, CBotVar* pResult, int& Exception, void* user),
-                     CBotTypResult rCompile(CBotVar* pThis, CBotVar*& pVar));
+                     CBotTypResult rCompile(CBotTypResult thisType, const std::vector<CBotTypResult> &pVar));
 
     /*!
      * \brief SetUpdateFunc Defines routine to be called to update the elements
@@ -236,15 +236,15 @@ public:
      * \brief CompileMethode Compiles a method associated with an instance of
      * class the method can be declared by the user or AddFunction.
      * \param name
-     * \param pThis
-     * \param ppParams
+     * \param thisType Type of object the method is being called on.
+     * \param ppParams Types of parameters
      * \param pStack
      * \param nIdent
      * \return
      */
     CBotTypResult CompileMethode(CBotToken* name,
-                                 CBotVar* pThis,
-                                 CBotVar** ppParams,
+                                 CBotTypResult thisType,
+                                 const std::vector<CBotTypResult> &ppParams,
                                  CBotCStack* pStack,
                                  long &nIdent);
 

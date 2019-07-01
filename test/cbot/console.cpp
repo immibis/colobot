@@ -29,14 +29,13 @@ using namespace CBot;
 namespace
 {
 
-CBotTypResult cMessage(CBotVar* &var, void* user)
+CBotTypResult cMessage(const std::vector<CBotTypResult> &var, void* user)
 {
-    if ( var == nullptr )  return CBotTypResult(CBotErrLowParam);
-    if ( var->GetType() != CBotTypString &&
-         var->GetType() >  CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
-    var = var->GetNext();
+    if ( var.size() == 0 )  return CBotTypResult(CBotErrLowParam);
+    if ( var[0].GetType() != CBotTypString &&
+         var[0].GetType() >  CBotTypDouble )  return CBotTypResult(CBotErrBadNum); // TODO: bad error message
 
-    if ( var == nullptr )  return CBotTypResult(CBotTypFloat);
+    if ( var.size() > 1 )  return CBotTypResult(CBotTypFloat);
     return CBotTypResult(CBotErrOverParam);
 }
 

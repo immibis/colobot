@@ -49,7 +49,7 @@ CBotInstrMethode::~CBotInstrMethode()
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-CBotInstr* CBotInstrMethode::Compile(CBotToken* &p, CBotCStack* pStack, CBotVar* var, bool bMethodChain, bool bIsSuperCall)
+CBotInstr* CBotInstrMethode::Compile(CBotToken* &p, CBotCStack* pStack, CBotTypResult varType, bool bMethodChain, bool bIsSuperCall)
 {
     CBotInstrMethode* inst = new CBotInstrMethode();
     inst->SetToken(p);  // corresponding token
@@ -62,15 +62,15 @@ CBotInstr* CBotInstrMethode::Compile(CBotToken* &p, CBotCStack* pStack, CBotVar*
         inst->m_methodName = pp->GetString();
 
         // compiles the list of parameters
-        CBotVar*    ppVars[1000];
+        std::vector<CBotTypResult> ppVars;
         inst->m_parameters = CompileParams(p, pStack, ppVars);
 
         if (pStack->IsOk())
         {
-            CBotClass* pClass = var->GetClass();    // pointer to the class
+            CBotClass* pClass = varType.GetClass();    // pointer to the class
             inst->m_className = pClass->GetName();  // name of the class
             inst->m_bNonVirtualCall = bIsSuperCall;
-            CBotTypResult r = pClass->CompileMethode(pp, var, ppVars, pStack, inst->m_MethodeIdent);
+            CBotTypResult r = pClass->CompileMethode(pp, varType, ppVars, pStack, inst->m_MethodeIdent);
             pStack->DeleteChildLevels();    // release parameters on the stack
             inst->m_typRes = r;
 
@@ -83,14 +83,9 @@ CBotInstr* CBotInstrMethode::Compile(CBotToken* &p, CBotCStack* pStack, CBotVar*
             // put the result on the stack to have something
             if (inst->m_typRes.GetType() > 0)
             {
-                std::unique_ptr<CBotVar> pResult = CBotVar::Create(inst->m_typRes);
-                if (inst->m_typRes.Eq(CBotTypClass))
-                {
-                    pResult->SetClass(inst->m_typRes.GetClass());
-                }
-                pStack->SetVar(std::move(pResult));
+                pStack->SetVarType(inst->m_typRes);
             }
-            else pStack->SetVar(nullptr);
+            else pStack->SetVarType(CBotTypResult(CBotTypVoid));
 
             pp = p;
             if (nullptr != (inst->m_exprRetVar = CBotExprRetVar::Compile(p, pStack, bMethodChain, false)))

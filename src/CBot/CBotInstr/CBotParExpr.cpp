@@ -94,7 +94,9 @@ CBotInstr* CBotParExpr::Compile(CBotToken* &p, CBotCStack* pStack)
             delete inst;
             p = pvar;
             inst = CBotExprVar::Compile(p, pStk, true);
-            if (pStk->GetType() >= CBotTypBoolean)
+            // TODO: is there a possibility that something like ((((i++)++)++)++)... will recurse exponentially?
+            // since each X++ parses X twice (once with bCheckReadOnly=false, once with true)
+            if (pStk->GetVarType().GetType() >= CBotTypBoolean || pStk->GetVarType().GetType() == CBotTypVoid)
             {
                 pStk->SetError(CBotErrBadType1, pp);
                 delete inst;
@@ -118,7 +120,7 @@ CBotInstr* CBotParExpr::Compile(CBotToken* &p, CBotCStack* pStack)
         {
             if (nullptr != (inst = CBotExprVar::Compile(p, pStk, true)))
             {
-                if (pStk->GetType() < CBotTypBoolean) // a number ?
+                if (pStk->GetVarType().GetType() < CBotTypBoolean) // a number ?
                 {
                     CBotPreIncExpr* i = new CBotPreIncExpr();
                     i->SetToken(pp);
@@ -183,8 +185,7 @@ CBotInstr* CBotParExpr::CompileLitExpr(CBotToken* &p, CBotCStack* pStack)
     {
         CBotInstr* inst = new CBotExprLitNull();
         inst->SetToken(pp);
-        std::unique_ptr<CBotVar> var = CBotVar::Create(CBotTypNullPointer);
-        pStk->SetVar(std::move(var));
+        pStk->SetVarType(CBotTypNullPointer);
         return pStack->Return(inst, pStk);
     }
 
@@ -193,10 +194,7 @@ CBotInstr* CBotParExpr::CompileLitExpr(CBotToken* &p, CBotCStack* pStack)
     {
         CBotInstr* inst = new CBotExprLitNan();
         inst->SetToken(pp);
-        // XXX: Why is NAN an int?
-        std::unique_ptr<CBotVar> var = CBotVar::Create(CBotTypInt);
-        var->SetInit(CBotVar::InitType::IS_NAN);
-        pStk->SetVar(std::move(var));
+        pStk->SetVarType(CBotTypInt);
         return pStack->Return(inst, pStk);
     }
 

@@ -70,8 +70,7 @@ CBotInstr* CBotExprLitNum::Compile(CBotToken* &p, CBotCStack* pStack)
 
     if (pStk->NextToken(p))
     {
-        std::unique_ptr<CBotVar> var = CBotVar::Create(inst->m_numtype);
-        pStk->SetVar(std::move(var));
+        pStk->SetVarType(CBotTypResult(inst->m_numtype));
 
         return pStack->Return(inst, pStk);
     }

@@ -57,7 +57,7 @@ CBotInstr* CBotInstrCall::Compile(CBotToken* &p, CBotCStack* pStack)
     if (p->GetType() == ID_OPENPAR)
     {
 
-        CBotVar*    ppVars[1000];
+        std::vector<CBotTypResult> ppVars;
 
         CBotInstrCall* inst = new CBotInstrCall();
         inst->SetToken(pp);
@@ -86,10 +86,9 @@ CBotInstr* CBotInstrCall::Compile(CBotToken* &p, CBotCStack* pStack)
         pStack->DeleteChildLevels();
         if ( inst->m_typRes.GetType() > 0 )
         {
-            std::unique_ptr<CBotVar> pRes = CBotVar::Create(inst->m_typRes);
-            pStack->SetVar(std::move(pRes));   // for knowing the type of the result
+            pStack->SetVarType(inst->m_typRes);   // for knowing the type of the result
         }
-        else pStack->SetVar(nullptr);          // routine returns void
+        else pStack->SetVarType(CBotTypVoid);          // routine returns void
 
         if (nullptr != (inst->m_exprRetVar = CBotExprRetVar::Compile(p, pStack, 0, false)))
         {

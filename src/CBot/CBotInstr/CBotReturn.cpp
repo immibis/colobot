@@ -63,7 +63,9 @@ CBotInstr* CBotReturn::Compile(CBotToken* &p, CBotCStack* pStack)
     inst->m_instr = CBotExpression::Compile(p, pStack);
     if ( pStack->IsOk() )
     {
-        CBotTypResult   retType = pStack->GetTypResult(CBotVar::GetTypeMode::CLASS_AS_INTRINSIC);
+        CBotTypResult   retType = pStack->GetVarType();
+        if(retType.GetType() == CBotTypClass)
+            retType.SetType(CBotTypIntrinsic);
         if (TypeCompatible(retType, type, ID_ASS))
         {
             if ( IsOfType( p, ID_SEP ) )

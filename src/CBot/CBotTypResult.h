@@ -167,7 +167,7 @@ public:
      * \param name Class name to check
      * \return true if this type matches the given class or any of its subclasses
      */
-    bool IsSpecifiedClassOrSubclass(const std::string& name);
+    bool IsSpecifiedClassOrSubclass(const std::string& name) const;
 
     /**
      * \brief Copy

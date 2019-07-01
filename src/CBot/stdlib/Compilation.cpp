@@ -26,216 +26,198 @@ namespace CBot
 
 // Compiling a procedure without any parameters.
 
-CBotTypResult cNull(CBotVar* &var, void* user)
+CBotTypResult cNull(const std::vector<CBotTypResult> &var, void* user)
 {
-    if ( var != nullptr )  return CBotErrOverParam;
-    return CBotTypResult(CBotTypFloat);
+    if ( var.size() > 0 )  return CBotErrOverParam;
+    return CBotTypFloat;
 }
 
 // Compiling a procedure with a single real number.
 
-CBotTypResult cOneFloat(CBotVar* &var, void* user)
+CBotTypResult cOneFloat(const std::vector<CBotTypResult> &var, void* user)
 {
-    if ( var == nullptr )  return CBotTypResult(CBotErrLowParam);
-    if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
-    var = var->GetNext();
-    if ( var != nullptr )  return CBotTypResult(CBotErrOverParam);
-    return CBotTypResult(CBotTypFloat);
+    if ( var.size() < 1 )  return CBotTypResult(CBotErrLowParam);
+    if ( var.size() > 1 )  return CBotTypResult(CBotErrOverParam);
+    if ( var[0].GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
+
+    return CBotTypFloat;
 }
 
 // Compiling a procedure with two real numbers.
 
-CBotTypResult cTwoFloat(CBotVar* &var, void* user)
+CBotTypResult cTwoFloat(const std::vector<CBotTypResult> &var, void* user)
 {
-    if ( var == nullptr )  return CBotTypResult(CBotErrLowParam);
-    if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
-    var = var->GetNext();
+    if ( var.size() < 2 )  return CBotTypResult(CBotErrLowParam);
+    if ( var.size() > 2 )  return CBotTypResult(CBotErrOverParam);
 
-    if ( var == nullptr )  return CBotTypResult(CBotErrLowParam);
-    if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
-    var = var->GetNext();
+    if ( var[0].GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
+    if ( var[1].GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
 
-    if ( var != nullptr )  return CBotTypResult(CBotErrOverParam);
-    return CBotTypResult(CBotTypFloat);
+    return CBotTypFloat;
 }
 
 
 // Compiling a procedure with a single string.
 
-CBotTypResult cString(CBotVar* &var, void* user)
+CBotTypResult cString(const std::vector<CBotTypResult> &var, void* user)
 {
-    if ( var == nullptr )  return CBotTypResult(CBotErrLowParam);
-    if ( var->GetType() != CBotTypString &&
-         var->GetType() >  CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
-    var = var->GetNext();
-    if ( var != nullptr )  return CBotTypResult(CBotErrOverParam);
-    return CBotTypResult(CBotTypFloat);
+    if ( var.size() < 1 )  return CBotTypResult(CBotErrLowParam);
+    if ( var.size() > 1 )  return CBotTypResult(CBotErrOverParam);
+
+    if ( var[0].GetType() != CBotTypString &&
+         var[0].GetType() >  CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
+
+    return CBotTypFloat;
 }
 
 // Compiling a procedure with a single string, returning string.
 
-CBotTypResult cStringString(CBotVar* &var, void* user)
+CBotTypResult cStringString(const std::vector<CBotTypResult> &var, void* user)
 {
-    if ( var == nullptr )  return CBotTypResult(CBotErrLowParam);
-    if ( var->GetType() != CBotTypString &&
-         var->GetType() >  CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
-    var = var->GetNext();
-    if ( var != nullptr )  return CBotTypResult(CBotErrOverParam);
-    return CBotTypResult(CBotTypString);
+    if ( var.size() < 1 )  return CBotTypResult(CBotErrLowParam);
+    if ( var.size() > 1 )  return CBotTypResult(CBotErrOverParam);
+    if ( var[0].GetType() != CBotTypString &&
+         var[0].GetType() >  CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
+
+    return CBotTypString;
 }
 
 // compilation of instruction with one int returning int
 
-CBotTypResult cOneInt(CBotVar* &var, void* user)
+CBotTypResult cOneInt(const std::vector<CBotTypResult> &var, void* user)
 {
-    if ( var == nullptr )  return CBotTypResult(CBotErrLowParam);
-    if ( var->GetType() != CBotTypInt )  return CBotTypResult(CBotErrBadNum);
-    var = var->GetNext();
-    if ( var != nullptr )  return CBotTypResult(CBotErrOverParam);
-    return CBotTypResult(CBotTypInt);
+    if ( var.size() < 1 )  return CBotTypResult(CBotErrLowParam);
+    if ( var.size() > 1 )  return CBotTypResult(CBotErrOverParam);
+    if ( var[0].GetType() != CBotTypInt )  return CBotTypResult(CBotErrBadNum);
+    return CBotTypInt;
 }
 
 // compilation of instruction with one int returning boolean
 
-CBotTypResult cOneIntReturnBool(CBotVar* &var, void* user)
+CBotTypResult cOneIntReturnBool(const std::vector<CBotTypResult> &var, void* user)
 {
-    if ( var == nullptr )  return CBotTypResult(CBotErrLowParam);
-    if ( var->GetType() != CBotTypInt )  return CBotTypResult(CBotErrBadNum);
-    var = var->GetNext();
-    if ( var != nullptr )  return CBotTypResult(CBotErrOverParam);
-    return CBotTypResult(CBotTypBoolean);
+    if ( var.size() < 1 )  return CBotTypResult(CBotErrLowParam);
+    if ( var.size() > 1 )  return CBotTypResult(CBotErrOverParam);
+    if ( var[0].GetType() != CBotTypInt )  return CBotTypResult(CBotErrBadNum);
+    return CBotTypBoolean;
 }
 
 
 
-CBotTypResult cStrStr(CBotVar*& var, void* user)
+CBotTypResult cStrStr(const std::vector<CBotTypResult> &var, void* user)
 {
     // it takes a parameter
-    if ( var == nullptr ) return CBotTypResult( CBotErrLowParam );
+    if ( var.size() < 1 )  return CBotTypResult(CBotErrLowParam);
+    // no second parameter
+    if ( var.size() > 1 )  return CBotTypResult(CBotErrOverParam);
 
     // to be a string
-    if ( var->GetType() != CBotTypString )
+    if ( var[0].GetType() != CBotTypString )
         return CBotTypResult( CBotErrBadString );
-
-    // no second parameter
-    if ( var->GetNext() != nullptr ) return CBotTypResult( CBotErrOverParam );
 
     // the end result is a string
-    return CBotTypResult( CBotTypString );
+    return CBotTypString;
 }
 
-CBotTypResult cIntStrStr(CBotVar*& var, void* user)
+CBotTypResult cIntStrStr(const std::vector<CBotTypResult> &var, void* user)
 {
     // it takes a parameter
-    if ( var == nullptr ) return CBotTypResult( CBotErrLowParam );
-
-    // to be a string
-    if ( var->GetType() != CBotTypString )
-        return CBotTypResult( CBotErrBadString );
-
     // it takes a second parameter
-    var = var->GetNext();
-    if ( var == nullptr ) return CBotTypResult( CBotErrLowParam );
-
-    // to be a string
-    if ( var->GetType() != CBotTypString )
-        return CBotTypResult( CBotErrBadString );
-
+    if ( var.size() < 2 )  return CBotTypResult(CBotErrLowParam);
     // no third parameter
-    if ( var->GetNext() != nullptr ) return CBotTypResult( CBotErrOverParam );
-
-    // the end result is a number
-    return CBotTypResult( CBotTypInt );
-}
-
-CBotTypResult cFloatStr(CBotVar*& var, void* user)
-{
-    // it takes a parameter
-    if ( var == nullptr ) return CBotTypResult(CBotErrLowParam );
+    if ( var.size() > 2 )  return CBotTypResult(CBotErrOverParam);
 
     // to be a string
-    if ( var->GetType() != CBotTypString )
+    if ( var[0].GetType() != CBotTypString )
         return CBotTypResult( CBotErrBadString );
 
-    // no second parameter
-    if ( var->GetNext() != nullptr ) return CBotTypResult( CBotErrOverParam );
+    // to be a string
+    if ( var[1].GetType() != CBotTypString )
+        return CBotTypResult( CBotErrBadString );
 
     // the end result is a number
-    return CBotTypResult( CBotTypFloat );
+    return CBotTypInt;
 }
 
-CBotTypResult cStrStrIntInt(CBotVar*& var, void* user)
+CBotTypResult cFloatStr(const std::vector<CBotTypResult> &var, void* user)
 {
     // it takes a parameter
-    if ( var == nullptr ) return CBotTypResult( CBotErrLowParam );
+    if ( var.size() < 1 )  return CBotTypResult(CBotErrLowParam);
+    // no second parameter
+    if ( var.size() > 1 )  return CBotTypResult(CBotErrOverParam);
 
     // to be a string
-    if ( var->GetType() != CBotTypString )
+    if ( var[0].GetType() != CBotTypString )
+        return CBotTypResult( CBotErrBadString );
+
+    // the end result is a number
+    return CBotTypFloat;
+}
+
+CBotTypResult cStrStrIntInt(const std::vector<CBotTypResult> &var, void* user)
+{
+    // it takes a parameter
+    // it takes a second parameter
+    if ( var.size() < 2 ) return CBotTypResult( CBotErrLowParam );
+
+    // to be a string
+    if ( var[0].GetType() != CBotTypString )
         return CBotTypResult( CBotErrBadString );
 
     // it takes a second parameter
-    var = var->GetNext();
-    if ( var == nullptr ) return CBotTypResult( CBotErrLowParam );
-
     // which must be a number
-    if ( var->GetType() > CBotTypDouble )
+    if ( var[1].GetType() > CBotTypDouble )
         return CBotTypResult( CBotErrBadNum );
 
     // third parameter optional
-    if ( var->GetNext() != nullptr )
+    if ( var.size() > 2 )
     {
-
-        var = var->GetNext();
         // which must be a number
-        if ( var->GetType() > CBotTypDouble )
+        if ( var[2].GetType() > CBotTypDouble )
             return CBotTypResult( CBotErrBadNum );
 
         // no fourth parameter
-        if ( var->GetNext() != nullptr ) return CBotTypResult( CBotErrOverParam );
+        if ( var.size() > 3 ) return CBotTypResult( CBotErrOverParam );
     }
 
     // the end result is a string
-    return CBotTypResult( CBotTypString );
+    return CBotTypString;
 }
 
-CBotTypResult cStrStrInt(CBotVar*& var, void* user)
+CBotTypResult cStrStrInt(const std::vector<CBotTypResult> &var, void* user)
 {
     // it takes a parameter
-    if ( var == nullptr ) return CBotTypResult( CBotErrLowParam );
+    // it takes a second parameter
+    if ( var.size() < 2 ) return CBotTypResult( CBotErrLowParam );
+    // no third parameter
+    if ( var.size() > 2 ) return CBotTypResult( CBotErrOverParam );
 
     // to be a string
-    if ( var->GetType() != CBotTypString )
+    if ( var[0].GetType() != CBotTypString )
         return CBotTypResult( CBotErrBadString );
 
     // it takes a second parameter
-    var = var->GetNext();
-    if ( var == nullptr ) return CBotTypResult( CBotErrLowParam );
-
     // which must be a number
-    if ( var->GetType() > CBotTypDouble )
+    if ( var[1].GetType() > CBotTypDouble )
         return CBotTypResult( CBotErrBadNum );
 
-    // no third parameter
-    if ( var->GetNext() != nullptr ) return CBotTypResult( CBotErrOverParam );
-
     // the end result is a string
-    return CBotTypResult( CBotTypString );
+    return CBotTypString;
 }
 
-CBotTypResult cIntStr(CBotVar*& var, void* user)
+CBotTypResult cIntStr(const std::vector<CBotTypResult> &var, void* user)
 {
     // it takes a parameter
-    if ( var == nullptr ) return CBotTypResult( CBotErrLowParam );
+    if ( var.size() < 1 ) return CBotTypResult( CBotErrLowParam );
+    // no second parameter
+    if ( var.size() > 1 ) return CBotTypResult( CBotErrOverParam );
 
     // to be a string
-    if ( var->GetType() != CBotTypString )
+    if ( var[0].GetType() != CBotTypString )
         return CBotTypResult( CBotErrBadParam );
 
-    // no second parameter
-    if ( var->GetNext() != nullptr ) return CBotTypResult( CBotErrOverParam );
-
     // the end result is an integer
-    return CBotTypResult( CBotTypInt );
+    return CBotTypInt;
 }
 
 } // namespace CBot
