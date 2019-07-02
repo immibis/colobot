@@ -38,7 +38,6 @@ CBotIndexExpr::CBotIndexExpr()
 ////////////////////////////////////////////////////////////////////////////////
 CBotIndexExpr::~CBotIndexExpr()
 {
-    delete    m_expr;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -122,7 +121,7 @@ void CBotIndexExpr::RestoreStateVar(CBotStack* &pile, bool bMain)
 std::map<std::string, CBotInstr*> CBotIndexExpr::GetDebugLinks()
 {
     auto links = CBotInstr::GetDebugLinks();
-    links["m_expr"] = m_expr;
+    links["m_expr"] = m_expr.get();
     return links;
 }
 

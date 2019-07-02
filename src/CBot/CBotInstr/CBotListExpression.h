@@ -55,7 +55,7 @@ public:
      * \param pStack
      * \return
      */
-    static CBotInstr* Compile(CBotToken* &p, CBotCStack* pStack);
+    static std::unique_ptr<CBotInstr> Compile(CBotToken* &p, CBotCStack* pStack);
 
     /*!
      * \brief Execute
@@ -77,7 +77,7 @@ protected:
 
 private:
     //! The first expression to be evaluated
-    CBotInstr* m_expr;
+    std::unique_ptr<CBotInstr> m_expr;
 };
 
 } // namespace CBot

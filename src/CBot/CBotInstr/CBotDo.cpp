@@ -24,6 +24,8 @@
 #include "CBot/CBotStack.h"
 #include "CBot/CBotCStack.h"
 
+#include "common/make_unique.h"
+
 namespace CBot
 {
 
@@ -37,14 +39,12 @@ CBotDo::CBotDo()
 ////////////////////////////////////////////////////////////////////////////////
 CBotDo::~CBotDo()
 {
-    delete m_condition;    // frees the condition
-    delete m_block;        // frees the instruction block
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-CBotInstr* CBotDo::Compile(CBotToken* &p, CBotCStack* pStack)
+std::unique_ptr<CBotInstr> CBotDo::Compile(CBotToken* &p, CBotCStack* pStack)
 {
-    CBotDo* inst = new CBotDo();                // creates the object
+    std::unique_ptr<CBotDo> inst = MakeUnique<CBotDo>(); // creates the object
 
     CBotToken*  pp = p;                         // preserves at the ^ token (starting position)
 
@@ -74,7 +74,7 @@ CBotInstr* CBotDo::Compile(CBotToken* &p, CBotCStack* pStack)
                 // the condition exists
                 if (IsOfType(p, ID_SEP))
                 {
-                    return pStack->Return(inst, pStk);  // return an object to the application
+                    return pStack->Return(move(inst), pStk);  // return an object to the application
                 }
                 pStk->SetError(CBotErrNoTerminator, p->GetStart());
             }
@@ -82,7 +82,6 @@ CBotInstr* CBotDo::Compile(CBotToken* &p, CBotCStack* pStack)
         pStk->SetError(CBotErrNoWhile, p->GetStart());
     }
 
-    delete inst;                                // error, frees up
     return pStack->Return(nullptr, pStk);          // no object, the error is on the stack
 }
 
@@ -162,8 +161,8 @@ std::string CBotDo::GetDebugData()
 std::map<std::string, CBotInstr*> CBotDo::GetDebugLinks()
 {
     auto links = CBotInstr::GetDebugLinks();
-    links["m_block"] = m_block;
-    links["m_condition"] = m_condition;
+    links["m_block"] = m_block.get();
+    links["m_condition"] = m_condition.get();
     return links;
 }
 

@@ -28,13 +28,13 @@ namespace CBot
 {
 
 ////////////////////////////////////////////////////////////////////////////////
-CBotInstr* CBotBlock::Compile(CBotToken* &p, CBotCStack* pStack, bool bLocal)
+std::unique_ptr<CBotInstr> CBotBlock::Compile(CBotToken* &p, CBotCStack* pStack, bool bLocal)
 {
     pStack->SetStartError(p->GetStart());
 
     if (IsOfType(p, ID_OPBLK))
     {
-        CBotInstr* inst = CBotListInstr::Compile(p, pStack, bLocal);
+        std::unique_ptr<CBotInstr> inst = CBotListInstr::Compile(p, pStack, bLocal);
 
         if (IsOfType(p, ID_CLBLK))
         {
@@ -42,7 +42,6 @@ CBotInstr* CBotBlock::Compile(CBotToken* &p, CBotCStack* pStack, bool bLocal)
         }
 
         pStack->SetError(CBotErrCloseBlock, p->GetStart());    // missing parenthesis
-        delete inst;
         return nullptr;
     }
 
@@ -51,7 +50,7 @@ CBotInstr* CBotBlock::Compile(CBotToken* &p, CBotCStack* pStack, bool bLocal)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-CBotInstr* CBotBlock::CompileBlkOrInst(CBotToken* &p, CBotCStack* pStack, bool bLocal)
+std::unique_ptr<CBotInstr> CBotBlock::CompileBlkOrInst(CBotToken* &p, CBotCStack* pStack, bool bLocal)
 {
     // is this a new block
     if (p->GetType() == ID_OPBLK) return CBotBlock::Compile(p, pStack);

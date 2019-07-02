@@ -21,6 +21,7 @@
 
 #include "CBot/CBotStack.h"
 #include "CBot/CBotCStack.h"
+#include "common/make_unique.h"
 
 namespace CBot
 {
@@ -36,7 +37,7 @@ CBotBreak::~CBotBreak()
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-CBotInstr* CBotBreak::Compile(CBotToken* &p, CBotCStack* pStack)
+std::unique_ptr<CBotInstr> CBotBreak::Compile(CBotToken* &p, CBotCStack* pStack)
 {
     CBotToken*  pp = p;                         // preserves at the ^ token (starting position)
     int type = p->GetType();
@@ -49,7 +50,7 @@ CBotInstr* CBotBreak::Compile(CBotToken* &p, CBotCStack* pStack)
         return nullptr;                            // no object, the error is on the stack
     }
 
-    CBotBreak*  inst = new CBotBreak();         // creates the object
+    std::unique_ptr<CBotBreak> inst = MakeUnique<CBotBreak>(); // creates the object
     inst->SetToken(pp);                         // keeps the operation
 
     pp = p;
@@ -58,7 +59,6 @@ CBotInstr* CBotBreak::Compile(CBotToken* &p, CBotCStack* pStack)
         inst->m_label = pp->GetString();        // register the name of label
         if ( !pStack->CheckLoop(inst->m_label, type ) )
         {
-            delete inst;
             pStack->SetError(CBotErrUndefLabel, pp);
             return nullptr;                            // no object, the error is on the stack
         }
@@ -68,7 +68,6 @@ CBotInstr* CBotBreak::Compile(CBotToken* &p, CBotCStack* pStack)
     {
         return  inst;                           // return what it wants
     }
-    delete inst;
 
     pStack->SetError(CBotErrNoTerminator, p->GetStart());
     return nullptr;                            // no object, the error is on the stack

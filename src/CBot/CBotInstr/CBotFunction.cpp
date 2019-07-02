@@ -61,7 +61,6 @@ std::set<CBotFunction*> CBotFunction::m_publicFunctions{};
 CBotFunction::~CBotFunction()
 {
     delete m_param;                // empty parameter list
-    delete m_block;                // the instruction block
 
     // remove public list if there is
     if (m_bPublic)
@@ -1051,7 +1050,7 @@ std::string CBotFunction::GetDebugData()
 std::map<std::string, CBotInstr*> CBotFunction::GetDebugLinks()
 {
     auto links = CBotInstr::GetDebugLinks();
-    links["m_block"] = m_block;
+    links["m_block"] = m_block.get();
     return links;
 }
 

@@ -120,7 +120,7 @@ public:
      * \param pStack Compilation stack
      * \return Compiled instruction
      */
-    static CBotInstr* Compile(CBotToken* &p, CBotCStack* pStack);
+    static std::unique_ptr<CBotInstr> Compile(CBotToken* &p, CBotCStack* pStack);
 
     /**
      * \brief CompileArray
@@ -130,7 +130,7 @@ public:
      * \param first
      * \return
      */
-    static CBotInstr* CompileArray(CBotToken* &p,
+    static std::unique_ptr<CBotInstr> CompileArray(CBotToken* &p,
                                    CBotCStack* pStack,
                                    CBotTypResult type,
                                    bool first = true);
@@ -225,7 +225,7 @@ public:
      * \brief AddNext Adds the statement following the other.
      * \param n
      */
-    void AddNext(CBotInstr* n);
+    void AddNext(std::unique_ptr<CBotInstr> n);
 
     /**
      * \brief GetNext Returns next statement.
@@ -237,7 +237,7 @@ public:
      * \brief AddNext3
      * \param n
      */
-    void AddNext3(CBotInstr* n);
+    void AddNext3(std::unique_ptr<CBotInstr> n);
 
     /**
      * \brief GetNext3
@@ -249,7 +249,7 @@ public:
      * \brief AddNext3b
      * \param n
      */
-    void AddNext3b(CBotInstr* n);
+    void AddNext3b(std::unique_ptr<CBotInstr> n);
 
     /**
      * \brief GetNext3b
@@ -285,13 +285,13 @@ protected:
     //! Keeps the token.
     CBotToken m_token;
     //! Linked command.
-    CBotInstr* m_next;
+    std::unique_ptr<CBotInstr> m_next;
     //! Second list definition chain.
-    CBotInstr* m_next2b;
+    std::unique_ptr<CBotInstr> m_next2b;
     //! Third list for indices and fields.
-    CBotInstr* m_next3;
+    std::unique_ptr<CBotInstr> m_next3;
     //! Necessary for reporting tables.
-    CBotInstr* m_next3b;
+    std::unique_ptr<CBotInstr> m_next3b;
 
     friend class CBotDefClass;
     friend class CBotDefInt;

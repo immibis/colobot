@@ -1,3 +1,4 @@
+
 /*
  * This file is part of the Colobot: Gold Edition source code
  * Copyright (C) 2001-2018, Daniel Roux, EPSITEC SA & TerranovaTeam
@@ -25,6 +26,8 @@
 
 #include "CBot/CBotUtils.h"
 
+#include "common/make_unique.h"
+
 #include <sstream>
 
 namespace CBot
@@ -41,11 +44,11 @@ CBotExprLitNum::~CBotExprLitNum()
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-CBotInstr* CBotExprLitNum::Compile(CBotToken* &p, CBotCStack* pStack)
+std::unique_ptr<CBotInstr> CBotExprLitNum::Compile(CBotToken* &p, CBotCStack* pStack)
 {
     CBotCStack* pStk = pStack->TokenStack();
 
-    CBotExprLitNum* inst = new CBotExprLitNum();
+    std::unique_ptr<CBotExprLitNum> inst = MakeUnique<CBotExprLitNum>();
 
     inst->SetToken(p);
     std::string    s = p->GetString();
@@ -72,9 +75,8 @@ CBotInstr* CBotExprLitNum::Compile(CBotToken* &p, CBotCStack* pStack)
     {
         pStk->SetVarType(CBotTypResult(inst->m_numtype));
 
-        return pStack->Return(inst, pStk);
+        return pStack->Return(move(inst), pStk);
     }
-    delete inst;
     return pStack->Return(nullptr, pStk);
 }
 

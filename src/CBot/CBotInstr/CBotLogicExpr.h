@@ -56,11 +56,11 @@ protected:
 
 private:
     //! Test to evaluate
-    CBotInstr*    m_condition;
+    std::unique_ptr<CBotInstr> m_condition;
     //! Left element
-    CBotInstr*    m_op1;
+    std::unique_ptr<CBotInstr> m_op1;
     //! Right element
-    CBotInstr*    m_op2;
+    std::unique_ptr<CBotInstr> m_op2;
     friend class CBotTwoOpExpr;
 };
 

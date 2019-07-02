@@ -35,15 +35,14 @@ CBotListInstr::CBotListInstr()
 ////////////////////////////////////////////////////////////////////////////////
 CBotListInstr::~CBotListInstr()
 {
-    delete m_instr;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-CBotInstr* CBotListInstr::Compile(CBotToken* &p, CBotCStack* pStack, bool bLocal)
+std::unique_ptr<CBotInstr> CBotListInstr::Compile(CBotToken* &p, CBotCStack* pStack, bool bLocal)
 {
     CBotCStack* pStk = pStack->TokenStack(p, bLocal);        // variables are local
 
-    CBotListInstr* inst = new CBotListInstr();
+    std::unique_ptr<CBotListInstr> inst(new CBotListInstr);
 
     while (true)
     {
@@ -55,22 +54,21 @@ CBotInstr* CBotListInstr::Compile(CBotToken* &p, CBotCStack* pStack, bool bLocal
         if (p->GetType() == TokenTypNone)
         {
             pStack->SetError(CBotErrCloseBlock, p->GetStart());
-            delete inst;
             return pStack->Return(nullptr, pStk);
         }
 
-        CBotInstr* i = CBotBlock::CompileBlkOrInst(p, pStk);    // compiles next
+        std::unique_ptr<CBotInstr> i = CBotBlock::CompileBlkOrInst(p, pStk);    // compiles next
 
         if (!pStk->IsOk())
         {
-            delete inst;
             return pStack->Return(nullptr, pStk);
         }
 
-        if (inst->m_instr == nullptr) inst->m_instr = i;
-        else inst->m_instr->AddNext(i);                            // added a result
+        if (inst->m_instr == nullptr) inst->m_instr = move(i);
+        else inst->m_instr->AddNext(move(i));                      // added a result
     }
-    return pStack->Return(inst, pStk);
+    pStack->Return(nullptr, pStk);
+    return inst;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -81,10 +79,10 @@ bool CBotListInstr::Execute(CBotStack* &pj)
     if (pile->StackOver() ) return pj->Return( pile);
 
 
-    CBotInstr*    p = m_instr;                                    // the first expression
+    CBotInstr*    p = m_instr.get();                             // the first expression
 
     int        state = pile->GetState();
-    while (state-->0) p = p->GetNext();                            // returns to the interrupted operation
+    while (state-->0) p = p->GetNext();                          // returns to the interrupted operation
 
     if (p != nullptr) while (true)
     {
@@ -105,7 +103,7 @@ void CBotListInstr::RestoreState(CBotStack* &pj, bool bMain)
     CBotStack*    pile = pj->RestoreStack(this);
     if (pile == nullptr) return;
 
-    CBotInstr*    p = m_instr;                                    // the first expression
+    CBotInstr*    p = m_instr.get();                              // the first expression
 
     int        state = pile->GetState();
     while ( p != nullptr && state-- > 0)
@@ -126,7 +124,7 @@ bool CBotListInstr::HasReturn()
 std::map<std::string, CBotInstr*> CBotListInstr::GetDebugLinks()
 {
     auto links = CBotInstr::GetDebugLinks();
-    links["m_instr"] = m_instr;
+    links["m_instr"] = m_instr.get();
     return links;
 }
 

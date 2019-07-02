@@ -38,6 +38,8 @@
 #include "CBot/CBotUtils.h"
 #include "CBot/CBotFileUtils.h"
 
+#include "common/make_unique.h"
+
 #include <algorithm>
 
 namespace CBot
@@ -168,7 +170,7 @@ bool CBotClass::AddItem(std::string name,
         if ( type.Eq(CBotTypClass) )
         {
             // adds a new statement for the object initialization
-            pVar->m_InitExpr = new CBotNew() ;
+            pVar->m_InitExpr = MakeUnique<CBotNew>();
             CBotToken nom( pClass->GetName() );
             pVar->m_InitExpr->SetToken(&nom);
         }
@@ -673,10 +675,10 @@ bool CBotClass::CompileDefItem(CBotToken* &p, CBotCStack* pStack, bool bSecond)
                 return false;
             }
 
-            CBotInstr* limites = nullptr;
+            std::unique_ptr<CBotInstr> limites = nullptr;
             while ( IsOfType( p, ID_OPBRK ) )   // an array
             {
-                CBotInstr* i = nullptr;
+                std::unique_ptr<CBotInstr> i;
                 pStack->SetStartError( p->GetStart() );
                 if ( p->GetType() != ID_CLBRK )
                 {
@@ -687,20 +689,20 @@ bool CBotClass::CompileDefItem(CBotToken* &p, CBotCStack* pStack, bool bSecond)
                     }
                 }
                 else
-                    i = new CBotEmpty();                            // special if not a formula
+                    i = MakeUnique<CBotEmpty>();                        // special if not a formula
 
                 type2 = CBotTypResult(CBotTypArrayPointer, type2);
 
-                if (limites == nullptr) limites = i;
-                else limites->AddNext3(i);
+                if (limites == nullptr) limites = move(i);
+                else limites->AddNext3(move(i));
+                // TODO: limites should actually be a vector
 
                 if (pStack->IsOk() && IsOfType(p, ID_CLBRK)) continue;
                 pStack->SetError(CBotErrCloseIndex, p->GetStart());
-                delete limites;
                 return false;
             }
 
-            CBotInstr* i = nullptr;
+            std::unique_ptr<CBotInstr> i = nullptr;
             if ( IsOfType(p, ID_ASS ) )
             {
                 pStack->SetStartError(p->GetStart());
@@ -738,7 +740,7 @@ bool CBotClass::CompileDefItem(CBotToken* &p, CBotCStack* pStack, bool bSecond)
                 }
                 if ( !pStack->IsOk() ) return false;
             }
-            else if ( type2.Eq(CBotTypArrayPointer) ) i = new CBotExprLitNull();
+            else if ( type2.Eq(CBotTypArrayPointer) ) i = MakeUnique<CBotExprLitNull>();
 
 
             if ( !bSecond )
@@ -749,8 +751,8 @@ bool CBotClass::CompileDefItem(CBotToken* &p, CBotCStack* pStack, bool bSecond)
 
                 AddItem( pv );
 
-                pv->m_InitExpr = i;
-                pv->m_LimExpr = limites;
+                pv->m_InitExpr = move(i);
+                pv->m_LimExpr = move(limites);
 
 
                 if ( pv->IsStatic() && pv->m_InitExpr != nullptr )
@@ -767,11 +769,6 @@ bool CBotClass::CompileDefItem(CBotToken* &p, CBotCStack* pStack, bool bSecond)
                     }
                     pile->Delete();
                 }
-            }
-            else
-            {
-                delete i;
-                delete limites;
             }
 
             if ( IsOfType(p, ID_COMMA) ) continue;

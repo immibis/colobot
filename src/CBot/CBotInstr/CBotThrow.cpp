@@ -23,6 +23,8 @@
 #include "CBot/CBotStack.h"
 #include "CBot/CBotCStack.h"
 
+#include "common/make_unique.h"
+
 namespace CBot
 {
 
@@ -35,15 +37,14 @@ CBotThrow::CBotThrow()
 ////////////////////////////////////////////////////////////////////////////////
 CBotThrow::~CBotThrow()
 {
-    delete m_value;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-CBotInstr* CBotThrow::Compile(CBotToken* &p, CBotCStack* pStack)
+std::unique_ptr<CBotInstr> CBotThrow::Compile(CBotToken* &p, CBotCStack* pStack)
 {
     pStack->SetStartError(p->GetStart());
 
-    CBotThrow*  inst = new CBotThrow();         // creates the object
+    std::unique_ptr<CBotThrow> inst = MakeUnique<CBotThrow>(); // creates the object
     inst->SetToken(p);
 
     CBotToken*  pp = p;                         // preserves at the ^ token (starting position)
@@ -58,7 +59,6 @@ CBotInstr* CBotThrow::Compile(CBotToken* &p, CBotCStack* pStack)
     }
     pStack->SetError(CBotErrBadType1, pp);
 
-    delete inst;                                // error, frees up
     return nullptr;                                // no object, the error is on the stack
 }
 
@@ -100,7 +100,7 @@ void CBotThrow::RestoreState(CBotStack* &pj, bool bMain)
 std::map<std::string, CBotInstr*> CBotThrow::GetDebugLinks()
 {
     auto links = CBotInstr::GetDebugLinks();
-    links["m_value"] = m_value;
+    links["m_value"] = m_value.get();
     return links;
 }
 

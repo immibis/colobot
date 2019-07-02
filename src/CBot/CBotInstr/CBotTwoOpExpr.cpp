@@ -30,6 +30,8 @@
 
 #include "CBot/CBotVar/CBotVar.h"
 
+#include "common/make_unique.h"
+
 #include <cassert>
 #include <algorithm>
 
@@ -46,8 +48,6 @@ CBotTwoOpExpr::CBotTwoOpExpr()
 ////////////////////////////////////////////////////////////////////////////////
 CBotTwoOpExpr::~CBotTwoOpExpr()
 {
-    delete  m_leftop;
-    delete  m_rightop;
 }
 
 // This list contains all possible operations
@@ -134,7 +134,7 @@ static bool TypeOk(int type, int test)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-CBotInstr* CBotTwoOpExpr::Compile(CBotToken* &p, CBotCStack* pStack, int* pOperations)
+std::unique_ptr<CBotInstr> CBotTwoOpExpr::Compile(CBotToken* &p, CBotCStack* pStack, int* pOperations)
 {
     int typeMask;
 
@@ -145,7 +145,7 @@ CBotInstr* CBotTwoOpExpr::Compile(CBotToken* &p, CBotCStack* pStack, int* pOpera
     CBotCStack* pStk = pStack->TokenStack();                    // one end of stack please
 
     // search the intructions that may be suitable to the left of the operation
-    CBotInstr*  left = (*pOp == 0) ?
+    std::unique_ptr<CBotInstr>  left = (*pOp == 0) ?
                         CBotParExpr::Compile( p, pStk ) :       // expression (...) left
                         CBotTwoOpExpr::Compile( p, pStk, pOp ); // expression A * B left
 
@@ -165,8 +165,8 @@ CBotInstr* CBotTwoOpExpr::Compile(CBotToken* &p, CBotCStack* pStack, int* pOpera
                 pStk->SetError( CBotErrBadType1, p);
                 return pStack->Return(nullptr, pStk);
             }
-            CBotLogicExpr* inst = new CBotLogicExpr();
-            inst->m_condition = left;
+            std::unique_ptr<CBotLogicExpr> inst(new CBotLogicExpr);
+            inst->m_condition = move(left);
 
             p = p->GetNext();                                       // skip the token of the operation
             inst->m_op1 = CBotExpression::Compile(p, pStk);
@@ -174,7 +174,6 @@ CBotInstr* CBotTwoOpExpr::Compile(CBotToken* &p, CBotCStack* pStack, int* pOpera
             if ( inst->m_op1 == nullptr || !IsOfType( p, ID_DOTS ) )
             {
                 pStk->SetError( CBotErrNoDoubleDots, p->GetStart());
-                delete inst;
                 return pStack->Return(nullptr, pStk);
             }
             type1 = pStk->GetVarType();
@@ -183,23 +182,22 @@ CBotInstr* CBotTwoOpExpr::Compile(CBotToken* &p, CBotCStack* pStack, int* pOpera
             if ( inst->m_op2 == nullptr )
             {
                 pStk->SetError( CBotErrNoTerminator, p->GetStart() );
-                delete inst;
                 return pStack->Return(nullptr, pStk);
             }
             type2 = pStk->GetVarType();
             if (!TypeCompatible(type1, type2))
             {
                 pStk->SetError( CBotErrBadType2, pp );
-                delete inst;
                 return pStack->Return(nullptr, pStk);
             }
 
             pStk->SetVarType(type1);       // the greatest of 2 types
 
-            return pStack->Return(inst, pStk);
+            pStack->Return(nullptr, pStk);
+            return inst;
         }
 
-        CBotTwoOpExpr* inst = new CBotTwoOpExpr();              // element for operation
+        std::unique_ptr<CBotTwoOpExpr> inst(new CBotTwoOpExpr); // element for operation
         inst->SetToken(p);                                      // stores the operation
 
 
@@ -217,7 +215,6 @@ CBotInstr* CBotTwoOpExpr::Compile(CBotToken* &p, CBotCStack* pStack, int* pOpera
             if ( type1.Eq(CBotTypVoid) || type2.Eq(CBotTypVoid) ) // operand is void
             {
                 pStk->SetError(CBotErrBadType2, &inst->m_token);
-                delete inst;
                 return pStack->Return(nullptr, pStk);
             }
 
@@ -252,15 +249,15 @@ CBotInstr* CBotTwoOpExpr::Compile(CBotToken* &p, CBotCStack* pStack, int* pOpera
             if ( TypeCompatible (type1, type2, typeOp) )               // the results are compatible
             {
                 // ok so, saves the operand in the object
-                inst->m_leftop = left;
+                inst->m_leftop = move(left);
 
                 // special for evaluation of the operations of the same level from left to right
                 while ( IsInList(p->GetType(), pOperations, typeMask) ) // same operation(s) follows?
                 {
                     typeOp = p->GetType();
-                    CBotTwoOpExpr* i = new CBotTwoOpExpr();             // element for operation
+                    std::unique_ptr<CBotTwoOpExpr> i = MakeUnique<CBotTwoOpExpr>(); // element for operation
                     i->SetToken(p);                                     // stores the operation
-                    i->m_leftop = inst;                                 // left operand
+                    i->m_leftop = move(inst);                           // left operand
                     type1 = TypeRes;
 
                     p = p->GetNext();                                       // advance after
@@ -270,13 +267,12 @@ CBotInstr* CBotTwoOpExpr::Compile(CBotToken* &p, CBotCStack* pStack, int* pOpera
                     if ( !TypeCompatible (type1, type2, typeOp) )       // the results are compatible
                     {
                         pStk->SetError(CBotErrBadType2, &i->m_token);
-                        delete i;
                         return pStack->Return(nullptr, pStk);
                     }
 
                     if ( TypeRes != CBotTypString )                     // keep string conversion
                         TypeRes = std::max(type1.GetType(), type2.GetType());
-                    inst = i;
+                    inst = move(i);
                 }
 
                 CBotTypResult t(type1);
@@ -285,22 +281,20 @@ CBotInstr* CBotTwoOpExpr::Compile(CBotToken* &p, CBotCStack* pStack, int* pOpera
                 pStk->SetVarType(t);
 
                 // and returns the requested object
-                return pStack->Return(inst, pStk);
+                pStack->Return(nullptr, pStk);
+                return inst;
             }
             pStk->SetError(CBotErrBadType2, &inst->m_token);
         }
 
-        // in case of error, releases the elements
-        delete left;
-        delete inst;
-        // and transmits the error to the stack
+        // in case of error, transmits the error to the stack
         return pStack->Return(nullptr, pStk);
     }
 
     // if we are not dealing with an operation + or -
     // goes to that requested, the operand (left) found
     // instead of the object "addition"
-    return pStack->Return(left, pStk);
+    return pStack->Return(move(left), pStk);
 }
 
 
@@ -544,8 +538,8 @@ std::string CBotTwoOpExpr::GetDebugData()
 std::map<std::string, CBotInstr*> CBotTwoOpExpr::GetDebugLinks()
 {
     auto links = CBotInstr::GetDebugLinks();
-    links["m_leftop"] = m_leftop;
-    links["m_rightop"] = m_rightop;
+    links["m_leftop"] = m_leftop.get();
+    links["m_rightop"] = m_rightop.get();
     return links;
 }
 

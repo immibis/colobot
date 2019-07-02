@@ -40,7 +40,7 @@ public:
      * \param bLiteral If true, compiles only literal expressions Ex: ~11, -4.0, !false, not true
      * \return The compiled instruction or nullptr
      */
-    static CBotInstr* Compile(CBotToken* &p, CBotCStack* pStack, bool bLiteral = false);
+    static std::unique_ptr<CBotInstr> Compile(CBotToken* &p, CBotCStack* pStack, bool bLiteral = false);
 
     /*!
      * \brief Execute
@@ -62,7 +62,7 @@ protected:
 
 private:
     //! Expression to be evaluated.
-    CBotInstr* m_expr;
+    std::unique_ptr<CBotInstr> m_expr;
 };
 
 } // namespace CBot

@@ -42,7 +42,7 @@ public:
      * \param bLocal
      * \return
      */
-    static CBotInstr* Compile(CBotToken* &p, CBotCStack* pStack, bool bLocal = true);
+    static std::unique_ptr<CBotInstr> Compile(CBotToken* &p, CBotCStack* pStack, bool bLocal = true);
 
     /**
      * \brief Compiles a block of instructions or a single instruction
@@ -51,7 +51,7 @@ public:
      * \param bLocal
      * \return
      */
-    static CBotInstr* CompileBlkOrInst(CBotToken* &p, CBotCStack* pStack, bool bLocal = false);
+    static std::unique_ptr<CBotInstr> CompileBlkOrInst(CBotToken* &p, CBotCStack* pStack, bool bLocal = false);
 
 private:
     CBotBlock() = delete;

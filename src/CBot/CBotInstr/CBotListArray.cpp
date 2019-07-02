@@ -29,6 +29,8 @@
 
 #include "CBot/CBotVar/CBotVar.h"
 
+#include "common/make_unique.h"
+
 namespace CBot
 {
 
@@ -41,11 +43,10 @@ CBotListArray::CBotListArray()
 ////////////////////////////////////////////////////////////////////////////////
 CBotListArray::~CBotListArray()
 {
-    delete m_expr;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-CBotInstr* CBotListArray::Compile(CBotToken* &p, CBotCStack* pStack, CBotTypResult type)
+std::unique_ptr<CBotInstr> CBotListArray::Compile(CBotToken* &p, CBotCStack* pStack, CBotTypResult type)
 {
     CBotCStack* pStk = pStack->TokenStack(p);
 
@@ -53,13 +54,13 @@ CBotInstr* CBotListArray::Compile(CBotToken* &p, CBotCStack* pStack, CBotTypResu
 
     if (IsOfType( p, ID_NULL ) || (IsOfType(p, ID_OPBLK) && IsOfType(p, ID_CLBLK)))
     {
-        CBotInstr* inst = new CBotExprLitNull();
+        std::unique_ptr<CBotInstr> inst = MakeUnique<CBotExprLitNull>();
         inst->SetToken(pp);
-        return pStack->Return(inst, pStk);            // ok with empty element
+        return pStack->Return(move(inst), pStk);            // ok with empty element
     }
     p = pp;
 
-    CBotListArray*    inst = new CBotListArray();
+    std::unique_ptr<CBotListArray> inst = MakeUnique<CBotListArray>();
 
     if (IsOfType( p, ID_OPBLK ))
     {
@@ -84,7 +85,7 @@ CBotInstr* CBotListArray::Compile(CBotToken* &p, CBotCStack* pStack, CBotTypResu
             {
                 pStk->SetStartError(p->GetStart());
 
-                CBotInstr* i = nullptr;
+                std::unique_ptr<CBotInstr> i = nullptr;
                 if (nullptr == ( i = CBotListArray::Compile(p, pStk, type.GetTypElem() ) ))
                 {
                     if (pStk->IsOk())
@@ -98,7 +99,7 @@ CBotInstr* CBotListArray::Compile(CBotToken* &p, CBotCStack* pStack, CBotTypResu
                     }
                 }
 
-                inst->m_expr->AddNext3b(i);
+                inst->m_expr->AddNext3b(move(i));
 
                 if ( p->GetType() == ID_COMMA ) continue;
                 if ( p->GetType() == ID_CLBLK ) break;
@@ -129,7 +130,7 @@ CBotInstr* CBotListArray::Compile(CBotToken* &p, CBotCStack* pStack, CBotTypResu
             {
                 pStk->SetStartError(p->GetStart());
 
-                CBotInstr* i = CBotTwoOpExpr::Compile(p, pStk) ;
+                std::unique_ptr<CBotInstr> i = CBotTwoOpExpr::Compile(p, pStk) ;
                 if (nullptr == i)
                 {
                     goto error;
@@ -144,7 +145,7 @@ CBotInstr* CBotListArray::Compile(CBotToken* &p, CBotCStack* pStack, CBotTypResu
                     pStk->SetError(CBotErrBadType1, p->GetStart());
                     goto error;
                 }
-                inst->m_expr->AddNext3b(i);
+                inst->m_expr->AddNext3b(move(i));
 
                 if (p->GetType() == ID_COMMA) continue;
                 if (p->GetType() == ID_CLBLK) break;
@@ -160,11 +161,10 @@ CBotInstr* CBotListArray::Compile(CBotToken* &p, CBotCStack* pStack, CBotTypResu
             goto error;
         }
 
-        return pStack->Return(inst, pStk);
+        return pStack->Return(move(inst), pStk);
     }
 
 error:
-    delete inst;
     return pStack->Return(nullptr, pStk);
 }
 
@@ -174,7 +174,7 @@ bool CBotListArray::Execute(CBotStack* &pj, CBotVar* pVar)
     CBotStack*    pile1 = pj->AddStack();
     CBotVar* pVar2;
 
-    CBotInstr* p = m_expr;
+    CBotInstr* p = m_expr.get();
 
     int n = 0;
 
@@ -210,7 +210,7 @@ void CBotListArray::RestoreState(CBotStack* &pj, bool bMain)
         CBotStack*    pile  = pj->RestoreStack(this);
         if (pile == nullptr) return;
 
-        CBotInstr* p = m_expr;
+        CBotInstr* p = m_expr.get();
 
         int    state = pile->GetState();
 
@@ -223,7 +223,7 @@ void CBotListArray::RestoreState(CBotStack* &pj, bool bMain)
 std::map<std::string, CBotInstr*> CBotListArray::GetDebugLinks()
 {
     auto links = CBotInstr::GetDebugLinks();
-    links["m_expr"] = m_expr;
+    links["m_expr"] = m_expr.get();
     return links;
 }
 

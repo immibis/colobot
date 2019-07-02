@@ -29,6 +29,8 @@
 
 #include "CBot/CBotVar/CBotVar.h"
 
+#include "common/make_unique.h"
+
 namespace CBot
 {
 
@@ -43,12 +45,10 @@ CBotNew::CBotNew()
 ////////////////////////////////////////////////////////////////////////////////
 CBotNew::~CBotNew()
 {
-    delete m_parameters;
-    delete m_exprRetVar;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-CBotInstr* CBotNew::Compile(CBotToken* &p, CBotCStack* pStack)
+std::unique_ptr<CBotInstr> CBotNew::Compile(CBotToken* &p, CBotCStack* pStack)
 {
     CBotToken* pp = p;
     if (!IsOfType(p, ID_NEW)) return nullptr;
@@ -67,7 +67,7 @@ CBotInstr* CBotNew::Compile(CBotToken* &p, CBotCStack* pStack)
         return nullptr;
     }
 
-    CBotNew* inst = new CBotNew();
+    std::unique_ptr<CBotNew> inst = MakeUnique<CBotNew>();
     inst->SetToken(pp);
 
     inst->m_vartoken = *p;
@@ -118,10 +118,9 @@ CBotInstr* CBotNew::Compile(CBotToken* &p, CBotCStack* pStack)
         }
 
         if (pStack->IsOk())
-            return pStack->Return(inst, pStk);
+            return pStack->Return(move(inst), pStk);
     }
 error:
-    delete inst;
     return pStack->Return(nullptr, pStk);
 }
 
@@ -176,7 +175,7 @@ bool CBotNew::Execute(CBotStack* &pj)
 
         int        i = 0;
 
-        CBotInstr*    p = m_parameters;
+        CBotInstr*    p = m_parameters.get();
         // evaluate the parameters
         // and places the values on the stack
         // to be interrupted at any time
@@ -255,7 +254,7 @@ void CBotNew::RestoreState(CBotStack* &pj, bool bMain)
 
         int        i = 0;
 
-        CBotInstr*    p = m_parameters;
+        CBotInstr*    p = m_parameters.get();
         // evaluate the parameters
         // and places the values on the stack
         // to be interrupted at any time
@@ -290,7 +289,8 @@ std::string CBotNew::GetDebugData()
 std::map<std::string, CBotInstr*> CBotNew::GetDebugLinks()
 {
     auto links = CBotInstr::GetDebugLinks();
-    links["m_parameters"] = m_parameters;
+    links["m_parameters"] = m_parameters.get();
+    links["m_exprRetVar"] = m_exprRetVar.get();
     return links;
 }
 

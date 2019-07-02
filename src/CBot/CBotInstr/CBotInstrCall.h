@@ -41,7 +41,7 @@ public:
      * \param pStack
      * \return
      */
-    static CBotInstr* Compile(CBotToken* &p, CBotCStack* pStack);
+    static std::unique_ptr<CBotInstr> Compile(CBotToken* &p, CBotCStack* pStack);
 
     /*!
      * \brief Execute
@@ -64,14 +64,14 @@ protected:
 
 private:
     //! The parameters to be evaluated.
-    CBotInstr* m_parameters;
+    std::unique_ptr<CBotInstr> m_parameters;
     //! Complete type of the result.
     CBotTypResult m_typRes;
     //! Id of a function.
     long m_nFuncIdent;
 
     //! Instruction to return a member of the returned object.
-    CBotInstr* m_exprRetVar;
+    std::unique_ptr<CBotInstr> m_exprRetVar;
 
     friend class CBotDebug;
 };

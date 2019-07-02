@@ -54,7 +54,7 @@ protected:
     virtual std::map<std::string, CBotInstr*> GetDebugLinks() override;
 
 private:
-    CBotInstr* m_instr;
+    std::unique_ptr<CBotInstr> m_instr;
     friend class CBotParExpr;
 };
 

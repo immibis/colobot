@@ -31,10 +31,10 @@ namespace CBot
 {
 
 ////////////////////////////////////////////////////////////////////////////////
-CBotInstr* CompileParams(CBotToken* &p, CBotCStack* pStack, std::vector<CBotTypResult> &ppVars)
+std::unique_ptr<CBotInstr> CompileParams(CBotToken* &p, CBotCStack* pStack, std::vector<CBotTypResult> &ppVars)
 {
     bool        first = true;
-    CBotInstr*    ret = nullptr;   // to return to the list
+    std::unique_ptr<CBotInstr> ret = nullptr;   // to return to the list
 
     CBotCStack*    pile = pStack;
 
@@ -51,16 +51,13 @@ CBotInstr* CompileParams(CBotToken* &p, CBotCStack* pStack, std::vector<CBotTypR
             if (first) pStack->SetStartError(start);
             first = false;
 
-            CBotInstr*    param = CBotExpression::Compile(p, pile);
+            std::unique_ptr<CBotInstr> param = CBotExpression::Compile(p, pile);
             end      = p->GetStart();
 
             if (!pile->IsOk())
             {
                 return pStack->Return(nullptr, pile);
             }
-
-            if (ret == nullptr) ret = param;
-            else ret->AddNext(param);   // construct the list
 
             if (param != nullptr)
             {
@@ -73,6 +70,9 @@ CBotInstr* CompileParams(CBotToken* &p, CBotCStack* pStack, std::vector<CBotTypR
                 ppVars.emplace_back(pile->GetVarType());
                 // TODO: was commented out as part of value/variable refactor. What does this do?
                 (void)end; //ppVars[i]->GetToken()->SetPos(start, end);
+
+                if (ret == nullptr) ret = move(param);
+                else ret->AddNext(move(param));   // construct the list
 
                 if (IsOfType(p, ID_COMMA)) continue;    // skips the comma
                 if (IsOfType(p, ID_CLOSEPAR)) break;

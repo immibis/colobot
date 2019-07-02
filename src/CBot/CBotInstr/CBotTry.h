@@ -41,7 +41,7 @@ public:
      * \param pStack
      * \return
      */
-    static CBotInstr* Compile(CBotToken* &p, CBotCStack* pStack);
+    static std::unique_ptr<CBotInstr> Compile(CBotToken* &p, CBotCStack* pStack);
 
     /*!
      * \brief Execute Execution of instruction Try manages the return of
@@ -64,11 +64,11 @@ protected:
 
 private:
     //! Instructions
-    CBotInstr* m_block;
-    //! Catches
-    CBotCatch* m_catchList;
+    std::unique_ptr<CBotInstr> m_block;
+    //! Catches (TODO: should be a vector<unique_ptr<CBotCatch>>)
+    std::unique_ptr<CBotCatch> m_catchList;
     //! Final instruction
-    CBotInstr* m_finallyBlock;
+    std::unique_ptr<CBotInstr> m_finallyBlock;
 };
 
 } // namespace CBot

@@ -39,7 +39,7 @@ public:
      * \param pStack
      * \return
      */
-    static CBotInstr* Compile(CBotToken* &p, CBotCStack* pStack);
+    static std::unique_ptr<CBotInstr> Compile(CBotToken* &p, CBotCStack* pStack);
 
     /*!
      * \brief Execute Execution of instruction "throw".
@@ -61,7 +61,7 @@ protected:
 
 private:
     //! The value to send.
-    CBotInstr* m_value;
+    std::unique_ptr<CBotInstr> m_value;
 
 };
 

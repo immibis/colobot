@@ -33,6 +33,8 @@
 #include "CBot/CBotVar/CBotVarPointer.h"
 #include "CBot/CBotVar/CBotVarClass.h"
 
+#include "common/make_unique.h"
+
 namespace CBot
 {
 
@@ -51,14 +53,10 @@ CBotDefClass::CBotDefClass()
 ////////////////////////////////////////////////////////////////////////////////
 CBotDefClass::~CBotDefClass()
 {
-    delete m_parameters;
-    delete m_exprRetVar;
-    delete m_expr;
-    delete m_var;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-CBotInstr* CBotDefClass::Compile(CBotToken* &p, CBotCStack* pStack, CBotClass* pClass)
+std::unique_ptr<CBotInstr> CBotDefClass::Compile(CBotToken* &p, CBotCStack* pStack, CBotClass* pClass)
 {
     // seeks the corresponding classes
     if ( pClass == nullptr )
@@ -76,20 +74,24 @@ CBotInstr* CBotDefClass::Compile(CBotToken* &p, CBotCStack* pStack, CBotClass* p
 
     bool        bIntrinsic = pClass->IsIntrinsic();
     CBotTypResult type = CBotTypResult( bIntrinsic ? CBotTypIntrinsic : CBotTypPointer, pClass );
-    CBotDefClass*  inst = static_cast<CBotDefClass*>(CompileArray(p, pStack, type));
-    if ( inst != nullptr || !pStack->IsOk() ) return inst;
+    {
+        std::unique_ptr<CBotInstr> inst = CompileArray(p, pStack, type);
+        if ( inst != nullptr || !pStack->IsOk() ) return inst;
+    }
 
     CBotCStack* pStk = pStack->TokenStack();
 
-    inst = new CBotDefClass();
+    std::unique_ptr<CBotDefClass> instAsClass = MakeUnique<CBotDefClass>();
     /// TODO Need to be revised and fixed after adding unit tests
     CBotToken token(pClass->GetName(), std::string(), p->GetStart(), p->GetEnd());
-    inst->SetToken(&token);
+    instAsClass->SetToken(&token);
     CBotToken*  vartoken = p;
 
-    if ( nullptr != (inst->m_var = CBotLeftExprVar::Compile( p, pStk )) )
+    std::unique_ptr<CBotInstr> inst;
+
+    if ( nullptr != (instAsClass->m_var = CBotLeftExprVar::Compile( p, pStk )) )
     {
-        (static_cast<CBotLeftExprVar*>(inst->m_var))->m_typevar = type;
+        (static_cast<CBotLeftExprVar*>(instAsClass->m_var.get()))->m_typevar = type;
         if (pStk->CheckVarLocal(vartoken))                  // redefinition of the variable
         {
             pStk->SetStartError(vartoken->GetStart());
@@ -99,12 +101,12 @@ CBotInstr* CBotDefClass::Compile(CBotToken* &p, CBotCStack* pStack, CBotClass* p
 
         if (IsOfType(p,  ID_OPBRK))                         // with any clues?
         {
-            delete inst;                                    // is not type CBotDefInt
+            instAsClass.reset();                            // is not type CBotDefInt
             p = vartoken;                                   // returns to the variable name
 
             // compiles declaration an array
 
-            inst = static_cast<CBotDefClass*>(CBotDefArray::Compile(p, pStk, type ));
+            inst = CBotDefArray::Compile(p, pStk, type);
 
         }
         else
@@ -114,10 +116,10 @@ CBotInstr* CBotDefClass::Compile(CBotToken* &p, CBotCStack* pStack, CBotClass* p
             pStack->AddVar(var);                                // placed on the stack
 
             // look if there are parameters
-            inst->m_hasParams = (p->GetType() == ID_OPENPAR);
+            instAsClass->m_hasParams = (p->GetType() == ID_OPENPAR);
 
             std::vector<CBotTypResult> ppVars;
-            inst->m_parameters = CompileParams(p, pStk, ppVars);
+            instAsClass->m_parameters = CompileParams(p, pStk, ppVars);
             if ( !pStk->IsOk() ) goto error;
 
             // if there are parameters, is the equivalent to the stament "new"
@@ -125,18 +127,18 @@ CBotInstr* CBotDefClass::Compile(CBotToken* &p, CBotCStack* pStack, CBotClass* p
             // CPoint A = new CPoint( 0, 0 )
 
     //      if ( nullptr != inst->m_parameters )
-            if ( inst->m_hasParams )
+            if ( instAsClass->m_hasParams )
             {
                 // the constructor is there?
     //          std::string  noname;
-                CBotTypResult r = pClass->CompileMethode(&token, var->m_value->GetTypResult(), ppVars, pStk, inst->m_nMethodeIdent);
+                CBotTypResult r = pClass->CompileMethode(&token, var->m_value->GetTypResult(), ppVars, pStk, instAsClass->m_nMethodeIdent);
                 pStk->DeleteChildLevels();                          // releases the supplement stack
                 int typ = r.GetType();
 
                 if (typ == CBotErrUndefCall)
                 {
                     // si le constructeur n'existe pas
-                    if (inst->m_parameters != nullptr)                 // with parameters
+                    if (instAsClass->m_parameters != nullptr)                 // with parameters
                     {
                         pStk->SetError(CBotErrNoConstruct, vartoken);
                         goto error;
@@ -152,9 +154,9 @@ CBotInstr* CBotDefClass::Compile(CBotToken* &p, CBotCStack* pStack, CBotClass* p
 
                 pStk->SetVarType(var->m_value->GetTypResult());
                 // chained method ?
-                if (nullptr != (inst->m_exprRetVar = CBotExprRetVar::Compile(p, pStk, true, false)))
+                if (nullptr != (instAsClass->m_exprRetVar = CBotExprRetVar::Compile(p, pStk, true, false)))
                 {
-                    inst->m_exprRetVar->SetToken(vartoken);
+                    instAsClass->m_exprRetVar->SetToken(vartoken);
                     pStk->DeleteChildLevels();
                 }
                 pStk->SetVarType(CBotTypResult());
@@ -165,7 +167,7 @@ CBotInstr* CBotDefClass::Compile(CBotToken* &p, CBotCStack* pStack, CBotClass* p
             if (IsOfType(p,  ID_ASS))                           // with a assignment?
             {
                 pStk->SetStartError(p->GetStart());
-                if (inst->m_hasParams)
+                if (instAsClass->m_hasParams)
                 {
                     pStk->SetError(CBotErrNoTerminator, p->GetStart());
                     goto error;
@@ -177,7 +179,7 @@ CBotInstr* CBotDefClass::Compile(CBotToken* &p, CBotCStack* pStack, CBotClass* p
                     goto error;
                 }
 
-                if ( nullptr == ( inst->m_expr = CBotTwoOpExpr::Compile( p, pStk )) )
+                if ( nullptr == ( instAsClass->m_expr = CBotTwoOpExpr::Compile( p, pStk )) )
                 {
                     goto error;
                 }
@@ -204,7 +206,7 @@ CBotInstr* CBotDefClass::Compile(CBotToken* &p, CBotCStack* pStack, CBotClass* p
                 }
                 var->m_value->SetInit(CBotVar::InitType::DEF);                         // marks the pointer as init
             }
-            else if (inst->m_hasParams)
+            else if (instAsClass->m_hasParams)
             {
                 // creates the object on the stack
                 // with a pointer to the object
@@ -215,26 +217,27 @@ CBotInstr* CBotDefClass::Compile(CBotToken* &p, CBotCStack* pStack, CBotClass* p
                 }
                 var->m_value->SetInit(CBotVar::InitType::IS_POINTER);                            // marks the pointer as init
             }
+
+            inst = std::move(instAsClass);
         }
 
         if (pStk->IsOk() && IsOfType(p,  ID_COMMA))         // several chained definitions
         {
             if ( nullptr != ( inst->m_next = CBotDefClass::Compile(p, pStk, pClass) ))    // compiles the following
             {
-                return pStack->Return(inst, pStk);
+                return pStack->Return(move(inst), pStk);
             }
         }
 
         if (!pStk->IsOk() || IsOfType(p,  ID_SEP))          // complete instruction
         {
-            return pStack->Return(inst, pStk);
+            return pStack->Return(move(inst), pStk);
         }
 
         pStk->SetError(CBotErrNoTerminator, p->GetStart());
     }
 
 error:
-    delete inst;
     return pStack->Return(nullptr, pStk);
 }
 
@@ -350,7 +353,7 @@ bool CBotDefClass::Execute(CBotStack* &pj)
 
             int     i = 0;
 
-            CBotInstr*  p = m_parameters;
+            CBotInstr*  p = m_parameters.get();
             // evaluates the parameters
             // and places the values ​​on the stack
             // to (can) be interrupted (broken) at any time
@@ -457,7 +460,7 @@ void CBotDefClass::RestoreState(CBotStack* &pj, bool bMain)
 
             int     i = 0;
 
-            CBotInstr*  p = m_parameters;
+            CBotInstr*  p = m_parameters.get();
             // evaluates the parameters
             // and the values an the stack
             // so that it can be interrupted at any time
@@ -491,9 +494,9 @@ void CBotDefClass::RestoreState(CBotStack* &pj, bool bMain)
 std::map<std::string, CBotInstr*> CBotDefClass::GetDebugLinks()
 {
     auto links = CBotInstr::GetDebugLinks();
-    links["m_var"] = m_var;
-    links["m_parameters"] = m_parameters;
-    links["m_expr"] = m_expr;
+    links["m_var"] = m_var.get();
+    links["m_parameters"] = m_parameters.get();
+    links["m_expr"] = m_expr.get();
     return links;
 }
 

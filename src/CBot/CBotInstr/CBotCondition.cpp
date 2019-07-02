@@ -28,12 +28,12 @@ namespace CBot
 {
 
 ////////////////////////////////////////////////////////////////////////////////
-CBotInstr* CBotCondition::Compile(CBotToken* &p, CBotCStack* pStack)
+std::unique_ptr<CBotInstr> CBotCondition::Compile(CBotToken* &p, CBotCStack* pStack)
 {
     pStack->SetStartError(p->GetStart());
     if (IsOfType(p, ID_OPENPAR))
     {
-        CBotInstr* inst = CBotBoolExpr::Compile(p, pStack);
+        std::unique_ptr<CBotInstr> inst = CBotBoolExpr::Compile(p, pStack);
         if (nullptr != inst)
         {
             if (IsOfType(p, ID_CLOSEPAR))
@@ -41,8 +41,8 @@ CBotInstr* CBotCondition::Compile(CBotToken* &p, CBotCStack* pStack)
                 return inst;
             }
             pStack->SetError(CBotErrClosePar, p->GetStart());    // missing parenthesis
+            // TODO does this return the right error message?
         }
-        delete inst;
     }
 
     pStack->SetError(CBotErrOpenPar, p->GetStart());    // missing parenthesis

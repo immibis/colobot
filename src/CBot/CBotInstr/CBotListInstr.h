@@ -40,7 +40,7 @@ public:
      * \param bLocal
      * \return
      */
-    static CBotInstr* Compile(CBotToken* &p, CBotCStack* pStack, bool bLocal = true);
+    static std::unique_ptr<CBotInstr> Compile(CBotToken* &p, CBotCStack* pStack, bool bLocal = true);
 
     /*!
      * \brief Execute Executes a set of instructions.
@@ -69,7 +69,7 @@ protected:
 
 private:
     //! Instructions to do.
-    CBotInstr* m_instr;
+    std::unique_ptr<CBotInstr> m_instr;
 };
 
 } // namespace CBot

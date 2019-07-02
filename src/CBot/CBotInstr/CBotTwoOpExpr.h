@@ -65,7 +65,7 @@ public:
      * \param pOperations
      * \return
      */
-    static CBotInstr* Compile(CBotToken* &p, CBotCStack* pStack, int* pOperations = nullptr);
+    static std::unique_ptr<CBotInstr> Compile(CBotToken* &p, CBotCStack* pStack, int* pOperations = nullptr);
 
     /*!
      * \brief Execute Performes the operation on two operands.
@@ -88,9 +88,9 @@ protected:
 
 private:
     //! Left element
-    CBotInstr* m_leftop;
+    std::unique_ptr<CBotInstr> m_leftop;
     //! Right element
-    CBotInstr* m_rightop;
+    std::unique_ptr<CBotInstr> m_rightop;
 };
 
 } // namespace CBot

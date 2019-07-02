@@ -39,7 +39,7 @@ public:
      * \param pStack
      * \return
      */
-    static CBotInstr* Compile(CBotToken* &p, CBotCStack* pStack);
+    static std::unique_ptr<CBotInstr> Compile(CBotToken* &p, CBotCStack* pStack);
 
     /*!
      * \brief Execute
@@ -62,13 +62,13 @@ protected:
 
 private:
     //! Initial intruction
-    CBotInstr* m_init;
+    std::unique_ptr<CBotInstr> m_init;
     //! Test Condition
-    CBotInstr* m_test;
+    std::unique_ptr<CBotInstr> m_test;
     //! instruction for increment
-    CBotInstr* m_incr;
+    std::unique_ptr<CBotInstr> m_incr;
     //! Instructions
-    CBotInstr* m_block;
+    std::unique_ptr<CBotInstr> m_block;
     //! A label if there is
     std::string m_label;
 };

@@ -50,7 +50,7 @@ public:
      * \param pStack
      * \return
      */
-    static CBotInstr* Compile(CBotToken* &p, CBotCStack* pStack);
+    static std::unique_ptr<CBotInstr> Compile(CBotToken* &p, CBotCStack* pStack);
 
     /*!
      * \brief Execute Executes an expression with assignment.
@@ -72,9 +72,9 @@ protected:
 
 private:
     //! Left operand
-    CBotLeftExpr* m_leftop;
+    std::unique_ptr<CBotLeftExpr> m_leftop;
     //! Right operand
-    CBotInstr* m_rightop;
+    std::unique_ptr<CBotInstr> m_rightop;
 };
 
 } // namespace CBot

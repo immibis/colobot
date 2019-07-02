@@ -47,7 +47,7 @@ public:
      * \param pStack
      * \return
      */
-    static CBotInstr* Compile(CBotToken* &p, CBotCStack* pStack);
+    static std::unique_ptr<CBotInstr> Compile(CBotToken* &p, CBotCStack* pStack);
 
     // executes a "while" instruction
     /*!
@@ -71,9 +71,9 @@ protected:
 
 private:
     //! Condition
-    CBotInstr* m_condition;
+    std::unique_ptr<CBotInstr> m_condition;
     //! Instructions
-    CBotInstr* m_block;
+    std::unique_ptr<CBotInstr> m_block;
     //! A label if there is
     std::string m_label;
 };

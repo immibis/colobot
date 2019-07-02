@@ -24,6 +24,7 @@
 #include "CBot/CBotCStack.h"
 
 #include "CBot/CBotVar/CBotVar.h"
+#include "common/make_unique.h"
 
 namespace CBot
 {
@@ -37,11 +38,10 @@ CBotExprUnaire::CBotExprUnaire()
 ////////////////////////////////////////////////////////////////////////////////
 CBotExprUnaire::~CBotExprUnaire()
 {
-    delete m_expr;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-CBotInstr* CBotExprUnaire::Compile(CBotToken* &p, CBotCStack* pStack, bool bLiteral)
+std::unique_ptr<CBotInstr> CBotExprUnaire::Compile(CBotToken* &p, CBotCStack* pStack, bool bLiteral)
 {
     int op = p->GetType();
     CBotToken*    pp = p;
@@ -49,7 +49,7 @@ CBotInstr* CBotExprUnaire::Compile(CBotToken* &p, CBotCStack* pStack, bool bLite
 
     CBotCStack* pStk = pStack->TokenStack(pp);
 
-    CBotExprUnaire* inst = new CBotExprUnaire();
+    std::unique_ptr<CBotExprUnaire> inst = MakeUnique<CBotExprUnaire>();
     inst->SetToken(pp);
 
     if (!bLiteral) inst->m_expr = CBotParExpr::Compile(p, pStk);
@@ -60,20 +60,19 @@ CBotInstr* CBotExprUnaire::Compile(CBotToken* &p, CBotCStack* pStack, bool bLite
         if (pStk->GetVarType().GetType() != CBotTypVoid)
         {
             if (op == ID_ADD && pStk->GetVarType().GetType() < CBotTypBoolean)        // only with the number
-                return pStack->Return(inst, pStk);
+                return pStack->Return(move(inst), pStk);
             if (op == ID_SUB && pStk->GetVarType().GetType() < CBotTypBoolean)        // only with the numer
-                return pStack->Return(inst, pStk);
+                return pStack->Return(move(inst), pStk);
             if (op == ID_NOT && pStk->GetVarType().GetType() < CBotTypFloat)        // only with an integer
-                return pStack->Return(inst, pStk);
+                return pStack->Return(move(inst), pStk);
             if (op == ID_LOG_NOT && pStk->GetVarType().Eq(CBotTypBoolean))// only with boolean
-                return pStack->Return(inst, pStk);
+                return pStack->Return(move(inst), pStk);
             if (op == ID_TXT_NOT && pStk->GetVarType().Eq(CBotTypBoolean))// only with boolean
-                return pStack->Return(inst, pStk);
+                return pStack->Return(move(inst), pStk);
         }
 
         pStk->SetError(CBotErrBadType1, &inst->m_token);
     }
-    delete inst;
     return pStack->Return(nullptr, pStk);
 }
 
@@ -128,7 +127,7 @@ void CBotExprUnaire::RestoreState(CBotStack* &pj, bool bMain)
 std::map<std::string, CBotInstr*> CBotExprUnaire::GetDebugLinks()
 {
     auto links = CBotInstr::GetDebugLinks();
-    links["m_expr"] = m_expr;
+    links["m_expr"] = m_expr.get();
     return links;
 }
 

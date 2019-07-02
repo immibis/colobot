@@ -41,7 +41,7 @@ public:
      * \param pStack
      * \return
      */
-    static CBotCatch* Compile(CBotToken* &p, CBotCStack* pStack);
+    static std::unique_ptr<CBotCatch> Compile(CBotToken* &p, CBotCStack* pStack);
 
     /*!
      * \brief TestCatch Routine to see if the catch is to do or not.
@@ -78,11 +78,11 @@ protected:
 
 private:
     //! Instructions
-    CBotInstr* m_block;
+    std::unique_ptr<CBotInstr> m_block;
     //! Condition
-    CBotInstr* m_cond;
+    std::unique_ptr<CBotInstr> m_cond;
     //! Following catch
-    CBotCatch* m_next;
+    std::unique_ptr<CBotCatch> m_next;
 
     friend class CBotTry;
 };

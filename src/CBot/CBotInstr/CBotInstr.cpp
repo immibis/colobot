@@ -38,6 +38,8 @@
 #include "CBot/CBotClass.h"
 #include "CBot/CBotStack.h"
 
+#include "common/make_unique.h"
+
 #include <cassert>
 
 namespace CBot
@@ -57,10 +59,6 @@ CBotInstr::CBotInstr()
 ////////////////////////////////////////////////////////////////////////////////
 CBotInstr::~CBotInstr()
 {
-    delete m_next;
-    delete m_next2b;
-    delete m_next3;
-    delete m_next3b;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -82,49 +80,49 @@ CBotToken* CBotInstr::GetToken()
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-void CBotInstr::AddNext(CBotInstr* n)
+void CBotInstr::AddNext(std::unique_ptr<CBotInstr> n)
 {
     CBotInstr*    p = this;
-    while (p->m_next != nullptr) p = p->m_next;
-    p->m_next = n;
+    while (p->m_next != nullptr) p = p->m_next.get();
+    p->m_next = move(n);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-void CBotInstr::AddNext3(CBotInstr* n)
+void CBotInstr::AddNext3(std::unique_ptr<CBotInstr> n)
 {
     CBotInstr*    p = this;
-    while (p->m_next3 != nullptr) p = p->m_next3;
-    p->m_next3 = n;
+    while (p->m_next3 != nullptr) p = p->m_next3.get();
+    p->m_next3 = move(n);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-void CBotInstr::AddNext3b(CBotInstr* n)
+void CBotInstr::AddNext3b(std::unique_ptr<CBotInstr> n)
 {
     CBotInstr*    p = this;
-    while (p->m_next3b != nullptr) p = p->m_next3b;
-    p->m_next3b = n;
+    while (p->m_next3b != nullptr) p = p->m_next3b.get();
+    p->m_next3b = move(n);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 CBotInstr* CBotInstr::GetNext()
 {
-    return m_next;
+    return m_next.get();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 CBotInstr* CBotInstr::GetNext3()
 {
-    return m_next3;
+    return m_next3.get();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 CBotInstr* CBotInstr::GetNext3b()
 {
-    return m_next3b;
+    return m_next3b.get();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-CBotInstr* CBotInstr::Compile(CBotToken* &p, CBotCStack* pStack)
+std::unique_ptr<CBotInstr> CBotInstr::Compile(CBotToken* &p, CBotCStack* pStack)
 {
     CBotToken*    pp = p;
 
@@ -212,13 +210,12 @@ CBotInstr* CBotInstr::Compile(CBotToken* &p, CBotCStack* pStack)
     }
 
     // This can be an arithmetic expression
-    CBotInstr* inst = CBotExpression::Compile(p, pStack);
+    std::unique_ptr<CBotInstr> inst = CBotExpression::Compile(p, pStack);
     if (IsOfType(p, ID_SEP))
     {
         return inst;
     }
     pStack->SetError(CBotErrNoTerminator, p->GetStart());
-    delete inst;
     return nullptr;
 }
 
@@ -276,7 +273,7 @@ bool CBotInstr::CompCase(CBotStack* &pj, int val)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-CBotInstr* CBotInstr::CompileArray(CBotToken* &p, CBotCStack* pStack, CBotTypResult type, bool first)
+std::unique_ptr<CBotInstr> CBotInstr::CompileArray(CBotToken* &p, CBotCStack* pStack, CBotTypResult type, bool first)
 {
     if (IsOfType(p, ID_OPBRK))
     {
@@ -286,14 +283,14 @@ CBotInstr* CBotInstr::CompileArray(CBotToken* &p, CBotCStack* pStack, CBotTypRes
             return nullptr;
         }
 
-        CBotInstr*    inst = CompileArray(p, pStack, CBotTypResult(CBotTypArrayPointer, type), false);
+        std::unique_ptr<CBotInstr> inst = CompileArray(p, pStack, CBotTypResult(CBotTypArrayPointer, type), false);
         if (inst != nullptr || !pStack->IsOk()) return inst;
     }
 
     // compiles an array declaration
     if (first) return nullptr ;
 
-    CBotInstr* inst = CBotDefArray::Compile(p, pStack, type);
+    std::unique_ptr<CBotInstr> inst = CBotDefArray::Compile(p, pStack, type);
     if (inst == nullptr) return nullptr;
 
     if (IsOfType(p,  ID_COMMA)) // several definitions
@@ -302,7 +299,6 @@ CBotInstr* CBotInstr::CompileArray(CBotToken* &p, CBotCStack* pStack, CBotTypRes
         {
             return inst;
         }
-        delete inst;
         return nullptr;
     }
 
@@ -311,7 +307,6 @@ CBotInstr* CBotInstr::CompileArray(CBotToken* &p, CBotCStack* pStack, CBotTypRes
         return inst;
     }
 
-    delete inst;
     pStack->SetError(CBotErrNoTerminator, p->GetStart());
     return nullptr;
 }
@@ -325,10 +320,10 @@ bool CBotInstr::HasReturn()
 std::map<std::string, CBotInstr*> CBotInstr::GetDebugLinks()
 {
     return {
-        {"m_next", m_next},
-        {"m_next2b", m_next2b},
-        {"m_next3", m_next3},
-        {"m_next3b", m_next3b}
+        {"m_next", m_next.get()},
+        {"m_next2b", m_next2b.get()},
+        {"m_next3", m_next3.get()},
+        {"m_next3b", m_next3b.get()}
     };
 }
 

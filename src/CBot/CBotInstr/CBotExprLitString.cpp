@@ -24,6 +24,8 @@
 
 #include "CBot/CBotVar/CBotVar.h"
 
+#include "common/make_unique.h"
+
 namespace CBot
 {
 
@@ -38,7 +40,7 @@ CBotExprLitString::~CBotExprLitString()
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-CBotInstr* CBotExprLitString::Compile(CBotToken* &p, CBotCStack* pStack)
+std::unique_ptr<CBotInstr> CBotExprLitString::Compile(CBotToken* &p, CBotCStack* pStack)
 {
     CBotCStack* pStk = pStack->TokenStack();
 
@@ -158,14 +160,14 @@ CBotInstr* CBotExprLitString::Compile(CBotToken* &p, CBotCStack* pStack)
 
         if (pStk->IsOk())
         {
-            CBotExprLitString* inst = new CBotExprLitString();
+            std::unique_ptr<CBotExprLitString> inst = MakeUnique<CBotExprLitString>();
             inst->m_valstring.swap(valstring);
             inst->SetToken(p);
             p = p->GetNext();
 
             pStk->SetVarType(CBotTypResult(CBotTypString));
 
-            return pStack->Return(inst, pStk);
+            return pStack->Return(move(inst), pStk);
         }
     }
 

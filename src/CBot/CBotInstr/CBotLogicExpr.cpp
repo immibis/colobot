@@ -35,9 +35,6 @@ CBotLogicExpr::CBotLogicExpr()
 ////////////////////////////////////////////////////////////////////////////////
 CBotLogicExpr::~CBotLogicExpr()
 {
-    delete  m_condition;
-    delete  m_op1;
-    delete  m_op2;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -92,9 +89,9 @@ void CBotLogicExpr::RestoreState(CBotStack* &pStack, bool bMain)
 std::map<std::string, CBotInstr*> CBotLogicExpr::GetDebugLinks()
 {
     auto links = CBotInstr::GetDebugLinks();
-    links["m_op1"] = m_op1;
-    links["m_condition"] = m_condition;
-    links["m_op2"] = m_op2;
+    links["m_op1"] = m_op1.get();
+    links["m_condition"] = m_condition.get();
+    links["m_op2"] = m_op2.get();
     return links;
 }
 

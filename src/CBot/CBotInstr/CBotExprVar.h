@@ -46,7 +46,7 @@ public:
      * \param bCheckReadOnly True for operations that would modify the value of the variable
      * \return
      */
-    static CBotInstr* Compile(CBotToken*& p, CBotCStack* pStack, bool bCheckReadOnly = false);
+    static std::unique_ptr<CBotInstr> Compile(CBotToken*& p, CBotCStack* pStack, bool bCheckReadOnly = false);
 
     /*!
      * \brief CompileMethode
@@ -54,7 +54,7 @@ public:
      * \param pStack
      * \return
      */
-    static CBotInstr* CompileMethode(CBotToken* &p, CBotCStack* pStack);
+    static std::unique_ptr<CBotInstr> CompileMethode(CBotToken* &p, CBotCStack* pStack);
 
     /*!
      * \brief Execute Execute, making the value of a variable.

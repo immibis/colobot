@@ -232,11 +232,11 @@ public:
 
     //! Expression describing initial value
     //! TODO: make private
-    CBotInstr* m_InitExpr;
+    std::unique_ptr<CBotInstr> m_InitExpr;
 
     //! Expression describing array limit
     //! TODO: make private
-    CBotInstr* m_LimExpr;
+    std::unique_ptr<CBotInstr> m_LimExpr;
 
 private:
     CBotToken m_name;

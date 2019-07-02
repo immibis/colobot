@@ -24,6 +24,8 @@
 
 #include "CBot/CBotVar/CBotVar.h"
 
+#include "common/make_unique.h"
+
 #include <cassert>
 #include <sstream>
 
@@ -38,7 +40,7 @@ CBotLeftExprVar::~CBotLeftExprVar()
 {
 }
 
-CBotInstr* CBotLeftExprVar::Compile(CBotToken* &p, CBotCStack* pStack)
+std::unique_ptr<CBotLeftExprVar> CBotLeftExprVar::Compile(CBotToken* &p, CBotCStack* pStack)
 {
     // Verifies that the token is a variable name
     if (p->GetType() != TokenTypVar)
@@ -47,7 +49,7 @@ CBotInstr* CBotLeftExprVar::Compile(CBotToken* &p, CBotCStack* pStack)
         return nullptr;
     }
 
-    CBotLeftExprVar* inst = new CBotLeftExprVar();
+    std::unique_ptr<CBotLeftExprVar> inst = MakeUnique<CBotLeftExprVar>();
     inst->SetToken(p);
     p = p->GetNext();
 

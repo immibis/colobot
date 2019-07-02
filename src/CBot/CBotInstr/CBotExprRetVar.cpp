@@ -28,6 +28,8 @@
 #include "CBot/CBotStack.h"
 #include "CBot/CBotClass.h"
 
+#include "common/make_unique.h"
+
 namespace CBot
 {
 
@@ -42,7 +44,7 @@ CBotExprRetVar::~CBotExprRetVar()
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-CBotInstr* CBotExprRetVar::Compile(CBotToken*& p, CBotCStack* pStack, bool bMethodsOnly, bool bPreviousIsSuper)
+std::unique_ptr<CBotInstr> CBotExprRetVar::Compile(CBotToken*& p, CBotCStack* pStack, bool bMethodsOnly, bool bPreviousIsSuper)
 {
     if (p->GetType() == ID_DOT)
     {
@@ -51,7 +53,7 @@ CBotInstr* CBotExprRetVar::Compile(CBotToken*& p, CBotCStack* pStack, bool bMeth
         if (val.GetType() == CBotTypVoid) return nullptr;
 
         CBotCStack* pStk = pStack->TokenStack();
-        CBotInstr* inst = new CBotExprRetVar();
+        std::unique_ptr<CBotInstr> inst = MakeUnique<CBotExprRetVar>();
 
         while (true)
         {
@@ -62,9 +64,8 @@ CBotInstr* CBotExprRetVar::Compile(CBotToken*& p, CBotCStack* pStack, bool bMeth
 
                 if (IsOfType( p, ID_OPBRK ))
                 {
-                    CBotIndexExpr* i = new CBotIndexExpr();
+                    std::unique_ptr<CBotIndexExpr> i = MakeUnique<CBotIndexExpr>();
                     i->m_expr = CBotExpression::Compile(p, pStk);
-                    inst->AddNext3(i);
 
                     val = val.GetTypElem();
 
@@ -78,6 +79,7 @@ CBotInstr* CBotExprRetVar::Compile(CBotToken*& p, CBotCStack* pStack, bool bMeth
                         pStk->SetError(CBotErrCloseIndex, p->GetStart());
                         goto err;
                     }
+                    inst->AddNext3(move(i));
                     continue;
                 }
             }
@@ -91,10 +93,10 @@ CBotInstr* CBotExprRetVar::Compile(CBotToken*& p, CBotCStack* pStack, bool bMeth
                     {
                         if (p->GetNext()->GetType() == ID_OPENPAR)
                         {
-                            CBotInstr* i = CBotInstrMethode::Compile(p, pStk, val, bMethodsOnly, false);
+                            std::unique_ptr<CBotInstr> i = CBotInstrMethode::Compile(p, pStk, val, bMethodsOnly, false);
                             if (!pStk->IsOk()) goto err;
-                            inst->AddNext3(i);
-                            return pStack->Return(inst, pStk);
+                            inst->AddNext3(move(i));
+                            return pStack->Return(move(inst), pStk);
                         }
                         else if (bMethodsOnly)
                         {
@@ -109,9 +111,9 @@ CBotInstr* CBotExprRetVar::Compile(CBotToken*& p, CBotCStack* pStack, bool bMeth
                             if (var != nullptr)
                             {
                                 val = var->m_value->GetTypResult();
-                                CBotFieldExpr* i = new CBotFieldExpr(var->GetFieldPosition());
+                                std::unique_ptr<CBotFieldExpr> i = MakeUnique<CBotFieldExpr>(var->GetFieldPosition());
                                 i->SetToken(pp);
-                                inst->AddNext3(i);
+                                inst->AddNext3(move(i));
                                 // TODO: can "super" accesses occur here? Check for them. (3rd parameter)
                                 if (CBotFieldExpr::CheckProtectionError(pStk, preVal, "", var))
                                 {
@@ -141,11 +143,10 @@ CBotInstr* CBotExprRetVar::Compile(CBotToken*& p, CBotCStack* pStack, bool bMeth
         }
 
         pStk->SetVarType(val);
-        if (pStk->IsOk()) return pStack->Return(inst, pStk);
+        if (pStk->IsOk()) return pStack->Return(move(inst), pStk);
 
         pStk->SetError(CBotErrUndefVar, p);
 err:
-        delete inst;
         return pStack->Return(nullptr, pStk);
     }
     return nullptr;

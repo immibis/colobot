@@ -36,7 +36,6 @@ CBotPreIncExpr::CBotPreIncExpr()
 ////////////////////////////////////////////////////////////////////////////////
 CBotPreIncExpr::~CBotPreIncExpr()
 {
-    delete m_instr;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -53,7 +52,7 @@ bool CBotPreIncExpr::Execute(CBotStack* &pj)
         CBotStack*    pile2 = pile;
         // retrieves the variable fields and indexes according
         // pile2 is modified on return
-        if (!(static_cast<CBotExprVar*>(m_instr))->ExecuteVar(var1, pile2, nullptr, true)) return false;
+        if (!(static_cast<CBotExprVar*>(m_instr.get()))->ExecuteVar(var1, pile2, nullptr, true)) return false;
 
         if (var1->IsNAN())
         {
@@ -96,7 +95,7 @@ void CBotPreIncExpr::RestoreState(CBotStack* &pj, bool bMain)
 std::map<std::string, CBotInstr*> CBotPreIncExpr::GetDebugLinks()
 {
     auto links = CBotInstr::GetDebugLinks();
-    links["m_instr"] = m_instr;
+    links["m_instr"] = m_instr.get();
     return links;
 }
 

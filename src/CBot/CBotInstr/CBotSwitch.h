@@ -41,7 +41,7 @@ public:
      * \param pStack
      * \return
      */
-    static CBotInstr* Compile(CBotToken* &p, CBotCStack* pStack);
+    static std::unique_ptr<CBotInstr> Compile(CBotToken* &p, CBotCStack* pStack);
 
     /*!
      * \brief Execute Executes instruction "switch".
@@ -63,9 +63,9 @@ protected:
 
 private:
     //! Value to seek
-    CBotInstr* m_value;
+    std::unique_ptr<CBotInstr> m_value;
     //! Instructions
-    CBotInstr* m_block;
+    std::unique_ptr<CBotInstr> m_block;
 };
 
 } // namespace CBot

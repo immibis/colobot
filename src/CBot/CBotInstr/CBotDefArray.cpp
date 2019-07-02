@@ -31,6 +31,8 @@
 
 #include "CBot/CBotVar/CBotVar.h"
 
+#include "common/make_unique.h"
+
 #include <sstream>
 
 namespace CBot
@@ -46,16 +48,14 @@ CBotDefArray::CBotDefArray()
 ////////////////////////////////////////////////////////////////////////////////
 CBotDefArray::~CBotDefArray()
 {
-    delete m_var;
-    delete m_listass;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-CBotInstr* CBotDefArray::Compile(CBotToken* &p, CBotCStack* pStack, CBotTypResult type)
+std::unique_ptr<CBotInstr> CBotDefArray::Compile(CBotToken* &p, CBotCStack* pStack, CBotTypResult type)
 {
     CBotCStack* pStk = pStack->TokenStack(p);
 
-    CBotDefArray*    inst = new CBotDefArray();
+    std::unique_ptr<CBotDefArray> inst = MakeUnique<CBotDefArray>();
 
     CBotToken*    vartoken = p;
     inst->SetToken(vartoken);
@@ -69,7 +69,7 @@ CBotInstr* CBotDefArray::Compile(CBotToken* &p, CBotCStack* pStack, CBotTypResul
             goto error;
         }
 
-        CBotInstr*    i;
+        std::unique_ptr<CBotInstr> i;
         while (IsOfType(p,  ID_OPBRK))
         {
             pStk->SetStartError(p->GetStart());
@@ -83,9 +83,9 @@ CBotInstr* CBotDefArray::Compile(CBotToken* &p, CBotCStack* pStack, CBotTypResul
                 }
             }
             else
-                i = new CBotEmpty();                                    // if no special formula
+                i = MakeUnique<CBotEmpty>();                            // if no special formula
 
-            inst->AddNext3b(i);                                         // construct a list
+            inst->AddNext3b(move(i));                                   // construct a list
             type = CBotTypResult(CBotTypArrayPointer, type);
 
             if (IsOfType(p, ID_CLBRK)) continue;
@@ -132,11 +132,11 @@ CBotInstr* CBotDefArray::Compile(CBotToken* &p, CBotCStack* pStack, CBotTypResul
             }
         }
 
-        if (pStk->IsOk()) return pStack->Return(inst, pStk);
+        if (pStk->IsOk())
+            return pStack->Return(std::move(inst), pStk);
     }
 
 error:
-    delete inst;
     return pStack->Return(nullptr, pStk);
 }
 
@@ -267,8 +267,8 @@ std::string CBotDefArray::GetDebugData()
 std::map<std::string, CBotInstr*> CBotDefArray::GetDebugLinks()
 {
     auto links = CBotInstr::GetDebugLinks();
-    links["m_var"] = m_var;
-    links["m_listass"] = m_listass;
+    links["m_var"] = m_var.get();
+    links["m_listass"] = m_listass.get();
     return links;
 }
 

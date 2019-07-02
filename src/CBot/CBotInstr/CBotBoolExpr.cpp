@@ -28,11 +28,11 @@ namespace CBot
 {
 
 ////////////////////////////////////////////////////////////////////////////////
-CBotInstr* CBotBoolExpr::Compile(CBotToken* &p, CBotCStack* pStack)
+std::unique_ptr<CBotInstr> CBotBoolExpr::Compile(CBotToken* &p, CBotCStack* pStack)
 {
     pStack->SetStartError(p->GetStart());
 
-    CBotInstr* inst = CBotTwoOpExpr::Compile(p, pStack);
+    std::unique_ptr<CBotInstr> inst = CBotTwoOpExpr::Compile(p, pStack);
 
     if (nullptr != inst)
     {
@@ -43,7 +43,6 @@ CBotInstr* CBotBoolExpr::Compile(CBotToken* &p, CBotCStack* pStack)
         pStack->SetError(CBotErrNotBoolean, p->GetStart());    // is not a boolean
     }
 
-    delete inst;
     return nullptr;
 }
 

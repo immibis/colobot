@@ -25,6 +25,7 @@
 #include "CBot/CBotCStack.h"
 
 #include "CBot/CBotVar/CBotVar.h"
+#include "common/make_unique.h"
 
 namespace CBot
 {
@@ -40,15 +41,12 @@ CBotCatch::CBotCatch()
 ////////////////////////////////////////////////////////////////////////////////
 CBotCatch::~CBotCatch()
 {
-    delete m_cond;         // frees the list
-    delete m_block;        // frees the instruction block
-    delete m_next;         // and subsequent
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-CBotCatch* CBotCatch::Compile(CBotToken* &p, CBotCStack* pStack)
+std::unique_ptr<CBotCatch> CBotCatch::Compile(CBotToken* &p, CBotCStack* pStack)
 {
-    CBotCatch*  inst = new CBotCatch();         // creates the object
+    std::unique_ptr<CBotCatch> inst = MakeUnique<CBotCatch>(); // creates the object
     pStack->SetStartError(p->GetStart());
 
     inst->SetToken(p);
@@ -68,11 +66,12 @@ CBotCatch* CBotCatch::Compile(CBotToken* &p, CBotCStack* pStack)
                     return inst;                // return an object to the application
             }
             pStack->SetError(CBotErrClosePar, p->GetStart());
+            // TODO does this return the right error message?
         }
         pStack->SetError(CBotErrBadType1, p->GetStart());
+        // TODO does this return the right error message?
     }
     pStack->SetError(CBotErrOpenPar, p->GetStart());
-    delete inst;                                // error, frees up
     return nullptr;                                // no object, the error is on the stack
 }
 
@@ -113,9 +112,9 @@ bool CBotCatch :: TestCatch(CBotStack* &pile, int val)
 std::map<std::string, CBotInstr*> CBotCatch::GetDebugLinks()
 {
     auto links = CBotInstr::GetDebugLinks();
-    links["m_block"] = m_block;
-    links["m_cond"] = m_cond;
-    links["m_next"] = m_next;
+    links["m_block"] = m_block.get();
+    links["m_cond"] = m_cond.get();
+    links["m_next"] = m_next.get();
     return links;
 }
 

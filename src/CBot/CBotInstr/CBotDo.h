@@ -39,7 +39,7 @@ public:
      * \param pStack
      * \return
      */
-    static CBotInstr* Compile(CBotToken* &p, CBotCStack* pStack);
+    static std::unique_ptr<CBotInstr> Compile(CBotToken* &p, CBotCStack* pStack);
 
     /*!
      * \brief Execute
@@ -62,9 +62,9 @@ protected:
 
 private:
     //! Instruction
-    CBotInstr* m_block;
+    std::unique_ptr<CBotInstr> m_block;
     //! Conditions
-    CBotInstr* m_condition;
+    std::unique_ptr<CBotInstr> m_condition;
     //! A label if there is
     std::string m_label;
 };

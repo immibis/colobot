@@ -51,7 +51,7 @@ public:
      * \param pClass
      * \return
      */
-    static CBotInstr* Compile(CBotToken* &p, CBotCStack* pStack, CBotClass* pClass = nullptr);
+    static std::unique_ptr<CBotInstr> Compile(CBotToken* &p, CBotCStack* pStack, CBotClass* pClass = nullptr);
 
     /*!
      * \brief Execute Declaration of the instance of a class, for example:
@@ -75,18 +75,18 @@ protected:
 private:
 
     //! Variable to initialise.
-    CBotInstr* m_var;
+    std::unique_ptr<CBotInstr> m_var;
     //! Parameters to be evaluated for the contructor.
-    CBotInstr* m_parameters;
+    std::unique_ptr<CBotInstr> m_parameters;
     //! A value to put, if there is.
-    CBotInstr* m_expr;
+    std::unique_ptr<CBotInstr> m_expr;
     //! Has it parameters.
     bool m_hasParams;
     //! Constructor method unique identifier
     long m_nMethodeIdent;
 
     //! Instruction to chain method calls after constructor
-    CBotInstr* m_exprRetVar;
+    std::unique_ptr<CBotInstr> m_exprRetVar;
 
 };
 

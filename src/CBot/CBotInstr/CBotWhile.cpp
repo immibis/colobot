@@ -24,6 +24,8 @@
 #include "CBot/CBotStack.h"
 #include "CBot/CBotCStack.h"
 
+#include "common/make_unique.h"
+
 namespace CBot
 {
 
@@ -37,14 +39,12 @@ CBotWhile::CBotWhile()
 ////////////////////////////////////////////////////////////////////////////////
 CBotWhile::~CBotWhile()
 {
-    delete m_condition;    // frees the condition
-    delete m_block;        // releases the block instruction
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-CBotInstr* CBotWhile::Compile(CBotToken* &p, CBotCStack* pStack)
+std::unique_ptr<CBotInstr> CBotWhile::Compile(CBotToken* &p, CBotCStack* pStack)
 {
-    CBotWhile*  inst = new CBotWhile();         // creates the object
+    std::unique_ptr<CBotWhile> inst = MakeUnique<CBotWhile>(); // creates the object
     CBotToken*  pp = p;                         // preserves at the ^ token (starting position)
 
     if ( IsOfType( p, TokenTypVar ) &&
@@ -71,12 +71,11 @@ CBotInstr* CBotWhile::Compile(CBotToken* &p, CBotCStack* pStack)
         {
             // the statement block is ok (it may be empty!
 
-            return pStack->Return(inst, pStk);  // return an object to the application
+            return pStack->Return(move(inst), pStk);  // return an object to the application
                                                 // makes the object to which the application
         }
     }
 
-    delete inst;                                // error, frees the place
     return pStack->Return(nullptr, pStk);          // no object, the error is on the stack
 }
 
@@ -157,8 +156,8 @@ std::string CBotWhile::GetDebugData()
 std::map<std::string, CBotInstr*> CBotWhile::GetDebugLinks()
 {
     auto links = CBotInstr::GetDebugLinks();
-    links["m_condition"] = m_condition;
-    links["m_block"] = m_block;
+    links["m_condition"] = m_condition.get();
+    links["m_block"] = m_block.get();
     return links;
 }
 

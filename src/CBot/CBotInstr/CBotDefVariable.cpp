@@ -29,24 +29,25 @@
 
 #include "CBot/CBotVar/CBotVar.h"
 
+#include "common/make_unique.h"
+
 namespace CBot
 {
 
 ////////////////////////////////////////////////////////////////////////////////
 CBotDefVariable::CBotDefVariable()
 {
-    m_var = m_expr = nullptr;
+    m_var = nullptr;
+    m_expr = nullptr;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 CBotDefVariable::~CBotDefVariable()
 {
-    delete m_var;
-    delete m_expr;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-CBotInstr* CBotDefVariable::CompileAfterType(CBotToken* &p, CBotCStack* pStack, CBotTypResult &baseType, bool noskip)
+std::unique_ptr<CBotInstr> CBotDefVariable::CompileAfterType(CBotToken* &p, CBotCStack* pStack, CBotTypResult &baseType, bool noskip)
 {
     // TODO: if type is a CBotTypArrayPointer then we should make sure this behaves like CBotInstr::CompileArray did
     // and delete CBotInstr::CompileArray
@@ -56,13 +57,13 @@ CBotInstr* CBotDefVariable::CompileAfterType(CBotToken* &p, CBotCStack* pStack, 
     CBotToken *vartoken = p; // so we can rewind if it's an array
 
     // TODO: adjust return type so cast isn't needed
-    CBotLeftExprVar *left_var = static_cast<CBotLeftExprVar*>(CBotLeftExprVar::Compile(p, pStk));
+    std::unique_ptr<CBotLeftExprVar> left_var = CBotLeftExprVar::Compile(p, pStk);
     if (left_var == nullptr)
     {
         return pStack->Return(nullptr, pStk);
     }
 
-    CBotInstr *inst;
+    std::unique_ptr<CBotInstr> inst;
     if (IsOfType(p,  ID_OPBRK) || baseType.GetType() == CBotTypArrayPointer)
     {
         p = vartoken; // return to the variable name and compile as an array declaration instead
@@ -78,8 +79,8 @@ CBotInstr* CBotDefVariable::CompileAfterType(CBotToken* &p, CBotCStack* pStack, 
             return pStack->Return(nullptr, pStk);
         }
 
-        CBotDefVariable *inst_defvar = new CBotDefVariable();
-        inst_defvar->m_var = left_var;
+        std::unique_ptr<CBotDefVariable> inst_defvar = MakeUnique<CBotDefVariable>();
+        inst_defvar->m_var = std::move(left_var);
         inst_defvar->SetToken(vartoken);
 
         if (IsOfType(p,  ID_ASS))
@@ -88,14 +89,12 @@ CBotInstr* CBotDefVariable::CompileAfterType(CBotToken* &p, CBotCStack* pStack, 
             if ( IsOfType(p, ID_SEP) )
             {
                 pStk->SetError(CBotErrNoExpression, p->GetStart());
-                delete inst_defvar;
                 return pStack->Return(nullptr, pStk);
             }
 
             inst_defvar->m_expr = CBotTwoOpExpr::Compile( p, pStk );
             if (nullptr == inst_defvar->m_expr)
             {
-                delete inst_defvar;
                 return pStack->Return(nullptr, pStk);
             }
 
@@ -103,7 +102,6 @@ CBotInstr* CBotDefVariable::CompileAfterType(CBotToken* &p, CBotCStack* pStack, 
             if (!TypeCompatible(valueType, baseType, ID_ASS)) // first parameter is value type, second is variable type
             {
                 pStk->SetError(CBotErrBadType1, p->GetStart());
-                delete inst_defvar;
                 return pStack->Return(nullptr, pStk);
             }
         }
@@ -113,7 +111,7 @@ CBotInstr* CBotDefVariable::CompileAfterType(CBotToken* &p, CBotCStack* pStack, 
         std::unique_ptr<CBotVariable> var(new CBotVariable(*vartoken, std::move(val)));
         pStack->AddVar(var.release());
 
-        inst = inst_defvar;
+        inst = std::move(inst_defvar);
     }
 
     if (pStk->IsOk() && IsOfType(p,  ID_COMMA))
@@ -121,29 +119,27 @@ CBotInstr* CBotDefVariable::CompileAfterType(CBotToken* &p, CBotCStack* pStack, 
         // TODO: is there a bug here? CompileAfterType could return an error, but as long as there's an ID_SEP afterwards
         // we still return a valid instruction?
         // TODO: potentially invalid cast, to get around 'protected' modifier!
-        if (nullptr != ( static_cast<CBotDefVariable*>(inst)->m_next2b = CBotDefVariable::CompileAfterType(p, pStk, baseType, noskip)))
+        if (nullptr != ( static_cast<CBotDefVariable*>(inst.get())->m_next2b = CBotDefVariable::CompileAfterType(p, pStk, baseType, noskip)))
         {
-            return pStack->Return(inst, pStk);
+            return pStack->Return(move(inst), pStk);
         }
         if (!noskip)
         {
-            delete inst;
             return pStack->Return(nullptr, pStk);
         }
     }
 
     if (noskip || IsOfType(p,  ID_SEP))
     {
-        return pStack->Return(inst, pStk);
+        return pStack->Return(move(inst), pStk);
     }
 
     pStk->SetError(CBotErrNoTerminator, p->GetStart());
-    delete inst;
     return pStack->Return(nullptr, pStk);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-CBotInstr* CBotDefVariable::Compile(CBotToken* &p, CBotCStack* pStack, bool cont, bool noskip)
+std::unique_ptr<CBotInstr> CBotDefVariable::Compile(CBotToken* &p, CBotCStack* pStack, bool cont, bool noskip)
 {
     assert(!cont); // unused; TODO remove
 
@@ -236,8 +232,8 @@ void CBotDefVariable::RestoreState(CBotStack* &pj, bool bMain)
 std::map<std::string, CBotInstr*> CBotDefVariable::GetDebugLinks()
 {
     auto links = CBotInstr::GetDebugLinks();
-    links["m_var"] = m_var;
-    links["m_expr"] = m_expr;
+    links["m_var"] = m_var.get();
+    links["m_expr"] = m_expr.get();
     return links;
 }
 

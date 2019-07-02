@@ -36,7 +36,7 @@ public:
     CBotExprRetVar();
     ~CBotExprRetVar();
 
-    static CBotInstr* Compile(CBotToken*& p, CBotCStack* pStack, bool bMethodsOnly, bool bPreviousIsSuper);
+    static std::unique_ptr<CBotInstr> Compile(CBotToken*& p, CBotCStack* pStack, bool bMethodsOnly, bool bPreviousIsSuper);
 
     /*!
      * \brief Execute

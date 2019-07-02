@@ -170,7 +170,7 @@ void CBotVarClass::InitFieldsForClass(CBotClass *pClass)
     for (std::unique_ptr<CBotVariable> &pv : pClass->GetVar())
     {
         // seeks the maximum dimensions of the table
-        CBotInstr*    p  = pv->m_LimExpr;                            // the different formulas
+        CBotInstr*    p  = pv->m_LimExpr.get();                     // the different formulas
         if ( p != nullptr )
         {
             CBotStack* pile = CBotStack::AllocateStack();    // an independent stack
@@ -180,14 +180,14 @@ void CBotVarClass::InitFieldsForClass(CBotClass *pClass)
             while (p != nullptr)
             {
                 while( pile->IsOk() && !p->Execute(pile) ) ;        // calculate size without interruptions
-                CBotVar*    v = pile->GetVar();                        // result
+                CBotVar*    v = pile->GetVar();                     // result
                 max[n] = v->GetValInt();                            // value
                 n++;
                 p = p->GetNext3();
             }
             while (n<100) max[n++] = 0;
 
-            pv->m_value->m_type.SetArray(max);                    // stores the limitations
+            pv->m_value->m_type.SetArray(max);                      // stores the limitations
             pile->Delete();
         }
 

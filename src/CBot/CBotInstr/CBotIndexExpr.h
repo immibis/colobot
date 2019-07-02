@@ -66,7 +66,7 @@ protected:
 
 private:
     //! Expression for calculating the index.
-    CBotInstr* m_expr;
+    std::unique_ptr<CBotInstr> m_expr;
     friend class CBotLeftExpr;
     friend class CBotExprVar;
     friend class CBotExprRetVar;

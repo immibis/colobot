@@ -29,6 +29,8 @@
 
 #include "CBot/CBotVar/CBotVar.h"
 
+#include "common/make_unique.h"
+
 namespace CBot
 {
 
@@ -44,14 +46,12 @@ CBotInstrMethode::CBotInstrMethode()
 ////////////////////////////////////////////////////////////////////////////////
 CBotInstrMethode::~CBotInstrMethode()
 {
-    delete m_parameters;
-    delete m_exprRetVar;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-CBotInstr* CBotInstrMethode::Compile(CBotToken* &p, CBotCStack* pStack, CBotTypResult varType, bool bMethodChain, bool bIsSuperCall)
+std::unique_ptr<CBotInstr> CBotInstrMethode::Compile(CBotToken* &p, CBotCStack* pStack, CBotTypResult varType, bool bMethodChain, bool bIsSuperCall)
 {
-    CBotInstrMethode* inst = new CBotInstrMethode();
+    std::unique_ptr<CBotInstrMethode> inst = MakeUnique<CBotInstrMethode>();
     inst->SetToken(p);  // corresponding token
 
     CBotToken*    pp = p;
@@ -77,7 +77,6 @@ CBotInstr* CBotInstrMethode::Compile(CBotToken* &p, CBotCStack* pStack, CBotTypR
             if (inst->m_typRes.GetType() > 20)
             {
                 pStack->SetError(static_cast<CBotError>(inst->m_typRes.GetType()), pp);
-                delete    inst;
                 return    nullptr;
             }
             // put the result on the stack to have something
@@ -97,7 +96,6 @@ CBotInstr* CBotInstrMethode::Compile(CBotToken* &p, CBotCStack* pStack, CBotTypR
             if ( pStack->IsOk() )
                 return inst;
         }
-        delete inst;
         return nullptr;
     }
     return nullptr;
@@ -145,7 +143,7 @@ bool CBotInstrMethode::ExecuteVar(CBotVar* &pVar, CBotStack* &pj, CBotToken* pre
     }
     int        i = 0;
 
-    CBotInstr*    p = m_parameters;
+    CBotInstr*    p = m_parameters.get();
     // evaluate the parameters
     // and places the values on the stack
     // to be interrupted at any time
@@ -215,7 +213,7 @@ void CBotInstrMethode::RestoreStateVar(CBotStack* &pile, bool bMain)
 
     int        i = 0;
 
-    CBotInstr*    p = m_parameters;
+    CBotInstr*    p = m_parameters.get();
     // evaluate the parameters
     // and places the values on the stack
     // to be interrupted at any time
@@ -272,7 +270,7 @@ bool CBotInstrMethode::Execute(CBotStack* &pj)
     }
     int        i = 0;
 
-    CBotInstr*    p = m_parameters;
+    CBotInstr*    p = m_parameters.get();
     // evaluate the parameters
     // and places the values on the stack
     // to be interrupted at any time
@@ -319,7 +317,7 @@ std::string CBotInstrMethode::GetDebugData()
 std::map<std::string, CBotInstr*> CBotInstrMethode::GetDebugLinks()
 {
     auto links = CBotInstr::GetDebugLinks();
-    links["m_parameters"] = m_parameters;
+    links["m_parameters"] = m_parameters.get();
     return links;
 }
 

@@ -25,6 +25,8 @@
 #include "CBot/CBotStack.h"
 #include "CBot/CBotCStack.h"
 
+#include "common/make_unique.h"
+
 namespace CBot
 {
 
@@ -40,16 +42,12 @@ CBotFor::CBotFor()
 ////////////////////////////////////////////////////////////////////////////////
 CBotFor::~CBotFor()
 {
-    delete m_init;
-    delete m_test;
-    delete m_incr;
-    delete m_block;        // frees the instruction block
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-CBotInstr* CBotFor::Compile(CBotToken* &p, CBotCStack* pStack)
+std::unique_ptr<CBotInstr> CBotFor::Compile(CBotToken* &p, CBotCStack* pStack)
 {
-    CBotFor*    inst = new CBotFor();           // creates the object
+    std::unique_ptr<CBotFor> inst = MakeUnique<CBotFor>(); // creates the object
     CBotToken*  pp = p;                         // preserves at the ^ token (starting position)
 
     if ( IsOfType( p, TokenTypVar ) &&
@@ -76,7 +74,6 @@ CBotInstr* CBotFor::Compile(CBotToken* &p, CBotCStack* pStack)
         if ( !IsOfType(p, ID_SEP))                      // lack the semicolon?
         {
             pStack->SetError(CBotErrOpenPar, p->GetStart());
-            delete inst;
             return pStack->Return(nullptr, pStk);          // no object, the error is on the stack
         }
         inst->m_test = CBotBoolExpr::Compile(p, pStk );
@@ -85,7 +82,6 @@ CBotInstr* CBotFor::Compile(CBotToken* &p, CBotCStack* pStack)
             if ( !IsOfType(p, ID_SEP))                      // lack the semicolon?
             {
                 pStack->SetError(CBotErrOpenPar, p->GetStart());
-                delete inst;
                 return pStack->Return(nullptr, pStk);          // no object, the error is on the stack
             }
             inst->m_incr = CBotListExpression::Compile(p, pStk );
@@ -97,14 +93,13 @@ CBotInstr* CBotFor::Compile(CBotToken* &p, CBotCStack* pStack)
                     inst->m_block = CBotBlock::CompileBlkOrInst(p, pStk, true );
                     pStk->ClearLoop();
                     if ( pStk->IsOk() )
-                        return pStack->Return(inst, pStk);;
+                        return pStack->Return(move(inst), pStk);;
                 }
                 pStack->SetError(CBotErrClosePar, p->GetStart());
             }
         }
     }
 
-    delete inst;                                // error, frees up
     return pStack->Return(nullptr, pStk);          // no object, the error is on the stack
 }
 
@@ -218,10 +213,10 @@ std::string CBotFor::GetDebugData()
 std::map<std::string, CBotInstr*> CBotFor::GetDebugLinks()
 {
     auto links = CBotInstr::GetDebugLinks();
-    links["m_init"] = m_init;
-    links["m_test"] = m_test;
-    links["m_incr"] = m_incr;
-    links["m_block"] = m_block;
+    links["m_init"] = m_init.get();
+    links["m_test"] = m_test.get();
+    links["m_incr"] = m_incr.get();
+    links["m_block"] = m_block.get();
     return links;
 }
 

@@ -52,7 +52,7 @@ public:
      * \param pStack
      * \return
      */
-    static CBotInstr* Compile(CBotToken* &p, CBotCStack* pStack);
+    static std::unique_ptr<CBotInstr> Compile(CBotToken* &p, CBotCStack* pStack);
 
     /*!
      * \brief Compile a literal expression ("string", number, true, false, null, nan, new)
@@ -60,7 +60,7 @@ public:
      * \param pStack Current compilation stack frame
      * \return The compiled instruction or nullptr on error
      */
-    static CBotInstr* CompileLitExpr(CBotToken* &p, CBotCStack* pStack);
+    static std::unique_ptr<CBotInstr> CompileLitExpr(CBotToken* &p, CBotCStack* pStack);
 
 private:
     CBotParExpr() = delete;

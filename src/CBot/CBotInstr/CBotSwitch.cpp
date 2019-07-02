@@ -25,6 +25,8 @@
 #include "CBot/CBotStack.h"
 #include "CBot/CBotCStack.h"
 
+#include "common/make_unique.h"
+
 namespace CBot
 {
 
@@ -38,14 +40,12 @@ CBotSwitch::CBotSwitch()
 ////////////////////////////////////////////////////////////////////////////////
 CBotSwitch::~CBotSwitch()
 {
-    delete m_value;        // frees the value
-    delete m_block;        // frees the instruction block
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-CBotInstr* CBotSwitch::Compile(CBotToken* &p, CBotCStack* pStack)
+std::unique_ptr<CBotInstr> CBotSwitch::Compile(CBotToken* &p, CBotCStack* pStack)
 {
-    CBotSwitch* inst = new CBotSwitch();        // creates the object
+    std::unique_ptr<CBotSwitch> inst = MakeUnique<CBotSwitch>(); // creates the object
     CBotToken*  pp = p;                         // preserves at the ^ token (starting position)
 
     inst->SetToken(p);
@@ -71,38 +71,34 @@ CBotInstr* CBotSwitch::Compile(CBotToken* &p, CBotCStack* pStack)
                             {
                                 CBotCStack* pStk2 = pStk->TokenStack(p);    // un petit bout de pile svp
 
-                                CBotInstr* i = CBotCase::Compile( p, pStk2 );
+                                std::unique_ptr<CBotInstr> i = CBotCase::Compile( p, pStk2 );
                                 if (i == nullptr)
                                 {
-                                    delete inst;
                                     pStk->Return(nullptr, pStk2);
                                     return pStack->Return(nullptr, pStk);
                                 }
                                 delete pStk2;
-                                if (inst->m_block == nullptr ) inst->m_block = i;
-                                else inst->m_block->AddNext(i);
+                                if (inst->m_block == nullptr ) inst->m_block = move(i);
+                                else inst->m_block->AddNext(move(i));
                                 continue;
                             }
 
                             if (inst->m_block == nullptr )
                             {
                                 pStk->SetError(CBotErrNoCase, p->GetStart());
-                                delete inst;
                                 return pStack->Return(nullptr, pStk);
                             }
 
-                            CBotInstr* i = CBotBlock::CompileBlkOrInst( p, pStk, true );
+                            std::unique_ptr<CBotInstr> i = CBotBlock::CompileBlkOrInst( p, pStk, true );
                             if ( !pStk->IsOk() )
                             {
-                                delete inst;
                                 return pStack->Return(nullptr, pStk);
                             }
-                            inst->m_block->AddNext(i);
+                            inst->m_block->AddNext(move(i));
 
                             if ( p == nullptr )
                             {
                                 pStk->SetError(CBotErrCloseBlock, -1);
-                                delete inst;
                                 return pStack->Return(nullptr, pStk);
                             }
                         }
@@ -111,11 +107,10 @@ CBotInstr* CBotSwitch::Compile(CBotToken* &p, CBotCStack* pStack)
                         if (inst->m_block == nullptr )
                         {
                             pStk->SetError(CBotErrNoCase, p->GetStart());
-                            delete inst;
                             return pStack->Return(nullptr, pStk);
                         }
                         // the statement block is ok
-                        return pStack->Return(inst, pStk);  // return an object to the application
+                        return pStack->Return(move(inst), pStk);  // return an object to the application
                     }
                     pStk->SetError( CBotErrOpenBlock, p->GetStart() );
                 }
@@ -126,7 +121,6 @@ CBotInstr* CBotSwitch::Compile(CBotToken* &p, CBotCStack* pStack)
     }
     pStk->SetError( CBotErrOpenPar, p->GetStart());
 
-    delete inst;                                // error, frees up
     return pStack->Return(nullptr, pStk);          // no object, the error is on the stack
 }
 
@@ -136,7 +130,7 @@ bool CBotSwitch :: Execute(CBotStack* &pj)
     CBotStack* pile1 = pj->AddStack(this);      // adds an item to the stack
 //  if ( pile1 == EOX ) return true;
 
-    CBotInstr*  p = m_block;                    // first expression
+    CBotInstr*  p = m_block.get();              // first expression
 
     int     state = pile1->GetState();
     if (state == 0)
@@ -166,7 +160,7 @@ bool CBotSwitch :: Execute(CBotStack* &pj)
         if ( !pile1->SetState(state) ) return false;
     }
 
-    p = m_block;                                        // returns to the beginning
+    p = m_block.get();                                  // returns to the beginning
     while (state-->0) p = p->GetNext();                 // advance in the list
 
     while( p != nullptr )
@@ -186,7 +180,7 @@ void CBotSwitch :: RestoreState(CBotStack* &pj, bool bMain)
     CBotStack* pile1 = pj->RestoreStack(this);  // adds an item to the stack
     if ( pile1 == nullptr ) return;
 
-    CBotInstr*  p = m_block;                    // first expression
+    CBotInstr*  p = m_block.get();              // first expression
 
     int     state = pile1->GetState();
     if (state == 0)
@@ -217,8 +211,8 @@ void CBotSwitch :: RestoreState(CBotStack* &pj, bool bMain)
 std::map<std::string, CBotInstr*> CBotSwitch::GetDebugLinks()
 {
     auto links = CBotInstr::GetDebugLinks();
-    links["m_value"] = m_value;
-    links["m_block"] = m_block;
+    links["m_value"] = m_value.get();
+    links["m_block"] = m_block.get();
     return links;
 }
 

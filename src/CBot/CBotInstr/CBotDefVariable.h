@@ -41,7 +41,7 @@ public:
      * \param noskip
      * \return
      */
-    static CBotInstr* Compile(CBotToken* &p, CBotCStack* pStack, bool cont=false, bool noskip=false);
+    static std::unique_ptr<CBotInstr> Compile(CBotToken* &p, CBotCStack* pStack, bool cont=false, bool noskip=false);
 
     /*!
      * \brief CompileAfterType
@@ -51,7 +51,7 @@ public:
      * \param noskip
      * \return
      */
-    static CBotInstr* CompileAfterType(CBotToken* &p, CBotCStack* pStack, CBotTypResult &baseType, bool noskip=false);
+    static std::unique_ptr<CBotInstr> CompileAfterType(CBotToken* &p, CBotCStack* pStack, CBotTypResult &baseType, bool noskip=false);
 
     /*!
      * \brief Execute Executes a boolean variable definition.
@@ -73,9 +73,9 @@ protected:
 
 private:
     //! Variable to initialise.
-    CBotInstr* m_var;
+    std::unique_ptr<CBotInstr> m_var;
     //! A value to put, if there is.
-    CBotInstr* m_expr;
+    std::unique_ptr<CBotInstr> m_expr;
 };
 
 } // namespace CBot

@@ -40,7 +40,7 @@ public:
      * \param pStack
      * \return
      */
-    static CBotInstr* Compile(CBotToken* &p, CBotCStack* pStack);
+    static std::unique_ptr<CBotInstr> Compile(CBotToken* &p, CBotCStack* pStack);
 
     /*!
      * \brief Execute Execution of the instruction.
@@ -70,11 +70,11 @@ protected:
 
 private:
     //! Condition
-    CBotInstr* m_condition;
+    std::unique_ptr<CBotInstr> m_condition;
     //! Instruction
-    CBotInstr* m_block;
+    std::unique_ptr<CBotInstr> m_block;
     //! Instruction
-    CBotInstr* m_blockElse;
+    std::unique_ptr<CBotInstr> m_blockElse;
 };
 
 } // namespace CBot

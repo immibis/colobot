@@ -47,7 +47,7 @@ public:
      * \param type
      * \return
      */
-    static CBotInstr* Compile(CBotToken* &p, CBotCStack* pStack, CBotTypResult type);
+    static std::unique_ptr<CBotInstr> Compile(CBotToken* &p, CBotCStack* pStack, CBotTypResult type);
 
     /*!
      * \brief Execute Executes the definition of an array.
@@ -70,9 +70,9 @@ protected:
 
 private:
     //! The variables to initialize.
-    CBotInstr* m_var;
+    std::unique_ptr<CBotInstr> m_var;
     //! List of assignments for array.
-    CBotInstr* m_listass;
+    std::unique_ptr<CBotInstr> m_listass;
     //! Type of elements.
     CBotTypResult m_typevar;
 

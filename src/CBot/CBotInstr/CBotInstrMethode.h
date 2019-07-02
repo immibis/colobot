@@ -42,7 +42,7 @@ public:
      * \param bIsSuperCall If true, don't do a virtual call
      * \return
      */
-    static CBotInstr* Compile(CBotToken* &p, CBotCStack* pStack, CBotTypResult varType, bool bMethodChain, bool bIsSuperCall);
+    static std::unique_ptr<CBotInstr> Compile(CBotToken* &p, CBotCStack* pStack, CBotTypResult varType, bool bMethodChain, bool bIsSuperCall);
 
     /*!
      * \brief Execute
@@ -76,7 +76,7 @@ protected:
 
 private:
     //! The parameters to be evaluated.
-    CBotInstr* m_parameters;
+    std::unique_ptr<CBotInstr> m_parameters;
     //! Complete type of the result.
     CBotTypResult m_typRes;
     //! Name of the method.
@@ -89,7 +89,7 @@ private:
     bool m_bNonVirtualCall;
 
     //! Instruction to return a member of the returned object.
-    CBotInstr* m_exprRetVar;
+    std::unique_ptr<CBotInstr> m_exprRetVar;
 
 };
 

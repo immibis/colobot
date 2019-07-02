@@ -20,6 +20,7 @@
 #pragma once
 
 #include <vector>
+#include <memory>
 
 namespace CBot
 {
@@ -32,12 +33,15 @@ class CBotTypResult;
 
 /*!
  * \brief CompileParams Compile a list of parameters.
+ *
+ * TODO: should probably return a vector, to deprecate intrusive linked list
+ *
  * \param p
  * \param pStack
  * \param ppVars [out] types of parameters
  * \return
  */
-CBotInstr* CompileParams(CBotToken* &p, CBotCStack* pStack, std::vector<CBotTypResult> &ppVars);
+std::unique_ptr<CBotInstr> CompileParams(CBotToken* &p, CBotCStack* pStack, std::vector<CBotTypResult> &ppVars);
 
 /*!
  * \brief TypeCompatible Check if two results are consistent to make an

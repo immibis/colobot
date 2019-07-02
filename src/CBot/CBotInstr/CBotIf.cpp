@@ -24,6 +24,8 @@
 #include "CBot/CBotStack.h"
 #include "CBot/CBotCStack.h"
 
+#include "common/make_unique.h"
+
 namespace CBot
 {
 
@@ -38,13 +40,10 @@ CBotIf::CBotIf()
 ////////////////////////////////////////////////////////////////////////////////
 CBotIf::~CBotIf()
 {
-    delete m_condition;        // frees the condition
-    delete m_block;            // frees the block of instruction1
-    delete m_blockElse;        // frees the block of instruction2
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-CBotInstr* CBotIf::Compile(CBotToken* &p, CBotCStack* pStack)
+std::unique_ptr<CBotInstr> CBotIf::Compile(CBotToken* &p, CBotCStack* pStack)
 {
     CBotToken*  pp = p;                         // preserves at the ^ token (starting instruction)
 
@@ -52,7 +51,7 @@ CBotInstr* CBotIf::Compile(CBotToken* &p, CBotCStack* pStack)
 
     CBotCStack* pStk = pStack->TokenStack(pp);  // un petit bout de pile svp
 
-    CBotIf* inst = new CBotIf();                // create the object
+    std::unique_ptr<CBotIf> inst = MakeUnique<CBotIf>(); // create the object
     inst->SetToken( pp );
 
     if ( nullptr != (inst->m_condition = CBotCondition::Compile(p, pStk )) )
@@ -72,19 +71,16 @@ CBotInstr* CBotIf::Compile(CBotToken* &p, CBotCStack* pStack)
                 if (!pStk->IsOk())
                 {
                     // there is no correct block after the else
-                    // frees the object, and transmits the error that is on the stack
-                    delete inst;
+                    // transmits the error that is on the stack
                     return pStack->Return(nullptr, pStk);
                 }
             }
 
             // return the corrent object to the application
-            return pStack->Return(inst, pStk);
+            return pStack->Return(move(inst), pStk);
         }
     }
 
-    // error, frees the object
-    delete inst;
     // and transmits the error that is on the stack.
     return pStack->Return(nullptr, pStk);
 }
@@ -175,9 +171,9 @@ bool CBotIf::HasReturn()
 std::map<std::string, CBotInstr*> CBotIf::GetDebugLinks()
 {
     auto links = CBotInstr::GetDebugLinks();
-    links["m_condition"] = m_condition;
-    links["m_block"] = m_block;
-    links["m_blockElse"] = m_blockElse;
+    links["m_condition"] = m_condition.get();
+    links["m_block"] = m_block.get();
+    links["m_blockElse"] = m_blockElse.get();
     return links;
 }
 

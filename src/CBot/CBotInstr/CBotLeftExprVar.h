@@ -29,12 +29,11 @@ namespace CBot
  */
 class CBotLeftExprVar : public CBotInstr
 {
-private:
-    CBotLeftExprVar();
 public:
+    CBotLeftExprVar();
     ~CBotLeftExprVar();
 
-    static CBotInstr* Compile(CBotToken* &p, CBotCStack* pStack);
+    static std::unique_ptr<CBotLeftExprVar> Compile(CBotToken* &p, CBotCStack* pStack);
 
     /*!
      * \brief Execute Creates a variable and assigns the result to the stack.

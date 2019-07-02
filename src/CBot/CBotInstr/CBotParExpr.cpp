@@ -36,11 +36,13 @@
 
 #include "CBot/CBotCStack.h"
 
+#include "common/make_unique.h"
+
 namespace CBot
 {
 
 ////////////////////////////////////////////////////////////////////////////////
-CBotInstr* CBotParExpr::Compile(CBotToken* &p, CBotCStack* pStack)
+std::unique_ptr<CBotInstr> CBotParExpr::Compile(CBotToken* &p, CBotCStack* pStack)
 {
     CBotCStack* pStk = pStack->TokenStack();
 
@@ -49,37 +51,36 @@ CBotInstr* CBotParExpr::Compile(CBotToken* &p, CBotCStack* pStack)
     // is it an expression in parentheses?
     if (IsOfType(p, ID_OPENPAR))
     {
-        CBotInstr* inst = CBotExpression::Compile(p, pStk);
+        std::unique_ptr<CBotInstr> inst = CBotExpression::Compile(p, pStk);
 
         if (nullptr != inst)
         {
             if (IsOfType(p, ID_CLOSEPAR))
             {
-                return pStack->Return(inst, pStk);
+                return pStack->Return(move(inst), pStk);
             }
             pStk->SetError(CBotErrClosePar, p->GetStart());
         }
-        delete inst;
         return pStack->Return(nullptr, pStk);
     }
 
     // is this a unary operation?
-    CBotInstr* inst = CBotExprUnaire::Compile(p, pStk);
+    std::unique_ptr<CBotInstr> inst = CBotExprUnaire::Compile(p, pStk);
     if (inst != nullptr || !pStk->IsOk())
-        return pStack->Return(inst, pStk);
+        return pStack->Return(move(inst), pStk);
 
     // is it a variable name?
     if (p->GetType() == TokenTypVar)
     {
         // this may be a method call without the "this." before
         inst =  CBotExprVar::CompileMethode(p, pStk);
-        if (inst != nullptr) return pStack->Return(inst, pStk);
+        if (inst != nullptr) return pStack->Return(move(inst), pStk);
 
 
         // is it a procedure call?
         inst =  CBotInstrCall::Compile(p, pStk);
         if (inst != nullptr || !pStk->IsOk())
-            return pStack->Return(inst, pStk);
+            return pStack->Return(move(inst), pStk);
 
 
         CBotToken* pvar = p;
@@ -91,7 +92,6 @@ CBotInstr* CBotParExpr::Compile(CBotToken* &p, CBotCStack* pStack)
         if (IsOfType(p, ID_INC, ID_DEC))
         {
             // recompile the variable for read-only
-            delete inst;
             p = pvar;
             inst = CBotExprVar::Compile(p, pStk, true);
             // TODO: is there a possibility that something like ((((i++)++)++)++)... will recurse exponentially?
@@ -99,17 +99,17 @@ CBotInstr* CBotParExpr::Compile(CBotToken* &p, CBotCStack* pStack)
             if (pStk->GetVarType().GetType() >= CBotTypBoolean || pStk->GetVarType().GetType() == CBotTypVoid)
             {
                 pStk->SetError(CBotErrBadType1, pp);
-                delete inst;
                 return pStack->Return(nullptr, pStk);
             }
             p = p->GetNext();
 
-            CBotPostIncExpr* i = new CBotPostIncExpr();
+            // TODO: use unique_ptr here
+            std::unique_ptr<CBotPostIncExpr> i = MakeUnique<CBotPostIncExpr>();
             i->SetToken(pp);
-            i->m_instr = inst;    // associated statement
-            return pStack->Return(i, pStk);
+            i->m_instr = move(inst);    // associated statement
+            return pStack->Return(move(i), pStk);
         }
-        return pStack->Return(inst, pStk);
+        return pStack->Return(move(inst), pStk);
     }
 
     // pre increpemted or pre decremented?
@@ -122,12 +122,11 @@ CBotInstr* CBotParExpr::Compile(CBotToken* &p, CBotCStack* pStack)
             {
                 if (pStk->GetVarType().GetType() < CBotTypBoolean && pStk->GetVarType().GetType() != CBotTypVoid) // a number ?
                 {
-                    CBotPreIncExpr* i = new CBotPreIncExpr();
+                    std::unique_ptr<CBotPreIncExpr> i = MakeUnique<CBotPreIncExpr>();
                     i->SetToken(pp);
-                    i->m_instr = inst;
-                    return pStack->Return(i, pStk);
+                    i->m_instr = move(inst);
+                    return pStack->Return(move(i), pStk);
                 }
-                delete inst;
             }
         }
         pStk->SetError(CBotErrBadType1, pp);
@@ -139,63 +138,63 @@ CBotInstr* CBotParExpr::Compile(CBotToken* &p, CBotCStack* pStack)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-CBotInstr* CBotParExpr::CompileLitExpr(CBotToken* &p, CBotCStack* pStack)
+std::unique_ptr<CBotInstr> CBotParExpr::CompileLitExpr(CBotToken* &p, CBotCStack* pStack)
 {
     CBotCStack* pStk = pStack->TokenStack();
 
     CBotToken* pp = p;
 
     // is this a unary operation?
-    CBotInstr* inst = CBotExprUnaire::Compile(p, pStk, true);
+    std::unique_ptr<CBotInstr> inst = CBotExprUnaire::Compile(p, pStk, true);
     if (inst != nullptr || !pStk->IsOk())
-        return pStack->Return(inst, pStk);
+        return pStack->Return(move(inst), pStk);
 
     // is it a number or DefineNum?
     if (p->GetType() == TokenTypNum ||
         p->GetType() == TokenTypDef )
     {
-        CBotInstr* inst = CBotExprLitNum::Compile(p, pStk);
-        return pStack->Return(inst, pStk);
+        inst = CBotExprLitNum::Compile(p, pStk);
+        return pStack->Return(move(inst), pStk);
     }
 
     // is this a chaine?
     if (p->GetType() == TokenTypString)
     {
-        CBotInstr* inst = CBotExprLitString::Compile(p, pStk);
-        return pStack->Return(inst, pStk);
+        inst = CBotExprLitString::Compile(p, pStk);
+        return pStack->Return(move(inst), pStk);
     }
 
     // is a "true" or "false"
     if (p->GetType() == ID_TRUE ||
         p->GetType() == ID_FALSE )
     {
-        CBotInstr* inst = CBotExprLitBool::Compile(p, pStk);
-        return pStack->Return(inst, pStk);
+        inst = CBotExprLitBool::Compile(p, pStk);
+        return pStack->Return(move(inst), pStk);
     }
 
     // is an object to be created with new
     if (p->GetType() == ID_NEW)
     {
-        CBotInstr* inst = CBotNew::Compile(p, pStk);
-        return pStack->Return(inst, pStk);
+        inst = CBotNew::Compile(p, pStk);
+        return pStack->Return(move(inst), pStk);
     }
 
     // is a null pointer
     if (IsOfType(p, ID_NULL))
     {
-        CBotInstr* inst = new CBotExprLitNull();
+        inst = MakeUnique<CBotExprLitNull>();
         inst->SetToken(pp);
         pStk->SetVarType(CBotTypNullPointer);
-        return pStack->Return(inst, pStk);
+        return pStack->Return(move(inst), pStk);
     }
 
     // is a number nan
     if (IsOfType(p, ID_NAN))
     {
-        CBotInstr* inst = new CBotExprLitNan();
+        inst = MakeUnique<CBotExprLitNan>();
         inst->SetToken(pp);
         pStk->SetVarType(CBotTypInt);
-        return pStack->Return(inst, pStk);
+        return pStack->Return(move(inst), pStk);
     }
 
 

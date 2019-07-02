@@ -42,7 +42,7 @@ public:
      * \param pStack
      * \return
      */
-    static CBotInstr* Compile(CBotToken* &p, CBotCStack* pStack);
+    static std::unique_ptr<CBotInstr> Compile(CBotToken* &p, CBotCStack* pStack);
 
     /*!
      * \brief Execute Execution of instruction "case".
@@ -73,7 +73,7 @@ protected:
 
 private:
     //! Value to compare.
-    CBotInstr* m_value;
+    std::unique_ptr<CBotInstr> m_value;
 };
 
 } // namespace CBot

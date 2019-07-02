@@ -39,7 +39,7 @@ public:
      * \param pStack
      * \return
      */
-    static CBotInstr* Compile(CBotToken* &p, CBotCStack* pStack);
+    static std::unique_ptr<CBotInstr> Compile(CBotToken* &p, CBotCStack* pStack);
 
     /*!
      * \brief Execute
@@ -67,7 +67,7 @@ protected:
 
 private:
     //! Parameter of return
-    CBotInstr* m_instr;
+    std::unique_ptr<CBotInstr> m_instr;
 
 };
 

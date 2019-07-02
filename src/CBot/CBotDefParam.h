@@ -103,7 +103,7 @@ private:
     CBotTypResult m_type;
 
     //! Default value expression for the parameter.
-    CBotInstr* m_expr;
+    std::unique_ptr<CBotInstr> m_expr;
 };
 
 } // namespace CBot

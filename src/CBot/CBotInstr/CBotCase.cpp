@@ -23,6 +23,7 @@
 
 #include "CBot/CBotStack.h"
 #include "CBot/CBotCStack.h"
+#include "common/make_unique.h"
 
 namespace CBot
 {
@@ -36,13 +37,12 @@ CBotCase::CBotCase()
 ////////////////////////////////////////////////////////////////////////////////
 CBotCase::~CBotCase()
 {
-    delete m_value;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-CBotInstr* CBotCase::Compile(CBotToken* &p, CBotCStack* pStack)
+std::unique_ptr<CBotInstr> CBotCase::Compile(CBotToken* &p, CBotCStack* pStack)
 {
-    CBotCase*   inst = new CBotCase();          // creates the object
+    std::unique_ptr<CBotCase> inst = MakeUnique<CBotCase>(); // creates the object
     CBotToken*  pp = p;                         // preserves at the ^ token (starting position)
 
     inst->SetToken(p);
@@ -55,14 +55,12 @@ CBotInstr* CBotCase::Compile(CBotToken* &p, CBotCStack* pStack)
         if (inst->m_value == nullptr )
         {
             pStack->SetError( CBotErrBadNum, pp );
-            delete inst;
             return nullptr;
         }
     }
     if ( !IsOfType( p, ID_DOTS ))
     {
         pStack->SetError( CBotErrNoDoubleDots, p->GetStart() );
-        delete inst;
         return nullptr;
     }
 
@@ -92,7 +90,7 @@ bool CBotCase::CompCase(CBotStack* &pile, int val)
 std::map<std::string, CBotInstr*> CBotCase::GetDebugLinks()
 {
     auto links = CBotInstr::GetDebugLinks();
-    links["m_value"] = m_value;
+    links["m_value"] = m_value.get();
     return links;
 }
 

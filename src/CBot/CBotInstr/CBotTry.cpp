@@ -24,6 +24,8 @@
 #include "CBot/CBotStack.h"
 #include "CBot/CBotCStack.h"
 
+#include "common/make_unique.h"
+
 namespace CBot
 {
 
@@ -38,30 +40,28 @@ CBotTry::CBotTry()
 ////////////////////////////////////////////////////////////////////////////////
 CBotTry::~CBotTry()
 {
-    delete m_catchList;    // frees the list
-    delete m_block;        // frees the instruction block
-    delete m_finallyBlock;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-CBotInstr* CBotTry::Compile(CBotToken* &p, CBotCStack* pStack)
+std::unique_ptr<CBotInstr> CBotTry::Compile(CBotToken* &p, CBotCStack* pStack)
 {
-    CBotTry*    inst = new CBotTry();           // creates the object
+    std::unique_ptr<CBotTry> inst = MakeUnique<CBotTry>(); // creates the object
     CBotToken*  pp = p;                         // preserves at the ^ token (starting position)
 
     inst->SetToken(p);
-    if (!IsOfType(p, ID_TRY)) return nullptr;      // should never happen
+    if (!IsOfType(p, ID_TRY)) return nullptr;   // should never happen
 
     CBotCStack* pStk = pStack->TokenStack(pp);  // un petit bout de pile svp
 
     inst->m_block = CBotBlock::CompileBlkOrInst(p, pStk );
-    CBotCatch** pn = &inst->m_catchList;
+    std::unique_ptr<CBotCatch>* pn = &inst->m_catchList;
 
     while (pStk->IsOk() && p->GetType() == ID_CATCH)
     {
-        CBotCatch*  i = CBotCatch::Compile(p, pStk);
-        *pn = i;
-        pn = &i->m_next;
+        std::unique_ptr<CBotCatch> i = CBotCatch::Compile(p, pStk);
+        std::unique_ptr<CBotCatch>* pn_next = &i->m_next;
+        *pn = move(i);
+        pn = pn_next;
     }
 
     if (pStk->IsOk() && IsOfType( p, ID_FINALLY) )
@@ -71,10 +71,9 @@ CBotInstr* CBotTry::Compile(CBotToken* &p, CBotCStack* pStack)
 
     if (pStk->IsOk())
     {
-        return pStack->Return(inst, pStk);  // return an object to the application
+        return pStack->Return(move(inst), pStk);  // return an object to the application
     }
 
-    delete inst;                                // error, frees up
     return pStack->Return(nullptr, pStk);          // no object, the error is on the stack
 }
 
@@ -115,7 +114,7 @@ bool CBotTry::Execute(CBotStack* &pj)
     // there was an interruption
     // see what it returns
 
-    CBotCatch*  pc = m_catchList;
+    CBotCatch*  pc = m_catchList.get();
     int state = static_cast<short>(pile1->GetState());                       // where were we?
     val = pile2->GetState();                                    // what error?
     pile0->SetState(1);                                         // marking the GetRunPos
@@ -144,7 +143,7 @@ bool CBotTry::Execute(CBotStack* &pj)
             }
             pile1->IncState();
         }
-        pc = pc->m_next;
+        pc = pc->m_next.get();
     }
     if (m_finallyBlock != nullptr &&
          pile1->GetState() > 0 && val != 0 ) pile1->SetState(-1);// if stop then made the final
@@ -192,7 +191,7 @@ void CBotTry::RestoreState(CBotStack* &pj, bool bMain)
     // there was an interruption
     // see what it returns
 
-    CBotCatch*  pc = m_catchList;
+    CBotCatch*  pc = m_catchList.get();
     int state = pile1->GetState();                              // where were we ?
     val = pile2->GetState();                                    // what error ?
 
@@ -213,7 +212,7 @@ void CBotTry::RestoreState(CBotStack* &pj, bool bMain)
                 return;
             }
         }
-        pc = pc->m_next;
+        pc = pc->m_next.get();
     }
 
     if (pile1->GetState() <= -1)
@@ -226,9 +225,9 @@ void CBotTry::RestoreState(CBotStack* &pj, bool bMain)
 std::map<std::string, CBotInstr*> CBotTry::GetDebugLinks()
 {
     auto links = CBotInstr::GetDebugLinks();
-    links["m_block"] = m_block;
-    links["m_catchList"] = m_catchList;
-    links["m_finallyBlock"] = m_finallyBlock;
+    links["m_block"] = m_block.get();
+    links["m_catchList"] = m_catchList.get();
+    links["m_finallyBlock"] = m_finallyBlock.get();
     return links;
 }
 

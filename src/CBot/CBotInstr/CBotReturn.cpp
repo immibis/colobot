@@ -26,6 +26,8 @@
 #include "CBot/CBotStack.h"
 #include "CBot/CBotCStack.h"
 
+#include "common/make_unique.h"
+
 namespace CBot
 {
 
@@ -38,17 +40,16 @@ CBotReturn::CBotReturn()
 ////////////////////////////////////////////////////////////////////////////////
 CBotReturn::~CBotReturn()
 {
-    delete m_instr;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-CBotInstr* CBotReturn::Compile(CBotToken* &p, CBotCStack* pStack)
+std::unique_ptr<CBotInstr> CBotReturn::Compile(CBotToken* &p, CBotCStack* pStack)
 {
     CBotToken*  pp = p;
 
     if (!IsOfType(p, ID_RETURN)) return nullptr;   // should never happen
 
-    CBotReturn* inst = new CBotReturn();        // creates the object
+    std::unique_ptr<CBotReturn> inst = MakeUnique<CBotReturn>(); // creates the object
     inst->SetToken( pp );
 
     CBotTypResult   type = pStack->GetRetType();
@@ -76,7 +77,6 @@ CBotInstr* CBotReturn::Compile(CBotToken* &p, CBotCStack* pStack)
         pStack->SetError(CBotErrBadType1, p->GetStart());
     }
 
-    delete inst;
     return nullptr;                            // no object, the error is on the stack
 }
 
@@ -121,7 +121,7 @@ bool CBotReturn::HasReturn()
 std::map<std::string, CBotInstr*> CBotReturn::GetDebugLinks()
 {
     auto links = CBotInstr::GetDebugLinks();
-    links["m_instr"] = m_instr;
+    links["m_instr"] = m_instr.get();
     return links;
 }
 

@@ -40,7 +40,7 @@ public:
      * \param type
      * \return
      */
-    static CBotInstr* Compile(CBotToken* &p, CBotCStack* pStack, CBotTypResult type);
+    static std::unique_ptr<CBotInstr> Compile(CBotToken* &p, CBotCStack* pStack, CBotTypResult type);
 
     /*!
      * \brief Execute Executes the definition of an array.
@@ -63,7 +63,7 @@ protected:
 
 private:
     //! An expression for an element others are linked with CBotInstr :: m_next3b;
-    CBotInstr* m_expr;
+    std::unique_ptr<CBotInstr> m_expr;
 };
 
 } // namespace CBot

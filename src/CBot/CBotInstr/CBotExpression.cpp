@@ -28,6 +28,8 @@
 
 #include "CBot/CBotVar/CBotVar.h"
 
+#include "common/make_unique.h"
+
 #include <cassert>
 
 namespace CBot
@@ -43,16 +45,14 @@ CBotExpression::CBotExpression()
 ////////////////////////////////////////////////////////////////////////////////
 CBotExpression::~CBotExpression()
 {
-    delete    m_leftop;
-    delete    m_rightop;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-CBotInstr* CBotExpression::Compile(CBotToken* &p, CBotCStack* pStack)
+std::unique_ptr<CBotInstr> CBotExpression::Compile(CBotToken* &p, CBotCStack* pStack)
 {
     CBotToken*    pp = p;
 
-    CBotExpression* inst = new CBotExpression();
+    std::unique_ptr<CBotExpression> inst = MakeUnique<CBotExpression>();
 
     inst->m_leftop = CBotLeftExpr::Compile(p, pStack);
 
@@ -67,21 +67,18 @@ CBotInstr* CBotExpression::Compile(CBotToken* &p, CBotCStack* pStack)
         if (inst->m_leftop == nullptr)
         {
             pStack->SetError(CBotErrBadLeft, p->GetEnd());
-            delete inst;
             return nullptr;
         }
 
         if ( p->GetType() == ID_SEP )
         {
             pStack->SetError(CBotErrNoExpression, p);
-            delete inst;
             return nullptr;
         }
 
         inst->m_rightop = CBotExpression::Compile(p, pStack);
         if (inst->m_rightop == nullptr)
         {
-            delete inst;
             return nullptr;
         }
 
@@ -92,14 +89,12 @@ CBotInstr* CBotExpression::Compile(CBotToken* &p, CBotCStack* pStack)
         inst->m_leftop->ExecuteVar(var, pStack);
         if (var == nullptr)
         {
-            delete inst;
             return nullptr;
         }
 
         if (OpType != ID_ASS && !var->IsDefined())
         {
             pStack->SetError(CBotErrNotInit, pp);
-            delete inst;
             return nullptr;
         }
 
@@ -140,21 +135,19 @@ CBotInstr* CBotExpression::Compile(CBotToken* &p, CBotCStack* pStack)
         if (!TypeCompatible(type1, type2, OpType))
         {
             pStack->SetError(CBotErrBadType1, &inst->m_token);
-            delete inst;
             return nullptr;
         }
 
         return inst;        // compatible type?
     }
 
-    delete inst;
     int start, end;
     CBotError error = pStack->GetError(start, end);
 
     p = pp;                                        // returns to the top
     pStack->SetError(CBotNoErr,0);                        // forget the error
 
-    CBotInstr* i = CBotTwoOpExpr::Compile(p, pStack);    // tries without assignment
+    std::unique_ptr<CBotInstr> i = CBotTwoOpExpr::Compile(p, pStack);    // tries without assignment
     if (i != nullptr && error == CBotErrPrivate && p->GetType() == ID_ASS)
         pStack->ResetError(error, start, end);
     return i;
@@ -318,8 +311,8 @@ void CBotExpression::RestoreState(CBotStack* &pj, bool bMain)
 std::map<std::string, CBotInstr*> CBotExpression::GetDebugLinks()
 {
     auto links = CBotInstr::GetDebugLinks();
-    links["m_leftop"] = m_leftop;
-    links["m_rightop"] = m_rightop;
+    links["m_leftop"] = m_leftop.get();
+    links["m_rightop"] = m_rightop.get();
     return links;
 }
 

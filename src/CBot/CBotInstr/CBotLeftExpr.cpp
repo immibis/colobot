@@ -29,6 +29,8 @@
 
 #include "CBot/CBotVar/CBotVarArray.h"
 
+#include "common/make_unique.h"
+
 namespace CBot
 {
 
@@ -43,7 +45,7 @@ CBotLeftExpr::~CBotLeftExpr()
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-CBotLeftExpr* CBotLeftExpr::Compile(CBotToken* &p, CBotCStack* pStack)
+std::unique_ptr<CBotLeftExpr> CBotLeftExpr::Compile(CBotToken* &p, CBotCStack* pStack)
 {
     CBotCStack* pStk = pStack->TokenStack();
 
@@ -52,7 +54,7 @@ CBotLeftExpr* CBotLeftExpr::Compile(CBotToken* &p, CBotCStack* pStack)
     // is it a variable name?
     if (p->GetType() == TokenTypVar)
     {
-        CBotLeftExpr* inst = new CBotLeftExpr();    // creates the object
+        std::unique_ptr<CBotLeftExpr> inst = MakeUnique<CBotLeftExpr>(); // creates the object
 
         inst->SetToken(p);
 
@@ -74,9 +76,9 @@ CBotLeftExpr* CBotLeftExpr::Compile(CBotToken* &p, CBotCStack* pStack)
                 pthis.SetPos(p->GetStart(), p->GetEnd());
                 inst->SetToken(&pthis);
 
-                CBotFieldExpr* i = new CBotFieldExpr(var->GetFieldPosition());     // new element
+                std::unique_ptr<CBotFieldExpr> i = MakeUnique<CBotFieldExpr>(var->GetFieldPosition());     // new element
                 i->SetToken(p);     // keeps the name of the token
-                inst->AddNext3(i);  // add after
+                inst->AddNext3(move(i));  // add after
 
                 var = pStk->FindVar(pthis);
                 var = var->m_value->GetItem(p->GetString());
@@ -89,9 +91,8 @@ CBotLeftExpr* CBotLeftExpr::Compile(CBotToken* &p, CBotCStack* pStack)
                 {
                     if (IsOfType( p, ID_OPBRK ))
                     {
-                        CBotIndexExpr* i = new CBotIndexExpr();
+                        std::unique_ptr<CBotIndexExpr> i = MakeUnique<CBotIndexExpr>();
                         i->m_expr = CBotExpression::Compile(p, pStk);
-                        inst->AddNext3(i);  // add to the chain
 
                         var = (static_cast<CBotVarArray*>(var->m_value.get()))->GetItem(0,true);    // gets the component [0]
 
@@ -106,6 +107,8 @@ CBotLeftExpr* CBotLeftExpr::Compile(CBotToken* &p, CBotCStack* pStack)
                             pStk->SetError(CBotErrCloseIndex, p->GetStart());
                             goto err;
                         }
+
+                        inst->AddNext3(move(i));  // add to the chain
                         continue;
                     }
                 }
@@ -128,9 +131,9 @@ CBotLeftExpr* CBotLeftExpr::Compile(CBotToken* &p, CBotCStack* pStack)
                                     goto err;
                                 }
 
-                                CBotFieldExpr* i = new CBotFieldExpr(var->GetFieldPosition());            // new element
+                                std::unique_ptr<CBotFieldExpr> i = MakeUnique<CBotFieldExpr>(var->GetFieldPosition());            // new element
                                 i->SetToken(pp);                                // keeps the name of the token
-                                inst->AddNext3(i);                                // adds after
+                                inst->AddNext3(move(i));                        // adds after
 
                                 p = p->GetNext();                        // skips the name
                                 continue;
@@ -145,15 +148,14 @@ CBotLeftExpr* CBotLeftExpr::Compile(CBotToken* &p, CBotCStack* pStack)
             }
 
 
-            if (pStk->IsOk()) return static_cast<CBotLeftExpr*> (pStack->Return(inst, pStk));
+            if (pStk->IsOk()) return pStack->Return(move(inst), pStk);
         }
         pStk->SetError(CBotErrUndefVar, p);
 err:
-        delete inst;
-        return static_cast<CBotLeftExpr*> ( pStack->Return(nullptr, pStk));
+        return pStack->Return(nullptr, pStk);
     }
 
-    return static_cast<CBotLeftExpr*> ( pStack->Return(nullptr, pStk));
+    return pStack->Return(nullptr, pStk);
 }
 
 ////////////////////////////////////////////////////////////////////////////////

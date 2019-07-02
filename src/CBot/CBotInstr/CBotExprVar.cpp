@@ -30,6 +30,8 @@
 
 #include "CBot/CBotVar/CBotVarArray.h"
 
+#include "common/make_unique.h"
+
 namespace CBot
 {
 
@@ -44,7 +46,7 @@ CBotExprVar::~CBotExprVar()
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-CBotInstr* CBotExprVar::Compile(CBotToken*& p, CBotCStack* pStack, bool bCheckReadOnly)
+std::unique_ptr<CBotInstr> CBotExprVar::Compile(CBotToken*& p, CBotCStack* pStack, bool bCheckReadOnly)
 {
 //    CBotToken*    pDebut = p;
     CBotCStack* pStk = pStack->TokenStack();
@@ -54,7 +56,7 @@ CBotInstr* CBotExprVar::Compile(CBotToken*& p, CBotCStack* pStack, bool bCheckRe
     // is it a variable?
     if (p->GetType() == TokenTypVar)
     {
-        CBotInstr* inst = new CBotExprVar();    // create the object
+        std::unique_ptr<CBotInstr> inst = MakeUnique<CBotExprVar>(); // create the object
 
         inst->SetToken(p);
 
@@ -77,9 +79,9 @@ CBotInstr* CBotExprVar::Compile(CBotToken*& p, CBotCStack* pStack, bool bCheckRe
                 token.SetPos(p->GetStart(), p->GetEnd());
                 inst->SetToken(&token);
 
-                CBotFieldExpr* i = new CBotFieldExpr(var->GetFieldPosition());     // new element
+                std::unique_ptr<CBotFieldExpr> i = MakeUnique<CBotFieldExpr>(var->GetFieldPosition());     // new element
                 i->SetToken(p);     // keeps the name of the token
-                inst->AddNext3(i);  // added after
+                inst->AddNext3(move(i)); // added after
             }
 
             p = p->GetNext();   // next token
@@ -90,9 +92,8 @@ CBotInstr* CBotExprVar::Compile(CBotToken*& p, CBotCStack* pStack, bool bCheckRe
                 {
                     if (IsOfType( p, ID_OPBRK ))    // check if there is an aindex
                     {
-                        CBotIndexExpr* i = new CBotIndexExpr();
+                        std::unique_ptr<CBotIndexExpr> i = MakeUnique<CBotIndexExpr>();
                         i->m_expr = CBotExpression::Compile(p, pStk);   // compile the formula
-                        inst->AddNext3(i);  // add to the chain
 
                         var = (static_cast<CBotVarArray*>(var->m_value.get()))->GetItem(0,true);    // gets the component [0]
 
@@ -106,6 +107,7 @@ CBotInstr* CBotExprVar::Compile(CBotToken*& p, CBotCStack* pStack, bool bCheckRe
                             pStk->SetError(CBotErrCloseIndex, p->GetStart());
                             goto err;
                         }
+                        inst->AddNext3(move(i));  // add to the chain
                         continue;
                     }
                 }
@@ -121,11 +123,11 @@ CBotInstr* CBotExprVar::Compile(CBotToken*& p, CBotCStack* pStack, bool bCheckRe
                             {
                                 if (bCheckReadOnly) goto err; // don't allow increment a method call "++"
 
-                                CBotInstr* i = CBotInstrMethode::Compile(p, pStk, var->m_value->GetTypResult(), false,
+                                std::unique_ptr<CBotInstr> i = CBotInstrMethode::Compile(p, pStk, var->m_value->GetTypResult(), false,
                                         var->GetContainingClass() == nullptr && var->GetName() == "super");
                                 if (!pStk->IsOk()) goto err;
-                                inst->AddNext3(i);  // added after
-                                return pStack->Return(inst, pStk);
+                                inst->AddNext3(move(i));  // added after
+                                return pStack->Return(move(inst), pStk);
                             }
                             else
                             {
@@ -133,9 +135,9 @@ CBotInstr* CBotExprVar::Compile(CBotToken*& p, CBotCStack* pStack, bool bCheckRe
                                 var = var->m_value->GetItem(p->GetString());         // get item correspondent
                                 if (var != nullptr)
                                 {
-                                    CBotFieldExpr* i = new CBotFieldExpr(var->GetFieldPosition());     // new element
+                                    std::unique_ptr<CBotFieldExpr> i = MakeUnique<CBotFieldExpr>(var->GetFieldPosition());     // new element
                                     i->SetToken(pp);                            // keeps the name of the token
-                                    inst->AddNext3(i);                          // add after
+                                    inst->AddNext3(move(i));                    // add after
                                     if (CBotFieldExpr::CheckProtectionError(pStk, preVar->m_value->GetTypResult(), preVar->GetName(), var, bCheckReadOnly))
                                     {
                                         pStk->SetError(CBotErrPrivate, pp);
@@ -162,11 +164,10 @@ CBotInstr* CBotExprVar::Compile(CBotToken*& p, CBotCStack* pStack, bool bCheckRe
             }
 
             pStk->SetVarType(var->m_value->GetTypResult());
-            if (pStk->IsOk()) return pStack->Return(inst, pStk);
+            if (pStk->IsOk()) return pStack->Return(move(inst), pStk);
         }
         pStk->SetError(CBotErrUndefVar, p);
 err:
-        delete inst;
         return pStack->Return(nullptr, pStk);
     }
 
@@ -174,7 +175,7 @@ err:
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-CBotInstr* CBotExprVar::CompileMethode(CBotToken* &p, CBotCStack* pStack)
+std::unique_ptr<CBotInstr> CBotExprVar::CompileMethode(CBotToken* &p, CBotCStack* pStack)
 {
     CBotToken*    pp = p;
     CBotCStack* pStk = pStack->TokenStack();
@@ -188,7 +189,7 @@ CBotInstr* CBotExprVar::CompileMethode(CBotToken* &p, CBotCStack* pStack)
         CBotVariable* var = pStk->FindVar(pthis);
         if (var == nullptr) return pStack->Return(nullptr, pStk);
 
-        CBotInstr* inst = new CBotExprVar();
+        std::unique_ptr<CBotInstr> inst = MakeUnique<CBotExprVar>();
 
         // this is an element of the current class
         // adds the equivalent of this. before
@@ -203,18 +204,17 @@ CBotInstr* CBotExprVar::CompileMethode(CBotToken* &p, CBotCStack* pStack)
         {
             if (pp->GetNext()->GetType() == ID_OPENPAR)        // a method call?
             {
-                CBotInstr* i = CBotInstrMethode::Compile(pp, pStk, var->m_value->GetTypResult(), false,
+                std::unique_ptr<CBotInstr> i = CBotInstrMethode::Compile(pp, pStk, var->m_value->GetTypResult(), false,
                         var->GetContainingClass() == nullptr && var->GetName() == "super");
                 if (pStk->IsOk())
                 {
-                    inst->AddNext3(i);                            // add after
+                    inst->AddNext3(move(i));                       // add after
                     p = pp;                                        // previous instruction
-                    return pStack->Return(inst, pStk);
+                    return pStack->Return(move(inst), pStk);
                 }
                 pStk->SetError(CBotNoErr, 0);                            // the error is not adressed here
             }
         }
-        delete inst;
     }
     return pStack->Return(nullptr, pStk);
 }

@@ -24,14 +24,16 @@
 #include "CBot/CBotStack.h"
 #include "CBot/CBotCStack.h"
 
+#include "common/make_unique.h"
+
 namespace CBot
 {
 
 ////////////////////////////////////////////////////////////////////////////////
 /// Seeks a declaration of variable or expression
-static CBotInstr* CompileInstrOrDefVar(CBotToken* &p, CBotCStack* pStack)
+static std::unique_ptr<CBotInstr> CompileInstrOrDefVar(CBotToken* &p, CBotCStack* pStack)
 {
-    CBotInstr*  i = CBotDefVariable::Compile(p, pStack, false, true );         // Is this a declaration of a primitive?
+    std::unique_ptr<CBotInstr> i = CBotDefVariable::Compile(p, pStack, false, true );         // Is this a declaration of a primitive?
     // TODO: shouldn't class definitions also be allowed?
     if ( i== nullptr ) i = CBotExpression::Compile( p, pStack );           // compiles an expression
     return i;
@@ -49,30 +51,27 @@ CBotListExpression::CBotListExpression()
 ////////////////////////////////////////////////////////////////////////////////
 CBotListExpression::~CBotListExpression()
 {
-    delete m_expr;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-CBotInstr* CBotListExpression::Compile(CBotToken* &p, CBotCStack* pStack)
+std::unique_ptr<CBotInstr> CBotListExpression::Compile(CBotToken* &p, CBotCStack* pStack)
 {
-    CBotListExpression* inst = new CBotListExpression();
+    std::unique_ptr<CBotListExpression> inst = MakeUnique<CBotListExpression>();
 
     inst->m_expr = CompileInstrOrDefVar(p, pStack );           // compile the first expression in a list
     if (pStack->IsOk())
     {
-        while ( IsOfType(p, ID_COMMA) )                         // more instructions?
+        while ( IsOfType(p, ID_COMMA) )                        // more instructions?
         {
-            CBotInstr*  i = CompileInstrOrDefVar( p, pStack );      // Is this a declaration of an integer?
-            inst->m_expr->AddNext(i);                           // added after
+            std::unique_ptr<CBotInstr> i = CompileInstrOrDefVar( p, pStack );      // Is this a declaration of an integer?
+            inst->m_expr->AddNext(move(i));                    // added after
             if ( !pStack->IsOk() )
             {
-                delete inst;
-                return nullptr;                                    // no object, the error is on the stack
+                return nullptr;                                // no object, the error is on the stack
             }
         }
         return inst;
     }
-    delete inst;
     return nullptr;
 }
 
@@ -80,7 +79,7 @@ CBotInstr* CBotListExpression::Compile(CBotToken* &p, CBotCStack* pStack)
 bool CBotListExpression::Execute(CBotStack* &pj)
 {
     CBotStack*  pile = pj->AddStack();                          // essential
-    CBotInstr*  p = m_expr;                                     // the first expression
+    CBotInstr*  p = m_expr.get();                               // the first expression
 
     int     state = pile->GetState();
     while (state-->0) p = p->GetNext();                         // returns to the interrupted operation
@@ -108,7 +107,7 @@ void CBotListExpression::RestoreState(CBotStack* &pj, bool bMain)
         state = pile->GetState();
     }
 
-    CBotInstr*  p = m_expr;                                     // the first expression
+    CBotInstr*  p = m_expr.get();                               // the first expression
 
     while (p != nullptr && state-->0)
     {
@@ -125,7 +124,7 @@ void CBotListExpression::RestoreState(CBotStack* &pj, bool bMain)
 std::map<std::string, CBotInstr*> CBotListExpression::GetDebugLinks()
 {
     auto links = CBotInstr::GetDebugLinks();
-    links["m_expr"] = m_expr;
+    links["m_expr"] = m_expr.get();
     return links;
 }
 

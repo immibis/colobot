@@ -214,6 +214,14 @@ public:
      */
     CBotFunction* ReturnFunc(CBotFunction* p, CBotCStack* pChild);
 
+    // TODO remove me?
+    template<class T>
+    T Return(T p, CBotCStack *pChild)
+    {
+        Return(static_cast<CBotInstr*>(nullptr), pChild);
+        return p;
+    }
+
     /*!
      * \brief Sets m_vartype.
      *

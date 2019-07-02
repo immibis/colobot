@@ -39,7 +39,7 @@ public:
      * \param pStack
      * \return
      */
-    static CBotInstr* Compile(CBotToken* &p, CBotCStack* pStack);
+    static std::unique_ptr<CBotInstr> Compile(CBotToken* &p, CBotCStack* pStack);
 
     /*!
      * \brief Execute Executes instruction "new".
@@ -62,12 +62,12 @@ protected:
 
 private:
     //! The parameters to be evaluated
-    CBotInstr* m_parameters;
+    std::unique_ptr<CBotInstr> m_parameters;
     long m_nMethodeIdent;
     CBotToken m_vartoken;
 
     //! Instruction to chain method calls after constructor
-    CBotInstr* m_exprRetVar;
+    std::unique_ptr<CBotInstr> m_exprRetVar;
 
 };
 

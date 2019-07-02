@@ -260,7 +260,7 @@ private:
     //! Parameter list.
     CBotDefParam* m_param;
     //! The instruction block.
-    CBotInstr* m_block;
+    std::unique_ptr<CBotInstr> m_block;
     //! If returns CBotTypClass.
     CBotToken m_retToken;
     //! Complete type of the result.
