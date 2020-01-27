@@ -432,6 +432,8 @@ set(BASE_SOURCES
     object/subclass/shielder.h
     object/subclass/static_object.cpp
     object/subclass/static_object.h
+    object/subclass/water_pump.cpp
+    object/subclass/water_pump.h
     object/task/task.cpp
     object/task/task.h
     object/task/taskadvance.cpp

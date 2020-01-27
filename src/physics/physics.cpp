@@ -2725,7 +2725,8 @@ bool CPhysics::ExploOther(ObjectType iType,
             oType == OBJECT_NUCLEAR  ||
             oType == OBJECT_PARA     ||
             oType == OBJECT_SAFE     ||
-            oType == OBJECT_HUSTON    )  // building?
+            oType == OBJECT_HUSTON   ||
+            oType == OBJECT_WATERPUMP)  // building?
         {
             assert(pObj->Implements(ObjectInterfaceType::Damageable));
             // TODO: implement "killer"?

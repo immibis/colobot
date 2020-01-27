@@ -230,6 +230,7 @@ enum ObjectType
     OBJECT_APOLLO4          = 903,  //!< ApolloModule
     OBJECT_APOLLO5          = 904,  //!< ApolloAntenna
     OBJECT_HOME1            = 910,  //!< Home
+    OBJECT_WATERPUMP        = 920,  //!< WaterPump
 
     OBJECT_MAX              = 1000  //!< number of values
 };

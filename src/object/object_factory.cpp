@@ -46,6 +46,7 @@
 #include "object/subclass/base_building.h"
 #include "object/subclass/base_robot.h"
 #include "object/subclass/exchange_post.h"
+#include "object/subclass/water_pump.h"
 #include "object/subclass/shielder.h"
 #include "object/subclass/static_object.h"
 
@@ -86,6 +87,9 @@ CObjectUPtr CObjectFactory::CreateObject(const ObjectCreateParams& params)
 
         case OBJECT_INFO:
             return CExchangePost::Create(params, m_oldModelManager, m_engine);
+
+        case OBJECT_WATERPUMP:
+            return CWaterPump::Create(params, m_oldModelManager, m_engine);
 
         case OBJECT_PORTICO:
         case OBJECT_BASE:
