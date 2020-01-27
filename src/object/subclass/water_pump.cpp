@@ -38,6 +38,24 @@
 
 #include <boost/lexical_cast.hpp>
 
+
+struct CAutoWaterPump : public CAuto
+{
+    CAutoWaterPump(CWaterPump* object) : CAuto(object) {}
+    ~CAutoWaterPump() {}
+
+    bool EventProcess(const Event &event) override {
+        CAuto::EventProcess(event);
+        if (event.type == EVENT_FRAME && !m_engine->GetPause()) {
+            float angle = m_object->GetPartRotationY(1);
+            angle += event.rTime*0.5f;
+            m_object->SetPartRotationY(1, fmodf(angle, Math::PI*2.0f));
+            m_object->SetPartPosition(1, Math::Vector(0.0f, 2.0f + sinf(angle), 0.0f));
+        }
+        return true; // XXX what does this mean?
+    }
+};
+
 CWaterPump::CWaterPump(int id)
     : CBaseBuilding(id, OBJECT_WATERPUMP)
 {}
@@ -59,13 +77,13 @@ std::unique_ptr<CWaterPump> CWaterPump::Create(
     obj->SetRotationY(params.angle);
     obj->SetFloorHeight(0.0f);
 
-    /*rank = engine->CreateObject();
+    rank = engine->CreateObject();
     engine->SetObjectType(rank, Gfx::ENG_OBJTYPE_DESCENDANT);
     obj->SetObjectRank(1, rank);
     obj->SetObjectParent(1, 0);
     modelManager->AddModelReference("info1.mod", false, rank);
     obj->SetPartPosition(1, Math::Vector(0.0f, 1.0f, 0.0f));
-    obj->SetPartRotationY(1, 0.0f);*/
+    obj->SetPartRotationY(1, 0.0f);
 
 /*    rank = engine->CreateObject();
     engine->SetObjectType(rank, Gfx::ENG_OBJTYPE_DESCENDANT);
@@ -103,9 +121,9 @@ std::unique_ptr<CWaterPump> CWaterPump::Create(
     pos.y += params.height;
     obj->SetPosition(pos);  // to display the shadows immediately
 
-    /*auto objAuto = MakeUnique<CAutoInfo>(obj.get());
+    auto objAuto = MakeUnique<CAutoWaterPump>(obj.get());
     objAuto->Init();
-    obj->SetAuto(std::move(objAuto));*/
+    obj->SetAuto(std::move(objAuto));
 
     engine->LoadAllTextures();
 
