@@ -34,22 +34,15 @@ struct ObjectCreateParams;
 namespace Gfx
 {
 class COldModelManager;
+class CModelManager;
 class CEngine;
 }
 
-class CWaterPump : public CBaseBuilding
-{
-public:
-    CWaterPump(int id);
-
-    static std::unique_ptr<CWaterPump> Create(
+std::unique_ptr<CObject> CreateObjectWaterPump(
         const ObjectCreateParams& params,
-        Gfx::COldModelManager* modelManager,
+        Gfx::COldModelManager* oldModelManager,
+        Gfx::CModelManager* modelManager,
         Gfx::CEngine* engine);
-
-    void Write(CLevelParserLine* line) override;
-    void Read(CLevelParserLine* line) override;
-};
 
 // TODO: integrate this with CExchangePost
 /*class CAutoInfo : public CAuto

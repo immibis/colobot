@@ -22,7 +22,8 @@
 #include "common/make_unique.h"
 #include "common/regex_utils.h"
 
-#include "graphics/engine/oldmodelmanager.h"
+#include "graphics/engine/oldmodelmanager.h" // XXX delete
+#include "graphics/model/model_manager.h"
 
 #include "level/parser/parserexceptions.h"
 #include "level/parser/parserline.h"
@@ -38,41 +39,74 @@
 
 #include <boost/lexical_cast.hpp>
 
+class CWaterPump : public CBaseBuilding
+{
+public:
+    CWaterPump(int id)
+        : CBaseBuilding(id, OBJECT_WATERPUMP)
+    {
+        m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Powered)] = true;
+    }
+
+    void Write(CLevelParserLine* line) override;
+    void Read(CLevelParserLine* line) override;
+
+    using COldObject::SetAuto;
+};
 
 struct CAutoWaterPump : public CAuto
 {
     CAutoWaterPump(CWaterPump* object) : CAuto(object) {}
     ~CAutoWaterPump() {}
 
+    float cycle = 0.0f;
+
     bool EventProcess(const Event &event) override {
         CAuto::EventProcess(event);
         if (event.type == EVENT_FRAME && !m_engine->GetPause()) {
-            float angle = m_object->GetPartRotationY(1);
-            angle += event.rTime*0.5f;
-            m_object->SetPartRotationY(1, fmodf(angle, Math::PI*2.0f));
-            m_object->SetPartPosition(1, Math::Vector(0.0f, 2.0f + sinf(angle), 0.0f));
+            CObject *powerCell = m_object->GetPower();
+            if (powerCell != nullptr) {
+
+                if (powerCell->Implements(ObjectInterfaceType::PowerContainer)) {
+                    CPowerContainerObject *asPC = dynamic_cast<CPowerContainerObject*>(powerCell);
+                    float energy = asPC->GetEnergyLevel();
+                    energy += (0.2f * event.rTime) / asPC->GetCapacity();
+                    asPC->SetEnergyLevel(energy);
+                }
+
+                cycle = fmodf(cycle + event.rTime, 1.0f);
+                if (cycle < 0.5f)
+                    m_object->SetPartPosition(1, Math::Vector(0.0f, 4.0f * cycle + 1.5f, 0.0f));
+                else
+                    m_object->SetPartPosition(1, Math::Vector(0.0f, 4.0f - (4.0f * cycle) + 1.5f, 0.0f));
+            }
         }
         return true; // XXX what does this mean?
     }
 };
 
-CWaterPump::CWaterPump(int id)
-    : CBaseBuilding(id, OBJECT_WATERPUMP)
-{}
-
-std::unique_ptr<CWaterPump> CWaterPump::Create(
+std::unique_ptr<CObject> CreateObjectWaterPump(
     const ObjectCreateParams& params,
-    Gfx::COldModelManager* modelManager,
+    Gfx::COldModelManager* oldModelManager, // XXX remove
+    Gfx::CModelManager* modelManager,
     Gfx::CEngine* engine)
 {
     auto obj = MakeUnique<CWaterPump>(params.id);
 
     obj->SetTeam(params.team);
 
+    /*static int info1_base_rank = -1;
+    if (info1_base_rank == -1) {
+        Gfx::CModel& model_info1 = modelManager->GetModel("info1");
+        info1_base_rank = engine->CreateBaseObject();
+        engine->AddBaseObjTriangles(info1_base_rank, model_info1.GetMesh("main")->GetTriangles());
+    }*/
+
     int rank = engine->CreateObject();
     engine->SetObjectType(rank, Gfx::ENG_OBJTYPE_FIX);  // it is a stationary object
     obj->SetObjectRank(0, rank);
-    modelManager->AddModelReference("info1.mod", false, rank);
+    //engine->SetObjectBaseRank(rank, info1_base_rank);
+    oldModelManager->AddModelReference("waterpump.txt", false, rank);
     obj->SetPosition(params.pos);
     obj->SetRotationY(params.angle);
     obj->SetFloorHeight(0.0f);
@@ -81,39 +115,15 @@ std::unique_ptr<CWaterPump> CWaterPump::Create(
     engine->SetObjectType(rank, Gfx::ENG_OBJTYPE_DESCENDANT);
     obj->SetObjectRank(1, rank);
     obj->SetObjectParent(1, 0);
-    modelManager->AddModelReference("info1.mod", false, rank);
+    //engine->SetObjectBaseRank(rank, info1_base_rank);
+    oldModelManager->AddModelReference("info2.mod", false, rank);
     obj->SetPartPosition(1, Math::Vector(0.0f, 1.0f, 0.0f));
     obj->SetPartRotationY(1, 0.0f);
 
-/*    rank = engine->CreateObject();
-    engine->SetObjectType(rank, Gfx::ENG_OBJTYPE_DESCENDANT);
-    obj->SetObjectRank(1, rank);
-    obj->SetObjectParent(1, 0);
-    modelManager->AddModelReference("info2.mod", false, rank);
-    obj->SetPartPosition(1, Math::Vector(0.0f, 5.0f, 0.0f));
-
-    for (int i = 0; i < 3; ++i)
-    {
-        rank = engine->CreateObject();
-        engine->SetObjectType(rank, Gfx::ENG_OBJTYPE_DESCENDANT);
-        obj->SetObjectRank(2+i*2, rank);
-        obj->SetObjectParent(2+i*2, 1);
-        modelManager->AddModelReference("info3.mod", false, rank);
-        obj->SetPartPosition(2+i*2, Math::Vector(0.0f, 4.5f, 0.0f));
-
-        rank = engine->CreateObject();
-        engine->SetObjectType(rank, Gfx::ENG_OBJTYPE_DESCENDANT);
-        obj->SetObjectRank(3+i*2, rank);
-        obj->SetObjectParent(3+i*2, 2+i*2);
-        modelManager->AddModelReference("radar4.mod", false, rank);
-        obj->SetPartPosition(3+i*2, Math::Vector(0.0f, 0.0f, -4.0f));
-
-        obj->SetPartRotationY(2+i*2, 2.0f*Math::PI/3.0f*i);
-    }*/
-
     obj->AddCrashSphere(CrashSphere(Math::Vector(0.0f,  3.0f, 0.0f), 6.0f, SOUND_BOUMm, 0.45f));
-    obj->AddCrashSphere(CrashSphere(Math::Vector(0.0f, 11.0f, 0.0f), 6.0f, SOUND_BOUMm, 0.45f));
+    obj->AddCrashSphere(CrashSphere(Math::Vector(7.0f,  1.0f, 0.0f), 1.5f, SOUND_BOUMm, 0.45f));
     obj->SetCameraCollisionSphere(Math::Sphere(Math::Vector(0.0f, 5.0f, 0.0f), 6.0f));
+    obj->SetPowerPosition(Math::Vector(7.0, 2.5, 0.0));
 
     obj->CreateShadowCircle(8.0f, 1.0f);
 

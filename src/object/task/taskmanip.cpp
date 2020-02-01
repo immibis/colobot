@@ -931,6 +931,10 @@ CObject* CTaskManip::SearchOtherObject(bool bAdvance, Math::Vector &pos,
         {
             oLimit = 45.0f*Math::PI/180.0f;
         }
+        else if ( type == OBJECT_WATERPUMP )
+        {
+            oLimit = 3; //Math::PI doesn't work
+        }
         else
         {
             oLimit = 45.0f*Math::PI/180.0f;

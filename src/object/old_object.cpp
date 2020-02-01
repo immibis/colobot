@@ -747,7 +747,8 @@ void COldObject::SetType(ObjectType type)
         m_type == OBJECT_RESEARCH ||
         m_type == OBJECT_ENERGY   ||
         m_type == OBJECT_LABO     ||
-        m_type == OBJECT_NUCLEAR   )
+        m_type == OBJECT_NUCLEAR  ||
+        m_type == OBJECT_WATERPUMP)
     {
         m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Powered)] = true;
     }

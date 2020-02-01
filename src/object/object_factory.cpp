@@ -89,7 +89,7 @@ CObjectUPtr CObjectFactory::CreateObject(const ObjectCreateParams& params)
             return CExchangePost::Create(params, m_oldModelManager, m_engine);
 
         case OBJECT_WATERPUMP:
-            return CWaterPump::Create(params, m_oldModelManager, m_engine);
+            return CreateObjectWaterPump(params, m_oldModelManager, m_modelManager, m_engine);
 
         case OBJECT_PORTICO:
         case OBJECT_BASE:
