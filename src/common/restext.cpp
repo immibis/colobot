@@ -568,6 +568,7 @@ void InitializeRestext()
     stringsObject[OBJECT_APOLLO5]      = TR("Remains of Apollo mission");
     stringsObject[OBJECT_APOLLO2]      = TR("Lunar Roving Vehicle");
     stringsObject[OBJECT_WATERPUMP]    = TR("Water pump");
+    stringsObject[OBJECT_BUCKET]       = TR("Bucket");
 
 
 
