@@ -369,6 +369,7 @@ set(BASE_SOURCES
     object/interface/flying_object.h
     object/interface/fragile_object.h
     object/interface/interactive_object.h
+    object/interface/liquid_container_object.h
     object/interface/jet_flying_object.h
     object/interface/jostleable_object.h
     object/interface/movable_object.h
@@ -426,6 +427,7 @@ set(BASE_SOURCES
     object/subclass/base_robot.h
     object/subclass/base_vehicle.cpp
     object/subclass/base_vehicle.h
+    object/subclass/bucket.cpp
     object/subclass/exchange_post.cpp
     object/subclass/exchange_post.h
     object/subclass/shielder.cpp

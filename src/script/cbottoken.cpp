@@ -116,6 +116,7 @@ const char* GetObjectName(ObjectType type)
     if ( type == OBJECT_WORM        )  return "AlienWorm";
     if ( type == OBJECT_RUINmobilew1)  return "Wreck";
     if ( type == OBJECT_WATERPUMP   )  return "WaterPump";
+    if ( type == OBJECT_BUCKET      )  return "Bucket";
     return "";
 }
 

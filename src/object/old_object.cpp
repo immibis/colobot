@@ -773,6 +773,7 @@ void COldObject::SetType(ObjectType type)
          m_type == OBJECT_SPIDER   ||
          m_type == OBJECT_BEE      ||
          m_type == OBJECT_TEEN28    )
+        // TODO OBJECT_BUCKET
     {
         m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Damageable)] = true;
         m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Destroyable)] = true;
@@ -3205,13 +3206,15 @@ float COldObject::GetLightningHitProbability()
          m_type == OBJECT_NUCLEAR  ||
          m_type == OBJECT_PARA     ||
          m_type == OBJECT_SAFE     ||
-         m_type == OBJECT_HUSTON   )  // building?
+         m_type == OBJECT_HUSTON   ||
+         m_type == OBJECT_WATERPUMP)  // building?
     {
         return 1.0f;
     }
     if ( m_type == OBJECT_METAL    ||
          m_type == OBJECT_POWER    ||
-         m_type == OBJECT_ATOMIC   ) // resource?
+         m_type == OBJECT_ATOMIC   ||
+         m_type == OBJECT_BUCKET   ) // resource?
     {
         return 0.3f;
     }

@@ -54,6 +54,7 @@ enum class ObjectInterfaceType
     Shielded, //!< objects that can be destroyed after the shield goes down to 0
     ShieldedAutoRegen, //!< shielded objects with auto shield regeneration
     Old, //!< old objects, TODO: remove once no longer necessary
+    LiquidContainer, //!< liquid container
     Max //!< maximum value (for getting number of items in enum)
 };
 

@@ -18,6 +18,7 @@
  */
 
 #include "object/subclass/water_pump.h"
+#include "object/interface/liquid_container_object.h"
 
 #include "common/make_unique.h"
 #include "common/regex_utils.h"
@@ -67,18 +68,21 @@ struct CAutoWaterPump : public CAuto
             CObject *powerCell = m_object->GetPower();
             if (powerCell != nullptr) {
 
-                if (powerCell->Implements(ObjectInterfaceType::PowerContainer)) {
-                    CPowerContainerObject *asPC = dynamic_cast<CPowerContainerObject*>(powerCell);
-                    float energy = asPC->GetEnergyLevel();
-                    energy += (0.2f * event.rTime) / asPC->GetCapacity();
-                    asPC->SetEnergyLevel(energy);
-                }
+                if (powerCell->Implements(ObjectInterfaceType::LiquidContainer)) {
+                    // test code
+                    CLiquidContainerObject *asPC = dynamic_cast<CLiquidContainerObject*>(powerCell);
+                    float energy = asPC->GetLiquidAmount();
+                    energy += (0.2f * event.rTime);
+                    if(energy > 1.0f) energy = 0.0f;
+                    asPC->SetLiquid(LiquidType::WATER, energy);
 
-                cycle = fmodf(cycle + event.rTime, 1.0f);
-                if (cycle < 0.5f)
-                    m_object->SetPartPosition(1, Math::Vector(0.0f, 4.0f * cycle + 1.5f, 0.0f));
-                else
-                    m_object->SetPartPosition(1, Math::Vector(0.0f, 4.0f - (4.0f * cycle) + 1.5f, 0.0f));
+                    // animation
+                    cycle = fmodf(cycle + event.rTime, 1.0f);
+                    if (cycle < 0.5f)
+                        m_object->SetPartPosition(1, Math::Vector(0.0f, 4.0f * cycle + 1.5f, 0.0f));
+                    else
+                        m_object->SetPartPosition(1, Math::Vector(0.0f, 4.0f - (4.0f * cycle) + 1.5f, 0.0f));
+                }
             }
         }
         return true; // XXX what does this mean?

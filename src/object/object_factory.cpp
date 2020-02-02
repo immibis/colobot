@@ -91,6 +91,10 @@ CObjectUPtr CObjectFactory::CreateObject(const ObjectCreateParams& params)
         case OBJECT_WATERPUMP:
             return CreateObjectWaterPump(params, m_oldModelManager, m_modelManager, m_engine);
 
+        case OBJECT_BUCKET:
+            std::unique_ptr<CObject> CreateObjectBucket(const ObjectCreateParams&, Gfx::COldModelManager*, Gfx::CEngine*);
+            return CreateObjectBucket(params, m_oldModelManager, m_engine);
+
         case OBJECT_PORTICO:
         case OBJECT_BASE:
         case OBJECT_DERRICK:

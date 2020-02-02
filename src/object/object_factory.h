@@ -45,6 +45,8 @@ struct ObjectCreateParams;
 
 using CObjectUPtr = std::unique_ptr<CObject>;
 
+std::unique_ptr<CObject> CreateObjectBucket(const ObjectCreateParams &params, Gfx::COldModelManager *modelManager, Gfx::CEngine *graphicsEngine);
+
 class CObjectFactory
 {
 public:
