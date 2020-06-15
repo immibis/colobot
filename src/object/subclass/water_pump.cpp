@@ -71,17 +71,23 @@ struct CAutoWaterPump : public CAuto
                 if (powerCell->Implements(ObjectInterfaceType::LiquidContainer)) {
                     // test code
                     CLiquidContainerObject *asPC = dynamic_cast<CLiquidContainerObject*>(powerCell);
-                    float energy = asPC->GetLiquidAmount();
-                    energy += (0.2f * event.rTime);
-                    if(energy > 1.0f) energy = 0.0f;
-                    asPC->SetLiquid(LiquidType::WATER, energy);
+                    if (asPC->GetLiquidType() == LiquidType::WATER || asPC->GetLiquidType() == LiquidType::EMPTY) {
+                        float water = asPC->GetLiquidAmount();
 
-                    // animation
-                    cycle = fmodf(cycle + event.rTime, 1.0f);
-                    if (cycle < 0.5f)
-                        m_object->SetPartPosition(1, Math::Vector(0.0f, 4.0f * cycle + 1.5f, 0.0f));
-                    else
-                        m_object->SetPartPosition(1, Math::Vector(0.0f, 4.0f - (4.0f * cycle) + 1.5f, 0.0f));
+                        if (water < 1.0f)
+                        {
+                            // animation
+                            cycle = fmodf(cycle + event.rTime, 1.0f);
+                            if (cycle < 0.5f)
+                                m_object->SetPartPosition(1, Math::Vector(0.0f, 4.0f * cycle + 1.5f, 0.0f));
+                            else
+                                m_object->SetPartPosition(1, Math::Vector(0.0f, 4.0f - (4.0f * cycle) + 1.5f, 0.0f));
+                        }
+
+                        water = water + (0.2f * event.rTime);
+                        if(water > 1.0f) water = 1.0f;
+                        asPC->SetLiquid(LiquidType::WATER, water);
+                    }
                 }
             }
         }

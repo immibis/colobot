@@ -18,6 +18,7 @@
  */
 
 #include "object/subclass/base_building.h"
+#include "object/interface/slotted_object.h"
 
 #include "common/make_unique.h"
 
@@ -47,6 +48,41 @@
 #include "object/auto/autotower.h"
 #include "object/auto/autovault.h"
 
+class CResearchLab : public CBaseBuilding, public CSlottedObject {
+public:
+    CResearchLab(int id)
+        : CBaseBuilding(id, OBJECT_RESEARCH)
+        , CSlottedObject(m_implementedInterfaces)
+    {
+
+    }
+
+    CObject *m_extraSlotObject = nullptr;
+
+    virtual int GetNumSlots() override {
+        return 1;
+    }
+    virtual Math::Vector GetSlotPosition(int slotNum) override {
+        assert(slotNum == 0);
+        return Math::Vector(-7.5f, 3.0f, 0.0f); // opposite the power cell slot
+    }
+    virtual float GetSlotAngle(int slotNum) override {
+        assert(slotNum == 0);
+        return Math::PI; // 180 degrees
+    }
+    virtual float GetSlotAcceptanceAngle(int slotNum) override {
+        assert(slotNum == 0);
+        return 45.0f*Math::PI/180.0f; // up to 45 degree offset is allowed, in either direction
+    }
+    virtual CObject *GetSlotContainedObject(int slotNum) override {
+        assert(slotNum == 0);
+        return m_extraSlotObject;
+    }
+    virtual void SetSlotContainedObject(int slotNum, CObject *object) override {
+        assert(slotNum == 0);
+        m_extraSlotObject = object;
+    }
+};
 
 CBaseBuilding::CBaseBuilding(int id, ObjectType type)
     : COldObject(id)
@@ -62,7 +98,7 @@ std::unique_ptr<CBaseBuilding> CBaseBuilding::Create(
     Gfx::COldModelManager* modelManager,
     Gfx::CEngine* engine)
 {
-    auto obj = MakeUnique<CBaseBuilding>(params.id, params.type);
+    auto obj = (params.type == OBJECT_RESEARCH ? MakeUnique<CResearchLab>(params.id) : MakeUnique<CBaseBuilding>(params.id, params.type));
 
     obj->SetTeam(params.team);
 
@@ -272,7 +308,7 @@ std::unique_ptr<CBaseBuilding> CBaseBuilding::Create(
 
     if ( params.type == OBJECT_RESEARCH )
     {
-        modelManager->AddModelReference("search1.mod", false, rank, params.team);
+        modelManager->AddModelReference("search1_with_water.txt", false, rank, params.team);
         obj->SetPosition(params.pos);
         obj->SetRotationY(params.angle);
         obj->SetFloorHeight(0.0f);

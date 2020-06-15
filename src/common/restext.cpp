@@ -616,6 +616,8 @@ void InitializeRestext()
     stringsErr[ERR_RESEARCH_ENERGY] = TR("Not enough energy");
     stringsErr[ERR_RESEARCH_TYPE]   = TR("Inappropriate cell type");
     stringsErr[ERR_RESEARCH_ALREADY]= TR("Research program already performed");
+    stringsErr[ERR_RESEARCH_NEED_COOLANT] = TR("No coolant cell");
+    stringsErr[ERR_RESEARCH_MORE_COOLANT] = TR("Not enough coolant");
     stringsErr[ERR_ENERGY_NULL]     = TR("No energy in the subsoil");
     stringsErr[ERR_ENERGY_LOW]      = TR("Not enough energy yet");
     stringsErr[ERR_ENERGY_EMPTY]    = TR("No titanium to transform");

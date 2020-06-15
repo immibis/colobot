@@ -211,6 +211,7 @@ public:
     //! \todo It will work like this for now but later I'd like to refactor this to something more manageable ~krzys_h
     virtual bool IsBulletWall() { return false; }
 
+
 protected:
     //! Transform crash sphere by object's world matrix
     virtual void TransformCrashSphere(Math::Sphere& crashSphere) = 0;

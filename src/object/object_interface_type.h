@@ -55,6 +55,7 @@ enum class ObjectInterfaceType
     ShieldedAutoRegen, //!< shielded objects with auto shield regeneration
     Old, //!< old objects, TODO: remove once no longer necessary
     LiquidContainer, //!< liquid container
+    Slotted, //!< objects that can carry other objects (in their gripper, power cell slot, or other slots)
     Max //!< maximum value (for getting number of items in enum)
 };
 

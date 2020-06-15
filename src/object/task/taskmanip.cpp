@@ -33,11 +33,14 @@
 #include "object/interface/carrier_object.h"
 #include "object/interface/powered_object.h"
 #include "object/interface/transportable_object.h"
+#include "object/interface/slotted_object.h"
 
 #include "physics/physics.h"
 
 #include "sound/sound.h"
 
+const int INVALID_SLOT = -1;
+const int ENERGY_CELL_SLOT = -2;
 
 //?const float MARGIN_FRONT     = 2.0f;
 //?const float MARGIN_BACK      = 2.0f;
@@ -263,6 +266,16 @@ void CTaskManip::InitAngle()
     }
 }
 
+static bool ObjectSlotOccupied(CObject *obj, int slotnum) {
+    if(slotnum == ENERGY_CELL_SLOT)
+        return ObjectHasPowerCell(obj);
+    else {
+        if (!obj->Implements(ObjectInterfaceType::Slotted))
+            return false;
+        return dynamic_cast<CSlottedObject*>(obj)->GetSlotContainedObject(slotnum) != nullptr;
+    }
+}
+
 // Assigns the goal was achieved.
 
 Error CTaskManip::Start(TaskManipOrder order, TaskManipArm arm)
@@ -393,7 +406,8 @@ Error CTaskManip::Start(TaskManipOrder order, TaskManipArm arm)
         if ( m_arm == TMA_FFRONT )
         {
             front = SearchTakeFrontObject(true, fPos, fDist, fAngle);
-            other = SearchOtherObject(true, oPos, oDist, oAngle, oHeight);
+            int slotNum;
+            other = SearchOtherObject(true, oPos, oDist, oAngle, oHeight, slotNum);
 
             if ( front != nullptr && fDist < oDist )
             {
@@ -403,7 +417,7 @@ Error CTaskManip::Start(TaskManipOrder order, TaskManipArm arm)
             }
             else if ( other != nullptr && oDist < fDist )
             {
-                if (! ObjectHasPowerCell(other)) return ERR_MANIP_NIL;
+                if (! ObjectSlotOccupied(other, slotNum)) return ERR_MANIP_NIL;
                 m_targetPos = oPos;
                 m_angle = oAngle;
                 m_height = oHeight;
@@ -436,8 +450,9 @@ Error CTaskManip::Start(TaskManipOrder order, TaskManipArm arm)
     {
         if ( m_arm == TMA_FFRONT )
         {
-            other = SearchOtherObject(true, oPos, oDist, oAngle, oHeight);
-            if (other != nullptr && !ObjectHasPowerCell(other))
+            int slotNum;
+            other = SearchOtherObject(true, oPos, oDist, oAngle, oHeight, slotNum);
+            if (other != nullptr && !ObjectSlotOccupied(other, slotNum))
             {
                 m_targetPos = oPos;
                 m_angle = oAngle;
@@ -868,8 +883,10 @@ CObject* CTaskManip::SearchTakeBackObject(bool bAdvance, Math::Vector &pos,
 
 CObject* CTaskManip::SearchOtherObject(bool bAdvance, Math::Vector &pos,
                                        float &distance, float &angle,
-                                       float &height)
+                                       float &height, int &slotNumOut)
 {
+    slotNumOut = INVALID_SLOT;
+
     Math::Matrix*   mat;
     float       iAngle, oAngle, oLimit, aLimit, dLimit;
 
@@ -901,59 +918,96 @@ CObject* CTaskManip::SearchOtherObject(bool bAdvance, Math::Vector &pos,
         if ( pObj == m_object )  continue;  // yourself?
 
         ObjectType type = pObj->GetType();
-        if ( !pObj->Implements(ObjectInterfaceType::Powered) )  continue;
+        if ( pObj->Implements(ObjectInterfaceType::Powered) ) {
 
-        CObject* power = dynamic_cast<CPoweredObject*>(pObj)->GetPower();
-        if (power != nullptr)
-        {
-            if (power->GetLock())  continue;
-            if (power->GetScaleY() != 1.0f)  continue;
-        }
-
-        mat = pObj->GetWorldMatrix(0);
-        Math::Vector oPos = Transform(*mat, dynamic_cast<CPoweredObject*>(pObj)->GetPowerPosition());
-
-        oAngle = pObj->GetRotationY();
-        if ( type == OBJECT_TOWER    ||
-             type == OBJECT_RESEARCH )
-        {
-            oLimit = 45.0f*Math::PI/180.0f;
-        }
-        else if ( type == OBJECT_ENERGY )
-        {
-            oLimit = 90.0f*Math::PI/180.0f;
-        }
-        else if ( type == OBJECT_LABO )
-        {
-            oLimit = 120.0f*Math::PI/180.0f;
-        }
-        else if ( type == OBJECT_NUCLEAR )
-        {
-            oLimit = 45.0f*Math::PI/180.0f;
-        }
-        else if ( type == OBJECT_WATERPUMP )
-        {
-            oLimit = 3; //Math::PI doesn't work
-        }
-        else
-        {
-            oLimit = 45.0f*Math::PI/180.0f;
-            oAngle += Math::PI;  // is behind
-        }
-        oAngle = Math::NormAngle(oAngle);  // 0..2*Math::PI
-        angle = Math::RotateAngle(iPos.x-oPos.x, oPos.z-iPos.z);  // CW !
-        if ( !Math::TestAngle(angle, oAngle-oLimit, oAngle+oLimit) )  continue;
-
-        distance = fabs(Math::Distance(oPos, iPos)-TAKE_DIST);
-        if ( distance <= dLimit )
-        {
-            angle = Math::RotateAngle(oPos.x-iPos.x, iPos.z-oPos.z);  // CW !
-            if ( Math::TestAngle(angle, iAngle-aLimit, iAngle+aLimit) )
+            CObject* power = dynamic_cast<CPoweredObject*>(pObj)->GetPower();
+            if (power == nullptr || (!power->GetLock() && power->GetScaleY() == 1.0f))
             {
-                Math::Vector powerPos = dynamic_cast<CPoweredObject*>(pObj)->GetPowerPosition();
-                height = powerPos.y;
-                pos = oPos;
-                return pObj;
+                mat = pObj->GetWorldMatrix(0);
+                Math::Vector oPos = Transform(*mat, dynamic_cast<CPoweredObject*>(pObj)->GetPowerPosition());
+
+                oAngle = pObj->GetRotationY();
+                if ( type == OBJECT_TOWER    ||
+                     type == OBJECT_RESEARCH )
+                {
+                    oLimit = 45.0f*Math::PI/180.0f;
+                }
+                else if ( type == OBJECT_ENERGY )
+                {
+                    oLimit = 90.0f*Math::PI/180.0f;
+                }
+                else if ( type == OBJECT_LABO )
+                {
+                    oLimit = 120.0f*Math::PI/180.0f;
+                }
+                else if ( type == OBJECT_NUCLEAR )
+                {
+                    oLimit = 45.0f*Math::PI/180.0f;
+                }
+                else if ( type == OBJECT_WATERPUMP )
+                {
+                    oLimit = 3; //Math::PI doesn't work
+                }
+                else
+                {
+                    oLimit = 45.0f*Math::PI/180.0f;
+                    oAngle += Math::PI;  // is behind
+                }
+                oAngle = Math::NormAngle(oAngle);  // 0..2*Math::PI
+                angle = Math::RotateAngle(iPos.x-oPos.x, oPos.z-iPos.z);  // CW !
+                if ( Math::TestAngle(angle, oAngle-oLimit, oAngle+oLimit) )
+                {
+                    distance = fabs(Math::Distance(oPos, iPos)-TAKE_DIST);
+                    if ( distance <= dLimit )
+                    {
+                        angle = Math::RotateAngle(oPos.x-iPos.x, iPos.z-oPos.z);  // CW !
+                        if ( Math::TestAngle(angle, iAngle-aLimit, iAngle+aLimit) )
+                        {
+                            Math::Vector powerPos = dynamic_cast<CPoweredObject*>(pObj)->GetPowerPosition();
+                            height = powerPos.y;
+                            pos = oPos;
+                            slotNumOut = ENERGY_CELL_SLOT;
+                            return pObj;
+                        }
+                    }
+                }
+            }
+        }
+
+        if (pObj->Implements(ObjectInterfaceType::Slotted)) {
+            CSlottedObject *obj = dynamic_cast<CSlottedObject*>(pObj);
+            int slotNum = obj->GetNumSlots();
+            for (int slot = 0; slot < slotNum; slot++) {
+                mat = pObj->GetWorldMatrix(0);
+                Math::Vector worldSlotPos = Transform(*mat, obj->GetSlotPosition(slot));
+                // TODO: check GetLock and GetScaleY, like for energy cell slot
+
+                CObject *objectInSlot = obj->GetSlotContainedObject(slot);
+                if (objectInSlot != nullptr && (objectInSlot->GetLock() || objectInSlot->GetScaleY() != 1.0f))
+                    continue;
+
+                // The robot must be in the correct angle relative to the slot (it can't be on the other side of the object)
+                float angleFromObjectToRobot = Math::RotateAngle(iPos.x-worldSlotPos.x, worldSlotPos.z-iPos.z);  // CW !
+                float objectAngleOffsetLimit = obj->GetSlotAcceptanceAngle(slot);
+                float objectIdealAngle = obj->GetSlotAngle(slot);
+
+                if ( Math::TestAngle(angleFromObjectToRobot, objectIdealAngle - objectAngleOffsetLimit, objectIdealAngle + objectAngleOffsetLimit) ) {
+                    distance = fabs(Math::Distance(worldSlotPos, iPos)-TAKE_DIST);
+                    // The robot must be close enough to the slot
+                    if ( distance <= dLimit )
+                    {
+                        // The slot must be in the correct position relative to the robot (the robot must be facing towards the slot, not sideways or away)
+                        angle = Math::RotateAngle(worldSlotPos.x-iPos.x, iPos.z-worldSlotPos.z);  // CW !
+                        if ( Math::TestAngle(angle, iAngle-aLimit, iAngle+aLimit) )
+                        {
+                            Math::Vector powerPos = obj->GetSlotPosition(slot);
+                            height = powerPos.y;
+                            pos = worldSlotPos;
+                            slotNumOut = slot;
+                            return pObj;
+                        }
+                    }
+                }
             }
         }
     }
@@ -1094,19 +1148,36 @@ bool CTaskManip::TransporterTakeObject()
     {
         Math::Vector pos;
         float dist = 0.0f, angle = 0.0f;
-        CObject* other = SearchOtherObject(false, pos, dist, angle, m_height);
+        int slotNum;
+        CObject* other = SearchOtherObject(false, pos, dist, angle, m_height, slotNum);
         if (other == nullptr)  return false;
-        assert(other->Implements(ObjectInterfaceType::Powered));
+        assert(slotNum != INVALID_SLOT);
+        CObject *cargo;
+        if (slotNum == ENERGY_CELL_SLOT) {
+            assert(other->Implements(ObjectInterfaceType::Powered));
 
-        CObject* cargo = dynamic_cast<CPoweredObject*>(other)->GetPower();
-        if (cargo == nullptr)  return false;  // the other does not have a battery?
-        assert(cargo->Implements(ObjectInterfaceType::Transportable));
+            cargo = dynamic_cast<CPoweredObject*>(other)->GetPower();
+            if (cargo == nullptr)  return false;  // the other does not have a battery?
+            assert(cargo->Implements(ObjectInterfaceType::Transportable));
 
-        m_cargoType = cargo->GetType();
+            m_cargoType = cargo->GetType();
 
-        dynamic_cast<CPoweredObject*>(other)->SetPower(nullptr);
-        dynamic_cast<CTransportableObject*>(cargo)->SetTransporter(m_object);
-        dynamic_cast<CTransportableObject*>(cargo)->SetTransporterPart(3);  // takes with the hand
+            dynamic_cast<CPoweredObject*>(other)->SetPower(nullptr);
+            dynamic_cast<CTransportableObject*>(cargo)->SetTransporter(m_object);
+            dynamic_cast<CTransportableObject*>(cargo)->SetTransporterPart(3);  // takes with the hand
+        } else {
+            assert(other->Implements(ObjectInterfaceType::Slotted));
+
+            cargo = dynamic_cast<CSlottedObject*>(other)->GetSlotContainedObject(slotNum);
+            if (cargo == nullptr)  return false;  // the other does not have a battery?
+            assert(cargo->Implements(ObjectInterfaceType::Transportable));
+
+            m_cargoType = cargo->GetType();
+
+            dynamic_cast<CSlottedObject*>(other)->SetSlotContainedObject(slotNum, nullptr);
+            dynamic_cast<CTransportableObject*>(cargo)->SetTransporter(m_object);
+            dynamic_cast<CTransportableObject*>(cargo)->SetTransporterPart(3);  // takes with the hand
+        }
 
         pos = Math::Vector(4.7f, 0.0f, 0.0f);  // relative to the hand (lem4)
         cargo->SetPosition(pos);
@@ -1193,23 +1264,38 @@ bool CTaskManip::TransporterDeposeObject()
         Math::Vector pos;
         float angle = 0.0f, dist = 0.0f;
 
-        CObject* other = SearchOtherObject(false, pos, dist, angle, m_height);
+        int slotNum;
+        CObject* other = SearchOtherObject(false, pos, dist, angle, m_height, slotNum);
         if (other == nullptr)  return false;
-        assert(other->Implements(ObjectInterfaceType::Powered));
+        assert(slotNum != INVALID_SLOT);
+        if (slotNum == ENERGY_CELL_SLOT) {
+            assert(other->Implements(ObjectInterfaceType::Powered));
 
-        CObject* cargo = dynamic_cast<CPoweredObject*>(other)->GetPower();
-        if (cargo != nullptr)  return false;  // the other already has a battery?
+            CObject* cargo = dynamic_cast<CPoweredObject*>(other)->GetPower();
+            if (cargo != nullptr)  return false;  // the other already has a battery?
+        } else {
+            assert(other->Implements(ObjectInterfaceType::Slotted));
+            CObject* cargo = dynamic_cast<CSlottedObject*>(other)->GetSlotContainedObject(slotNum);
+            if (cargo != nullptr)  return false;  // the other already has a battery?
+        }
 
-        cargo = m_object->GetCargo();
+        CObject *cargo = m_object->GetCargo();
         if (cargo == nullptr)  return false;
         assert(cargo->Implements(ObjectInterfaceType::Transportable));
 
         m_cargoType = cargo->GetType();
 
-        dynamic_cast<CPoweredObject*>(other)->SetPower(cargo);
+        if (slotNum == ENERGY_CELL_SLOT)
+            dynamic_cast<CPoweredObject*>(other)->SetPower(cargo);
+        else
+            dynamic_cast<CSlottedObject*>(other)->SetSlotContainedObject(slotNum, cargo);
         dynamic_cast<CTransportableObject*>(cargo)->SetTransporter(other);
 
-        cargo->SetPosition(dynamic_cast<CPoweredObject*>(other)->GetPowerPosition());
+        // TODO: isn't this wrong? PowerPosition (and SlotContainedPosition) is an object-local position.
+        if (slotNum == ENERGY_CELL_SLOT)
+            cargo->SetPosition(dynamic_cast<CPoweredObject*>(other)->GetPowerPosition());
+        else
+            cargo->SetPosition(dynamic_cast<CSlottedObject*>(other)->GetSlotPosition(slotNum));
         cargo->SetRotationY(0.0f);
         cargo->SetRotationX(0.0f);
         cargo->SetRotationZ(0.0f);

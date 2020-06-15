@@ -1274,6 +1274,16 @@ bool CTaskGoto::GetHotPoint(CObject *pObj, Math::Vector &pos,
         return true;
     }
 
+    if ( type == OBJECT_WATERPUMP )
+    {
+        mat = pObj->GetWorldMatrix(0);
+        pos.x += 7.0f;
+        if ( bTake && distance != 0.0f )  suppl = 2.5f;
+        if ( bTake )  pos.x += TAKE_DIST+TAKE_DIST_OTHER+distance+suppl;
+        pos = Transform(*mat, pos);
+        return true;
+    }
+
     if ( type == OBJECT_ENERGY )
     {
         mat = pObj->GetWorldMatrix(0);

@@ -33,6 +33,8 @@
 #include "object/old_object.h"
 
 #include "object/interface/powered_object.h"
+#include "object/interface/liquid_container_object.h"
+#include "object/interface/slotted_object.h"
 
 #include "sound/sound.h"
 
@@ -127,6 +129,12 @@ Error CAutoResearch::StartAction(int param)
     {
         return ERR_RESEARCH_ENERGY;
     }
+    CObject* coolantObj = dynamic_cast<CSlottedObject*>(m_object)->GetSlotContainedObject(0);
+    if (coolantObj == nullptr || !coolantObj->Implements(ObjectInterfaceType::LiquidContainer))
+        return ERR_RESEARCH_NEED_COOLANT;
+    CLiquidContainerObject *coolantAsLiq = dynamic_cast<CLiquidContainerObject*>(coolantObj);
+    if (coolantAsLiq->GetLiquidAmount() < 1.0f || coolantAsLiq->GetLiquidType() != LiquidType::WATER)
+        return ERR_RESEARCH_MORE_COOLANT;
 
     float time = SEARCH_TIME;
     if ( m_research == RESEARCH_TANK   )  time *= 0.3f;
@@ -221,7 +229,11 @@ bool CAutoResearch::EventProcess(const Event &event)
         FireStopUpdate(m_progress, true);  // flashes
         if ( m_progress < 1.0f )
         {
-            if ( m_object->GetPower() == nullptr || !m_object->GetPower()->Implements(ObjectInterfaceType::PowerContainer) )  // more battery?
+            CObject* coolantObj = dynamic_cast<CSlottedObject*>(m_object)->GetSlotContainedObject(0);
+
+            if ( m_object->GetPower() == nullptr || !m_object->GetPower()->Implements(ObjectInterfaceType::PowerContainer)  // more battery?
+              || coolantObj == nullptr || !coolantObj->Implements(ObjectInterfaceType::LiquidContainer) // coolant cell removed?
+              || dynamic_cast<CLiquidContainerObject*>(coolantObj)->GetLiquidType() != LiquidType::WATER)
             {
                 SetBusy(false);
                 UpdateInterface();
@@ -233,6 +245,7 @@ bool CAutoResearch::EventProcess(const Event &event)
             }
             power = dynamic_cast<CPowerContainerObject*>(m_object->GetPower());
             power->SetEnergyLevel(1.0f-m_progress);
+            dynamic_cast<CLiquidContainerObject*>(coolantObj)->SetLiquid(LiquidType::WATER, 1.0f - m_progress);
 
             if ( m_lastParticle+m_engine->ParticleAdapt(0.05f) <= m_time )
             {

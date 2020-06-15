@@ -77,6 +77,8 @@ enum Error
     ERR_RESEARCH_ENERGY   = 321,      //!<  more energy
     ERR_RESEARCH_TYPE     = 322,      //!<  the wrong type of battery
     ERR_RESEARCH_ALREADY  = 323,      //!<  research already done
+    ERR_RESEARCH_NEED_COOLANT = 324,  //!<  need coolant
+    ERR_RESEARCH_MORE_COOLANT = 325,  //!<  need more coolant
     ERR_ENERGY_NULL       = 330,      //!<  no energy underground
     ERR_ENERGY_LOW        = 331,      //!<  not enough energy
     ERR_ENERGY_EMPTY      = 332,      //!<  lack of metal
