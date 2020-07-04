@@ -367,7 +367,6 @@ add_subdirectory(lib/localename)
 # Wingetopt
 ##
 if(WINGETOPT)
-    set(WINGETOPT_INCLUDE_DIR ${colobot_SOURCE_DIR}/lib/wingetopt/src)
     add_subdirectory(lib/wingetopt)
 endif()
 

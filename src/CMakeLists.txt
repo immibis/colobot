@@ -33,11 +33,6 @@ if(OPENAL_SOUND)
     set(OPTIONAL_INCLUDES ${OPENAL_INCLUDE_DIR})
 endif()
 
-if(WINGETOPT)
-    set(OPTIONAL_LIBS ${OPTIONAL_LIBS} wingetopt)
-    set(OPTIONAL_INCLUDES ${OPTIONAL_INCLUDES} ${WINGETOPT_INCLUDE_DIR})
-endif()
-
 # Additional libraries per platform
 if(MXE) # MXE requires special treatment
     set(PLATFORM_LIBS ${MXE_LIBS})
@@ -639,6 +634,10 @@ target_link_libraries(colobotbase PUBLIC
     libsndfile::libsndfile
     localename
 )
+
+if(WINGETOPT)
+    target_link_libraries(colobotbase PUBLIC wingetopt)
+endif()
 
 add_executable(colobot ${MAIN_SOURCES})
 target_link_libraries(colobot colobotbase ${LIBS})

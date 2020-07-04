@@ -31,13 +31,11 @@ include_directories(
 
 include_directories(
     SYSTEM
-    ${GTEST_INCLUDE_DIR}
     ${COLOBOT_SYSTEM_INCLUDES}
 )
 
 # Libraries
 set(LIBS
-    gtest
     colobotbase
     ${COLOBOT_LIBS}
 )
@@ -55,7 +53,7 @@ file(COPY ${TEST_FILES} DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
 add_definitions(-DGTEST_HAS_TR1_TUPLE=0)
 
 add_executable(colobot_ut ${UT_SOURCES})
-target_link_libraries(colobot_ut ${LIBS} hippomocks)
+target_link_libraries(colobot_ut ${LIBS} hippomocks gtest)
 
 add_test(
     NAME colobot_ut
