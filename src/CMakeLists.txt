@@ -24,15 +24,6 @@ endif()
 add_subdirectory(graphics/opengl/shaders)
 
 
-# Optional libraries
-set(OPTIONAL_LIBS "")
-set(OPTIONAL_INCLUDES "")
-
-if(OPENAL_SOUND)
-    set(OPTIONAL_LIBS ${OPENAL_LIBRARY})
-    set(OPTIONAL_INCLUDES ${OPENAL_INCLUDE_DIR})
-endif()
-
 # Additional libraries per platform
 if(MXE) # MXE requires special treatment
     set(PLATFORM_LIBS ${MXE_LIBS})
@@ -585,17 +576,6 @@ set(MAIN_SOURCES
     ${RES_FILES}
 )
 
-# Libraries
-set(LIBS
-    CBot
-    ${OPENGL_LIBRARY}
-    ${OPTIONAL_LIBS}
-    ${PLATFORM_LIBS}
-)
-
-set(COLOBOT_LIBS ${LIBS} PARENT_SCOPE)
-
-
 # Includes
 set(LOCAL_INCLUDES
     ${CMAKE_CURRENT_SOURCE_DIR}
@@ -605,7 +585,6 @@ set(LOCAL_INCLUDES
 
 set(SYSTEM_INCLUDES
     ${LIBINTL_INCLUDE_PATH}
-    ${OPTIONAL_INCLUDES}
 )
 
 set(COLOBOT_LOCAL_INCLUDES ${LOCAL_INCLUDES} PARENT_SCOPE)
@@ -633,7 +612,24 @@ target_link_libraries(colobotbase PUBLIC
     PhysFS::PhysFS
     libsndfile::libsndfile
     localename
+
+    CBot
+
+    ${PLATFORM_LIBS}
+    ${OPENGL_LIBRARY}
 )
+
+if(OPENAL_SOUND)
+    # find_package(OpenAL) doesn't define a target for OpenAL, so we make our own one
+    add_library(OpenAL INTERFACE IMPORTED)
+    target_link_libraries(OpenAL INTERFACE ${OPENAL_LIBRARY})
+    target_include_directories(OpenAL INTERFACE ${OPENAL_INCLUDE_DIR})
+
+    target_link_libraries(colobotbase PUBLIC
+        OpenAL
+        libsndfile::libsndfile
+    )
+endif()
 
 if(WINGETOPT)
     target_link_libraries(colobotbase PUBLIC wingetopt)
